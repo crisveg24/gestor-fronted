@@ -25,6 +25,7 @@ interface Store {
   name: string;
   address: string;
   phone: string;
+  email: string;
   manager?: {
     _id: string;
     name: string;
@@ -50,6 +51,7 @@ interface StoreFormData {
   name: string;
   address: string;
   phone: string;
+  email: string;
   manager?: string;
 }
 
@@ -68,6 +70,7 @@ const StoresPage = () => {
     name: '',
     address: '',
     phone: '',
+    email: '',
     manager: '',
   });
 
@@ -168,6 +171,7 @@ const StoresPage = () => {
       name: '',
       address: '',
       phone: '',
+      email: '',
       manager: '',
     });
   };
@@ -183,6 +187,7 @@ const StoresPage = () => {
       name: store.name,
       address: store.address,
       phone: store.phone,
+      email: store.email,
       manager: store.manager?._id || '',
     });
     setEditModalOpen(true);
@@ -559,6 +564,19 @@ const StoresPage = () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
+              Email <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              placeholder="Ej: tienda@ejemplo.com"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Gerente (Opcional)
             </label>
             <select
@@ -637,6 +655,19 @@ const StoresPage = () => {
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               placeholder="Ej: 555-1234"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Email <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              placeholder="Ej: tienda@ejemplo.com"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
