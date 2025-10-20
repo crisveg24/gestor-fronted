@@ -97,6 +97,11 @@ const SalesPage = () => {
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
 
+  // Estados del corte de caja
+  const [cutModalOpen, setCutModalOpen] = useState(false);
+  const [cashCounted, setCashCounted] = useState('');
+  const [cutObservations, setCutObservations] = useState('');
+
   // Query para buscar productos
   const { data: products, isLoading: loadingProducts } = useQuery<Product[]>({
     queryKey: ['products-search', searchProduct],
@@ -129,6 +134,20 @@ const SalesPage = () => {
       return response.data.data.sales;
     },
     enabled: showHistory,
+  });
+
+  // Query para datos de corte de caja
+  const { data: dailyCutData, isLoading: loadingDailyCut, refetch: refetchDailyCut } = useQuery({
+    queryKey: ['daily-cut', user?.store?._id],
+    queryFn: async () => {
+      const response = await api.get('/sales/daily-cut', {
+        params: {
+          storeId: user?.store?._id
+        }
+      });
+      return response.data.data;
+    },
+    enabled: false, // Solo se ejecuta manualmente cuando se abre el modal
   });
 
   // Mutation para crear venta
@@ -352,13 +371,25 @@ const SalesPage = () => {
             {showHistory ? 'Historial de ventas' : 'Crear nueva venta'}
           </p>
         </div>
-        <Button
-          onClick={() => setShowHistory(!showHistory)}
-          variant={showHistory ? 'primary' : 'outline'}
-          leftIcon={showHistory ? <ShoppingCart size={20} /> : <Receipt size={20} />}
-        >
-          {showHistory ? 'Nueva Venta' : 'Ver Historial'}
-        </Button>
+        <div className="flex gap-3">
+          <Button
+            onClick={() => {
+              setCutModalOpen(true);
+              refetchDailyCut();
+            }}
+            variant="outline"
+            leftIcon={<DollarSign size={20} />}
+          >
+            Corte de Caja
+          </Button>
+          <Button
+            onClick={() => setShowHistory(!showHistory)}
+            variant={showHistory ? 'primary' : 'outline'}
+            leftIcon={showHistory ? <ShoppingCart size={20} /> : <Receipt size={20} />}
+          >
+            {showHistory ? 'Nueva Venta' : 'Ver Historial'}
+          </Button>
+        </div>
       </motion.div>
 
       {!showHistory ? (
@@ -844,6 +875,193 @@ const SalesPage = () => {
         <Modal.Footer>
           <Button variant="ghost" onClick={() => setDetailModalOpen(false)}>
             Cerrar
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Modal de Corte de Caja */}
+      <Modal
+        isOpen={cutModalOpen}
+        onClose={() => {
+          setCutModalOpen(false);
+          setCashCounted('');
+          setCutObservations('');
+        }}
+        title="💰 Corte de Caja del Día"
+        size="xl"
+      >
+        {loadingDailyCut ? (
+          <div className="flex justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+          </div>
+        ) : dailyCutData ? (
+          <div className="space-y-6">
+            {/* Información de cabecera */}
+            <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+              <div>
+                <p className="text-sm text-gray-600">Fecha</p>
+                <p className="font-medium text-gray-900">
+                  {format(new Date(dailyCutData.date), "dd 'de' MMMM, yyyy", { locale: es })}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Tienda</p>
+                <p className="font-medium text-gray-900">{dailyCutData.store.name}</p>
+              </div>
+            </div>
+
+            {/* Resumen de ventas */}
+            <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg border border-green-200">
+              <p className="text-sm text-gray-600 font-medium mb-2">Total Venta del Día</p>
+              <p className="text-4xl font-bold text-gray-900">
+                ${dailyCutData.summary.totalRevenue.toLocaleString('es-CO', {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                })}
+              </p>
+              <p className="text-sm text-gray-600 mt-1">
+                {dailyCutData.summary.totalSales} {dailyCutData.summary.totalSales === 1 ? 'venta' : 'ventas'}
+              </p>
+            </div>
+
+            {/* Desglose por método de pago */}
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-3">Desglose por Método de Pago</h4>
+              <div className="space-y-2">
+                {dailyCutData.paymentMethods.map((pm: any) => (
+                  <div
+                    key={pm.method}
+                    className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{
+                        pm.method === 'efectivo' ? '💵' :
+                        pm.method === 'nequi' ? '🟣' :
+                        pm.method === 'daviplata' ? '🟠' :
+                        pm.method === 'llave_bancolombia' ? '🔑' :
+                        pm.method === 'tarjeta' ? '💳' :
+                        pm.method === 'transferencia' ? '🏦' : '💰'
+                      }</span>
+                      <div>
+                        <p className="font-medium text-gray-900">
+                          {formatPaymentMethod(pm.method)}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {pm.count} {pm.count === 1 ? 'transacción' : 'transacciones'}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-lg font-bold text-gray-900">
+                      ${pm.total.toLocaleString('es-CO', {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0,
+                      })}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Efectivo a contar */}
+            <div className="border-t border-gray-200 pt-4">
+              <h4 className="font-semibold text-gray-900 mb-3">Efectivo Contado</h4>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle size={20} className="text-yellow-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-yellow-800">
+                      Efectivo según sistema:
+                    </p>
+                    <p className="text-2xl font-bold text-yellow-900 mt-1">
+                      ${(dailyCutData.paymentMethods.find((pm: any) => pm.method === 'efectivo')?.total || 0).toLocaleString('es-CO')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Efectivo Contado (ingresa el monto que contaste físicamente)
+                </label>
+                <input
+                  type="number"
+                  value={cashCounted}
+                  onChange={(e) => setCashCounted(e.target.value)}
+                  className="w-full px-4 py-3 text-lg border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  placeholder="0"
+                />
+              </div>
+
+              {/* Diferencia */}
+              {cashCounted && (
+                <div className="mt-4 p-4 rounded-lg border-2" style={{
+                  backgroundColor: Number(cashCounted) === (dailyCutData.paymentMethods.find((pm: any) => pm.method === 'efectivo')?.total || 0) ? '#f0fdf4' :
+                    Number(cashCounted) > (dailyCutData.paymentMethods.find((pm: any) => pm.method === 'efectivo')?.total || 0) ? '#fef3c7' : '#fee2e2',
+                  borderColor: Number(cashCounted) === (dailyCutData.paymentMethods.find((pm: any) => pm.method === 'efectivo')?.total || 0) ? '#22c55e' :
+                    Number(cashCounted) > (dailyCutData.paymentMethods.find((pm: any) => pm.method === 'efectivo')?.total || 0) ? '#f59e0b' : '#ef4444'
+                }}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium" style={{
+                        color: Number(cashCounted) === (dailyCutData.paymentMethods.find((pm: any) => pm.method === 'efectivo')?.total || 0) ? '#16a34a' :
+                          Number(cashCounted) > (dailyCutData.paymentMethods.find((pm: any) => pm.method === 'efectivo')?.total || 0) ? '#d97706' : '#dc2626'
+                      }}>
+                        {Number(cashCounted) === (dailyCutData.paymentMethods.find((pm: any) => pm.method === 'efectivo')?.total || 0) ? '✅ Exacto' :
+                          Number(cashCounted) > (dailyCutData.paymentMethods.find((pm: any) => pm.method === 'efectivo')?.total || 0) ? '⚠️ Sobrante' : '❌ Faltante'}
+                      </p>
+                      <p className="text-2xl font-bold" style={{
+                        color: Number(cashCounted) === (dailyCutData.paymentMethods.find((pm: any) => pm.method === 'efectivo')?.total || 0) ? '#16a34a' :
+                          Number(cashCounted) > (dailyCutData.paymentMethods.find((pm: any) => pm.method === 'efectivo')?.total || 0) ? '#d97706' : '#dc2626'
+                      }}>
+                        {Number(cashCounted) > (dailyCutData.paymentMethods.find((pm: any) => pm.method === 'efectivo')?.total || 0) ? '+' : ''}
+                        ${(Number(cashCounted) - (dailyCutData.paymentMethods.find((pm: any) => pm.method === 'efectivo')?.total || 0)).toLocaleString('es-CO')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Observaciones */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Observaciones
+              </label>
+              <textarea
+                value={cutObservations}
+                onChange={(e) => setCutObservations(e.target.value)}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder="Ej: Sobrante guardado en sobre sellado para verificación..."
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-12 text-gray-500">
+            <DollarSign size={48} className="mx-auto mb-2 text-gray-300" />
+            <p>No hay datos disponibles para el corte de caja</p>
+          </div>
+        )}
+
+        <Modal.Footer>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setCutModalOpen(false);
+              setCashCounted('');
+              setCutObservations('');
+            }}
+          >
+            Cerrar
+          </Button>
+          <Button
+            onClick={() => {
+              toast.success('Funcionalidad de PDF en desarrollo');
+              // TODO: Implementar generación de PDF
+            }}
+            leftIcon={<Receipt size={18} />}
+          >
+            Descargar PDF
           </Button>
         </Modal.Footer>
       </Modal>
