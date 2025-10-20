@@ -65,6 +65,13 @@ interface LowStockItem {
   storeName: string;
 }
 
+interface PaymentMethodStats {
+  method: string;
+  total: number;
+  count: number;
+  percentage: number;
+}
+
 const DashboardPage = () => {
   // Queries
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
@@ -103,6 +110,14 @@ const DashboardPage = () => {
     queryKey: ['dashboard-low-stock'],
     queryFn: async () => {
       const response = await api.get('/dashboard/low-stock');
+      return response.data.data;
+    },
+  });
+
+  const { data: paymentMethodStats, isLoading: paymentStatsLoading } = useQuery<PaymentMethodStats[]>({
+    queryKey: ['dashboard-payment-methods'],
+    queryFn: async () => {
+      const response = await api.get('/dashboard/payment-methods');
       return response.data.data;
     },
   });
@@ -414,11 +429,152 @@ const DashboardPage = () => {
         </motion.div>
       </div>
 
-      {/* Quick Actions */}
+      {/* Payment Methods Stats */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.8, duration: 0.3 }}
+      >
+        <Card>
+          <Card.Header>
+            <div className="flex items-center gap-2">
+              <DollarSign className="text-green-500" size={20} />
+              <h3 className="text-lg font-semibold text-gray-900">Métodos de Pago</h3>
+            </div>
+            <p className="text-sm text-gray-500">
+              Distribución de ventas del día
+            </p>
+          </Card.Header>
+          <Card.Body>
+            {paymentStatsLoading ? (
+              <div className="h-48 flex items-center justify-center">
+                <Loading size="md" />
+              </div>
+            ) : paymentMethodStats && paymentMethodStats.length > 0 ? (
+              <div className="space-y-4">
+                {/* Total del día */}
+                <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg border border-green-200">
+                  <p className="text-sm text-gray-600 font-medium">Total Venta del Día</p>
+                  <p className="text-3xl font-bold text-gray-900 mt-1">
+                    ${paymentMethodStats.reduce((sum, pm) => sum + pm.total, 0).toLocaleString('es-CO', {
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 0,
+                    })}
+                  </p>
+                </div>
+
+                {/* Desglose por método */}
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                  {paymentMethodStats.map((pm, index) => {
+                    const icons: Record<string, string> = {
+                      efectivo: '💵',
+                      nequi: '🟣',
+                      daviplata: '🟠',
+                      llave_bancolombia: '🔑',
+                      tarjeta: '💳',
+                      transferencia: '🏦',
+                    };
+
+                    const labels: Record<string, string> = {
+                      efectivo: 'Efectivo',
+                      nequi: 'Nequi',
+                      daviplata: 'Daviplata',
+                      llave_bancolombia: 'Llave Bancolombia',
+                      tarjeta: 'Tarjeta',
+                      transferencia: 'Transferencia',
+                    };
+
+                    const bgColors: Record<string, string> = {
+                      efectivo: 'bg-green-50 border-green-200',
+                      nequi: 'bg-purple-50 border-purple-200',
+                      daviplata: 'bg-orange-50 border-orange-200',
+                      llave_bancolombia: 'bg-yellow-50 border-yellow-200',
+                      tarjeta: 'bg-blue-50 border-blue-200',
+                      transferencia: 'bg-indigo-50 border-indigo-200',
+                    };
+
+                    const textColors: Record<string, string> = {
+                      efectivo: 'text-green-700',
+                      nequi: 'text-purple-700',
+                      daviplata: 'text-orange-700',
+                      llave_bancolombia: 'text-yellow-700',
+                      tarjeta: 'text-blue-700',
+                      transferencia: 'text-indigo-700',
+                    };
+
+                    return (
+                      <motion.div
+                        key={pm.method}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: index * 0.05 }}
+                        className={`${bgColors[pm.method] || 'bg-gray-50 border-gray-200'} p-4 rounded-lg border-2`}
+                      >
+                        <div className="text-center">
+                          <div className="text-3xl mb-2">
+                            {icons[pm.method] || '💰'}
+                          </div>
+                          <p className="text-xs font-medium text-gray-600 mb-1">
+                            {labels[pm.method] || pm.method}
+                          </p>
+                          <p className={`text-lg font-bold ${textColors[pm.method] || 'text-gray-900'}`}>
+                            ${pm.total.toLocaleString('es-CO', {
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 0,
+                            })}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {pm.count} {pm.count === 1 ? 'venta' : 'ventas'}
+                          </p>
+                          <div className="mt-2 bg-white rounded-full h-2 overflow-hidden">
+                            <div
+                              className={`h-full ${bgColors[pm.method]?.replace('bg-', 'bg-') || 'bg-gray-300'}`}
+                              style={{ width: `${pm.percentage}%` }}
+                            />
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {pm.percentage.toFixed(1)}%
+                          </p>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+
+                {/* Ejemplo como lo haces en papel */}
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <p className="text-xs text-gray-500 mb-2 font-medium">💡 Ejemplo de cierre:</p>
+                  <p className="text-sm text-gray-700 font-mono">
+                    Total: ${paymentMethodStats.reduce((sum, pm) => sum + pm.total, 0).toLocaleString('es-CO')}
+                    {paymentMethodStats.map(pm => {
+                      const labels: Record<string, string> = {
+                        nequi: 'Nequi',
+                        daviplata: 'Daviplata',
+                        llave_bancolombia: 'Llave Bancolombia',
+                        efectivo: 'Efectivo',
+                        tarjeta: 'Tarjeta',
+                        transferencia: 'Transferencia',
+                      };
+                      return ` | ${labels[pm.method] || pm.method}: $${pm.total.toLocaleString('es-CO')}`;
+                    }).join('')}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-12 text-gray-500">
+                <DollarSign size={48} className="mx-auto mb-2 text-gray-300" />
+                <p>No hay ventas registradas hoy</p>
+              </div>
+            )}
+          </Card.Body>
+        </Card>
+      </motion.div>
+
+      {/* Quick Actions */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.9, duration: 0.3 }}
       >
         <Card>
           <Card.Header>

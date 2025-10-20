@@ -17,6 +17,19 @@ import { useAuthStore } from '../store/authStore';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
+// Función helper para formatear métodos de pago
+const formatPaymentMethod = (method: string): string => {
+  const methods: Record<string, string> = {
+    efectivo: '💵 Efectivo',
+    nequi: '🟣 Nequi',
+    daviplata: '🟠 Daviplata',
+    llave_bancolombia: '🔑 Llave Bancolombia',
+    tarjeta: '💳 Tarjeta',
+    transferencia: '🏦 Transferencia',
+  };
+  return methods[method] || method;
+};
+
 // Tipos
 interface Product {
   _id: string;
@@ -291,7 +304,7 @@ const SalesPage = () => {
       header: 'Pago',
       render: (sale) => (
         <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-          {sale.paymentMethod}
+          {formatPaymentMethod(sale.paymentMethod)}
         </span>
       ),
     },
@@ -611,9 +624,12 @@ const SalesPage = () => {
                       onChange={(e) => setPaymentMethod(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                     >
-                      <option value="efectivo">Efectivo</option>
-                      <option value="tarjeta">Tarjeta</option>
-                      <option value="transferencia">Transferencia</option>
+                      <option value="efectivo">💵 Efectivo</option>
+                      <option value="nequi">🟣 Nequi</option>
+                      <option value="daviplata">🟠 Daviplata</option>
+                      <option value="llave_bancolombia">🔑 Llave Bancolombia</option>
+                      <option value="tarjeta">💳 Tarjeta</option>
+                      <option value="transferencia">🏦 Transferencia</option>
                     </select>
                   </div>
 
@@ -752,8 +768,8 @@ const SalesPage = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-600">Método de Pago</p>
-                <p className="font-medium text-gray-900 capitalize">
-                  {selectedSale.paymentMethod}
+                <p className="font-medium text-gray-900">
+                  {formatPaymentMethod(selectedSale.paymentMethod)}
                 </p>
               </div>
             </div>
