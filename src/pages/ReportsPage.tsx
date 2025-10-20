@@ -33,6 +33,19 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 
+// Función helper para formatear métodos de pago
+const formatPaymentMethod = (method: string): string => {
+  const methods: Record<string, string> = {
+    efectivo: '💵 Efectivo',
+    nequi: '🟣 Nequi',
+    daviplata: '🟠 Daviplata',
+    llave_bancolombia: '🔑 Llave Bancolombia',
+    tarjeta: '💳 Tarjeta',
+    transferencia: '🏦 Transferencia',
+  };
+  return methods[method] || method;
+};
+
 // Tipos
 interface SalesTrendData {
   date: string;
@@ -921,7 +934,7 @@ const ReportsPage = () => {
                       cy="50%"
                       labelLine={false}
                       label={(entry: any) =>
-                        `${entry.method}: ${(entry.percent * 100).toFixed(0)}%`
+                        `${formatPaymentMethod(entry.method)}: ${(entry.percent * 100).toFixed(0)}%`
                       }
                       outerRadius={100}
                       fill="#8884d8"

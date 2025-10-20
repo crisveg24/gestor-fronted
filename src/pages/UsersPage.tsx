@@ -657,7 +657,7 @@ const UsersPage = () => {
                 onChange={(e) => setFormData({ ...formData, store: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
-                <option value="">Sin asignar (puede asignarse después)</option>
+                <option value="">Sin asignar (puede asignarse despuï¿½s)</option>
                 {stores?.map((store) => (
                   <option key={store._id} value={store._id}>
                     {store.name}
@@ -745,7 +745,7 @@ const UsersPage = () => {
                 onChange={(e) => setFormData({ ...formData, store: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
-                <option value="">Sin asignar (puede asignarse después)</option>
+                <option value="">Sin asignar (puede asignarse despuï¿½s)</option>
                 {stores?.map((store) => (
                   <option key={store._id} value={store._id}>
                     {store.name}
