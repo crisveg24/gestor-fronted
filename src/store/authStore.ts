@@ -9,11 +9,13 @@ interface AuthActions {
   refreshAuth: () => Promise<void>;
   setUser: (user: User) => void;
   checkAuth: () => boolean;
+  verifyToken: () => Promise<boolean>;
+  initializeAuth: () => Promise<void>;
 }
 
 type AuthStore = AuthState & AuthActions;
 
-// Store de autenticación SIN persistencia para testing
+// Store de autenticación con verificación de token
 export const useAuthStore = create<AuthStore>()((set, get) => ({
   // State inicial
   user: null,
@@ -74,8 +76,16 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
           isLoading: false,
         });
 
-        // Redirigir al login
-        window.location.href = '/login';
+        // Limpiar sessionStorage y localStorage
+        sessionStorage.clear();
+        localStorage.clear();
+
+        // Prevenir botón "atrás" reemplazando historial
+        window.history.pushState(null, '', '/login');
+        window.history.replaceState(null, '', '/login');
+
+        // Redirigir al login con replace para no dejar rastro en historial
+        window.location.replace('/login');
       },
 
       // ==================== REFRESH AUTH ====================
@@ -125,5 +135,61 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
 
         // Verificar que el usuario esté autenticado y tenga token válido
         return isAuthenticated && (!!accessToken || !!cookieToken);
+      },
+
+      // ==================== VERIFY TOKEN ====================
+      verifyToken: async () => {
+        try {
+          const accessToken = Cookies.get('accessToken');
+          
+          if (!accessToken) {
+            return false;
+          }
+
+          // Verificar token con el backend usando /auth/me
+          const response = await api.get('/auth/me');
+          const { user } = response.data.data;
+
+          // Actualizar state con datos del usuario
+          set({
+            user,
+            accessToken,
+            refreshToken: Cookies.get('refreshToken'),
+            isAuthenticated: true,
+          });
+
+          return true;
+        } catch (error) {
+          // Token inválido o expirado, intentar refresh
+          try {
+            await get().refreshAuth();
+            return true;
+          } catch (refreshError) {
+            // Ambos tokens inválidos, logout
+            get().logout();
+            return false;
+          }
+        }
+      },
+
+      // ==================== INITIALIZE AUTH ====================
+      initializeAuth: async () => {
+        const accessToken = Cookies.get('accessToken');
+        const refreshToken = Cookies.get('refreshToken');
+
+        if (!accessToken && !refreshToken) {
+          return;
+        }
+
+        set({ isLoading: true });
+
+        try {
+          await get().verifyToken();
+        } catch (error) {
+          console.error('Error al inicializar autenticación:', error);
+          get().logout();
+        } finally {
+          set({ isLoading: false });
+        }
       },
 }));
