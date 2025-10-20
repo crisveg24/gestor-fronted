@@ -65,9 +65,6 @@ interface LowStockItem {
   storeName: string;
 }
 
-// Colores para gráficos
-const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
-
 const DashboardPage = () => {
   // Queries
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
