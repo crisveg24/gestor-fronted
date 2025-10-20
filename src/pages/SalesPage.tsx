@@ -9,6 +9,7 @@ import {
   Receipt,
   Search,
   X,
+  AlertTriangle,
 } from 'lucide-react';
 import { Card, Button, Modal, toast, Table, SearchBar, EmptyStateNoStore } from '../components/ui';
 import type { Column } from '../components/ui';
