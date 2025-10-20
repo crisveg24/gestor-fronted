@@ -9,6 +9,7 @@ import InventoryPage from './pages/InventoryPage';
 import SalesPage from './pages/SalesPage';
 import StoresPage from './pages/StoresPage';
 import UsersPage from './pages/UsersPage';
+import ReportsPage from './pages/ReportsPage';
 import { useEffect } from 'react';
 import { Toaster } from './components/ui';
 import DashboardLayout from './components/layout/DashboardLayout';
@@ -174,10 +175,7 @@ function App() {
               path="/reportes"
               element={
                 <ProtectedRoute>
-                  <div className="p-8">
-                    <h1 className="text-3xl font-bold">Reportes</h1>
-                    <p className="mt-4">Reportes y gráficos (próximamente)</p>
-                  </div>
+                  <ReportsPage />
                 </ProtectedRoute>
               }
             />
