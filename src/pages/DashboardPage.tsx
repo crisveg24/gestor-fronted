@@ -78,34 +78,63 @@ const DashboardPage = () => {
     queryKey: ['dashboard-stats'],
     queryFn: async () => {
       const response = await api.get('/dashboard/global');
-      return response.data.data;
+      const data = response.data.data;
+      
+      // Mapear la respuesta del backend a la interfaz del frontend
+      return {
+        totalSales: data.overview?.totalSales || 0,
+        totalRevenue: data.overview?.totalRevenue || 0,
+        totalProducts: data.overview?.totalProducts || 0,
+        totalStores: data.overview?.totalStores || 0,
+        salesGrowth: data.growth?.sales || 0,
+        revenueGrowth: data.growth?.revenue || 0,
+        lowStockProducts: data.overview?.lowStockCount || 0,
+        activeUsers: data.overview?.totalUsers || 0,
+      };
     },
-    enabled: false, // Desactivado temporalmente - endpoint no implementado completamente
   });
 
   const { data: salesData, isLoading: salesLoading } = useQuery<SalesData[]>({
     queryKey: ['dashboard-sales'],
     queryFn: async () => {
-      return [];
+      const response = await api.get('/dashboard/sales-trend', {
+        params: { days: 30 }
+      });
+      // Mapear: { date, sales, revenue } -> { date, ventas, ingresos }
+      return (response.data.data || []).map((item: any) => ({
+        date: item.date,
+        ventas: item.sales || 0,
+        ingresos: item.revenue || 0,
+      }));
     },
-    enabled: false, // Desactivado - endpoint no existe
   });
 
   const { data: topProducts, isLoading: productsLoading } = useQuery<TopProduct[]>({
     queryKey: ['dashboard-top-products'],
     queryFn: async () => {
-      return [];
+      const response = await api.get('/dashboard/top-products', {
+        params: { limit: 10 }
+      });
+      // Mapear: { name, totalQuantity, totalRevenue } -> { name, sales, revenue }
+      return (response.data.data || []).map((item: any) => ({
+        name: item.name,
+        sales: item.totalQuantity || 0,
+        revenue: item.totalRevenue || 0,
+      }));
     },
-    enabled: false, // Desactivado - endpoint no existe
   });
 
   const { data: storesPerformance, isLoading: storesLoading } = useQuery<StorePerformance[]>({
     queryKey: ['dashboard-stores'],
     queryFn: async () => {
       const response = await api.get('/dashboard/comparison');
-      return response.data.data;
+      // Mapear: { store: { name }, totalSales, totalRevenue } -> { name, ventas, ingresos }
+      return (response.data.data || []).map((item: any) => ({
+        name: item.store?.name || 'Sin nombre',
+        ventas: item.totalSales || 0,
+        ingresos: item.totalRevenue || 0,
+      }));
     },
-    enabled: false, // Desactivado temporalmente
   });
 
   const { data: lowStockItems, isLoading: lowStockLoading } = useQuery<LowStockItem[]>({
@@ -114,7 +143,6 @@ const DashboardPage = () => {
       const response = await api.get('/inventory/alerts/low-stock');
       return response.data.data || [];
     },
-    enabled: false, // Desactivado temporalmente
   });
 
   const { data: paymentMethodStats, isLoading: paymentStatsLoading } = useQuery<PaymentMethodStats[]>({
