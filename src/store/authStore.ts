@@ -28,10 +28,12 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
           set({ isLoading: true });
 
           const response = await api.post('/auth/login', credentials);
-          const { user, accessToken, refreshToken } = response.data.data;
+          
+          // El backend devuelve: { success: true, token, refreshToken, user }
+          const { user, token, refreshToken } = response.data;
 
           // Guardar tokens en cookies seguras
-          Cookies.set('accessToken', accessToken, {
+          Cookies.set('accessToken', token, {
             secure: true,
             sameSite: 'strict',
             expires: 1 / 24, // 1 hora
@@ -46,7 +48,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
           // Actualizar state
           set({
             user,
-            accessToken,
+            accessToken: token,
             refreshToken,
             isAuthenticated: true,
             isLoading: false,
