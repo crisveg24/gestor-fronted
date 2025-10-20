@@ -12,7 +12,7 @@ import {
   TrendingDown,
   Filter,
 } from 'lucide-react';
-import { Card, SearchBar, Table, Button, Modal, toast } from '../components/ui';
+import { Card, SearchBar, Table, Button, Modal, toast, EmptyStateNoStore } from '../components/ui';
 import type { Column } from '../components/ui';
 import api from '../lib/axios';
 import { useAuthStore } from '../store/authStore';
@@ -67,6 +67,11 @@ const InventoryPage = () => {
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'admin';
+
+  // Verificar si el usuario tiene tienda asignada
+  if (user && !isAdmin && !user.store) {
+    return <EmptyStateNoStore />;
+  }
 
   // Estados
   const [selectedStore, setSelectedStore] = useState<string>(user?.store?._id || 'all');

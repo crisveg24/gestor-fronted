@@ -10,7 +10,7 @@ import {
   Search,
   X,
 } from 'lucide-react';
-import { Card, Button, Modal, toast, Table, SearchBar } from '../components/ui';
+import { Card, Button, Modal, toast, Table, SearchBar, EmptyStateNoStore } from '../components/ui';
 import type { Column } from '../components/ui';
 import api from '../lib/axios';
 import { useAuthStore } from '../store/authStore';
@@ -74,6 +74,11 @@ interface Sale {
 const SalesPage = () => {
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
+
+  // Verificar si el usuario tiene tienda asignada
+  if (user && user.role !== 'admin' && !user.store) {
+    return <EmptyStateNoStore />;
+  }
 
   // Estados del carrito
   const [cart, setCart] = useState<CartItem[]>([]);
