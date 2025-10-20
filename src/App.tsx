@@ -3,6 +3,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from './store/authStore';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
+import ProductsPage from './pages/ProductsPage';
+import ProductFormPage from './pages/ProductFormPage';
 import { useEffect } from 'react';
 import { Toaster } from './components/ui';
 import DashboardLayout from './components/layout/DashboardLayout';
@@ -105,10 +107,7 @@ function App() {
               path="/productos"
               element={
                 <ProtectedRoute>
-                  <div className="p-8">
-                    <h1 className="text-3xl font-bold">Productos</h1>
-                    <p className="mt-4">Lista de productos (próximamente)</p>
-                  </div>
+                  <ProductsPage />
                 </ProtectedRoute>
               }
             />
@@ -117,10 +116,16 @@ function App() {
               path="/productos/nuevo"
               element={
                 <ProtectedRoute>
-                  <div className="p-8">
-                    <h1 className="text-3xl font-bold">Nuevo Producto</h1>
-                    <p className="mt-4">Formulario de creación (próximamente)</p>
-                  </div>
+                  <ProductFormPage />
+                </ProtectedRoute>
+              }
+            />
+            
+            <Route
+              path="/productos/editar/:id"
+              element={
+                <ProtectedRoute>
+                  <ProductFormPage />
                 </ProtectedRoute>
               }
             />
