@@ -5,6 +5,7 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import ProductsPage from './pages/ProductsPage';
 import ProductFormPage from './pages/ProductFormPage';
+import InventoryPage from './pages/InventoryPage';
 import { useEffect } from 'react';
 import { Toaster } from './components/ui';
 import DashboardLayout from './components/layout/DashboardLayout';
@@ -134,10 +135,7 @@ function App() {
               path="/inventario"
               element={
                 <ProtectedRoute>
-                  <div className="p-8">
-                    <h1 className="text-3xl font-bold">Inventario</h1>
-                    <p className="mt-4">Gestión de inventario (próximamente)</p>
-                  </div>
+                  <InventoryPage />
                 </ProtectedRoute>
               }
             />
