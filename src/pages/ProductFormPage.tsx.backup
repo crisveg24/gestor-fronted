@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tantml:function_calls>
+<invoke name="useNavigate">
+<parameter name="useParams">useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Save } from 'lucide-react';
 import { Card, Button, toast } from '../components/ui';
@@ -20,11 +21,11 @@ const productSchema = z.object({
   price: z.number().positive('El precio debe ser mayor a 0'),
   cost: z.number().positive('El costo debe ser mayor a 0'),
   isActive: z.boolean(),
-  // Campos de inventario (solo para crear)
-  store: z.string().optional(),
-  quantity: z.number().optional(),
-  minStock: z.number().optional(),
-  maxStock: z.number().optional(),
+  // Campos de inventario
+  store: z.string().min(1, 'La tienda es requerida'),
+  quantity: z.number().min(0, 'La cantidad no puede ser negativa'),
+  minStock: z.number().min(0, 'El stock mínimo no puede ser negativo'),
+  maxStock: z.number().positive('El stock máximo debe ser mayor a 0'),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -59,14 +60,13 @@ const ProductFormPage = () => {
     },
   });
 
-  // Query para obtener tiendas (solo para crear productos)
+  // Query para obtener tiendas
   const { data: stores } = useQuery<Store[]>({
     queryKey: ['stores'],
     queryFn: async () => {
       const response = await api.get('/stores');
       return response.data.data || [];
     },
-    enabled: !isEditMode,
   });
 
   // Auto-asignar tienda si el usuario no es admin
@@ -76,6 +76,19 @@ const ProductFormPage = () => {
       setAutoAssignedStore(true);
     }
   }, [user, setValue, isEditMode, autoAssignedStore]);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+    watch,
+  } = useForm<ProductFormData>({
+    resolver: zodResolver(productSchema),
+    defaultValues: {
+      isActive: true,
+    },
+  });
 
   // Query para obtener producto (solo en modo edición)
   const { data: product, isLoading } = useQuery({
@@ -109,8 +122,7 @@ const ProductFormPage = () => {
       if (isEditMode) {
         await api.put(`/products/${id}`, data);
       } else {
-        // Usar el nuevo endpoint para crear producto con inventario
-        await api.post('/products/with-inventory', data);
+        await api.post('/products', data);
       }
     },
     onSuccess: () => {
@@ -316,12 +328,16 @@ const ProductFormPage = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Margen
+                    Margen de Ganancia
                   </label>
-                  <div className="h-10 flex items-center">
+                  <div className="flex items-center h-10 px-4 bg-gray-100 border border-gray-300 rounded-lg">
                     <span
-                      className={`text-lg font-semibold ${
-                        margin > 0 ? 'text-green-600' : 'text-gray-400'
+                      className={`font-semibold ${
+                        margin > 30
+                          ? 'text-green-600'
+                          : margin > 15
+                          ? 'text-yellow-600'
+                          : 'text-red-600'
                       }`}
                     >
                       {margin.toFixed(1)}%
@@ -330,107 +346,12 @@ const ProductFormPage = () => {
                 </div>
               </div>
 
-              {/* Campos de Inventario (solo al crear) */}
-              {!isEditMode && (
-                <>
-                  <div className="border-t pt-6">
-                    <h4 className="text-md font-semibold text-gray-900 mb-4">Información de Inventario</h4>
-                  </div>
-
-                  {/* Tienda */}
-                  {user?.role === 'admin' ? (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Tienda *
-                      </label>
-                      <select
-                        {...register('store')}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                      >
-                        <option value="">Selecciona una tienda</option>
-                        {stores?.map((store) => (
-                          <option key={store._id} value={store._id}>
-                            {store.name}
-                          </option>
-                        ))}
-                      </select>
-                      {errors.store && (
-                        <p className="mt-1 text-sm text-red-600">{errors.store.message}</p>
-                      )}
-                    </div>
-                  ) : (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Tienda
-                      </label>
-                      <input
-                        type="text"
-                        value={user?.store?.name || ''}
-                        disabled
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
-                      />
-                      <p className="mt-1 text-sm text-gray-500">
-                        El producto se asignará automáticamente a tu tienda
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Cantidad, Stock Mínimo y Máximo */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Cantidad Inicial *
-                      </label>
-                      <input
-                        type="number"
-                        {...register('quantity', { valueAsNumber: true })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                        placeholder="0"
-                      />
-                      {errors.quantity && (
-                        <p className="mt-1 text-sm text-red-600">{errors.quantity.message}</p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Stock Mínimo
-                      </label>
-                      <input
-                        type="number"
-                        {...register('minStock', { valueAsNumber: true })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                        placeholder="10"
-                      />
-                      {errors.minStock && (
-                        <p className="mt-1 text-sm text-red-600">{errors.minStock.message}</p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Stock Máximo
-                      </label>
-                      <input
-                        type="number"
-                        {...register('maxStock', { valueAsNumber: true })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                        placeholder="1000"
-                      />
-                      {errors.maxStock && (
-                        <p className="mt-1 text-sm text-red-600">{errors.maxStock.message}</p>
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
-
               {/* Estado */}
               <div className="flex items-center gap-3">
                 <input
                   type="checkbox"
-                  id="isActive"
                   {...register('isActive')}
+                  id="isActive"
                   className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
                 />
                 <label htmlFor="isActive" className="text-sm font-medium text-gray-700">
@@ -440,18 +361,21 @@ const ProductFormPage = () => {
             </Card.Body>
 
             <Card.Footer>
-              <div className="flex gap-3 justify-end">
+              <div className="flex items-center justify-end gap-3">
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost"
                   onClick={() => navigate('/productos')}
                   disabled={mutation.isPending}
                 >
                   Cancelar
                 </Button>
-                <Button type="submit" isLoading={mutation.isPending}>
-                  <Save size={18} />
-                  {isEditMode ? 'Actualizar' : 'Crear'} Producto
+                <Button
+                  type="submit"
+                  isLoading={mutation.isPending}
+                  leftIcon={<Save size={18} />}
+                >
+                  {isEditMode ? 'Actualizar Producto' : 'Crear Producto'}
                 </Button>
               </div>
             </Card.Footer>

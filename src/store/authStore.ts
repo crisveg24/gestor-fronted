@@ -38,7 +38,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
           Cookies.set('accessToken', token, {
             secure: true,
             sameSite: 'strict',
-            expires: 1 / 24, // 1 hora
+            expires: 7, // 7 días
           });
 
           Cookies.set('refreshToken', refreshToken, {
@@ -105,7 +105,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
           Cookies.set('accessToken', newAccessToken, {
             secure: true,
             sameSite: 'strict',
-            expires: 1 / 24,
+            expires: 7, // 7 días
           });
 
           Cookies.set('refreshToken', newRefreshToken, {
