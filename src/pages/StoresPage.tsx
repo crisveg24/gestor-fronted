@@ -81,7 +81,8 @@ const StoresPage = () => {
       const response = await api.get('/stores', {
         params: { search: searchQuery },
       });
-      return response.data.data.stores;
+      // Backend devuelve: { success: true, data: [...stores] }
+      return response.data.data || [];
     },
   });
 
@@ -91,7 +92,8 @@ const StoresPage = () => {
       const response = await api.get('/users', {
         params: { role: 'manager' },
       });
-      return response.data.data.users;
+      // Backend devuelve: { success: true, data: { users: [...] } }
+      return response.data.data?.users || [];
     },
     enabled: createModalOpen || editModalOpen,
   });

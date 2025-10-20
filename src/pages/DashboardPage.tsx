@@ -77,41 +77,44 @@ const DashboardPage = () => {
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ['dashboard-stats'],
     queryFn: async () => {
-      const response = await api.get('/dashboard/stats');
+      const response = await api.get('/dashboard/global');
       return response.data.data;
     },
+    enabled: false, // Desactivado temporalmente - endpoint no implementado completamente
   });
 
   const { data: salesData, isLoading: salesLoading } = useQuery<SalesData[]>({
     queryKey: ['dashboard-sales'],
     queryFn: async () => {
-      const response = await api.get('/dashboard/sales-trend');
-      return response.data.data;
+      return [];
     },
+    enabled: false, // Desactivado - endpoint no existe
   });
 
   const { data: topProducts, isLoading: productsLoading } = useQuery<TopProduct[]>({
     queryKey: ['dashboard-top-products'],
     queryFn: async () => {
-      const response = await api.get('/dashboard/top-products');
-      return response.data.data;
+      return [];
     },
+    enabled: false, // Desactivado - endpoint no existe
   });
 
   const { data: storesPerformance, isLoading: storesLoading } = useQuery<StorePerformance[]>({
     queryKey: ['dashboard-stores'],
     queryFn: async () => {
-      const response = await api.get('/dashboard/stores-performance');
+      const response = await api.get('/dashboard/comparison');
       return response.data.data;
     },
+    enabled: false, // Desactivado temporalmente
   });
 
   const { data: lowStockItems, isLoading: lowStockLoading } = useQuery<LowStockItem[]>({
     queryKey: ['dashboard-low-stock'],
     queryFn: async () => {
-      const response = await api.get('/dashboard/low-stock');
-      return response.data.data;
+      const response = await api.get('/inventory/alerts/low-stock');
+      return response.data.data || [];
     },
+    enabled: false, // Desactivado temporalmente
   });
 
   const { data: paymentMethodStats, isLoading: paymentStatsLoading } = useQuery<PaymentMethodStats[]>({

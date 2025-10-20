@@ -130,11 +130,12 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
 
       // ==================== CHECK AUTH ====================
       checkAuth: () => {
-        const { isAuthenticated, accessToken } = get();
+        const { user } = get();
         const cookieToken = Cookies.get('accessToken');
+        const cookieRefresh = Cookies.get('refreshToken');
 
-        // Verificar que el usuario esté autenticado y tenga token válido
-        return isAuthenticated && (!!accessToken || !!cookieToken);
+        // Verificar que exista usuario Y al menos un token válido
+        return !!user && (!!cookieToken || !!cookieRefresh);
       },
 
       // ==================== VERIFY TOKEN ====================
@@ -177,17 +178,34 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
         const accessToken = Cookies.get('accessToken');
         const refreshToken = Cookies.get('refreshToken');
 
+        // Si no hay tokens, no hacer nada
         if (!accessToken && !refreshToken) {
+          set({ isLoading: false });
           return;
         }
 
         set({ isLoading: true });
 
         try {
-          await get().verifyToken();
+          // Intentar verificar y restaurar sesión
+          const isValid = await get().verifyToken();
+          
+          if (!isValid) {
+            // Token inválido, limpiar todo
+            get().logout();
+          }
         } catch (error) {
           console.error('Error al inicializar autenticación:', error);
-          get().logout();
+          // En caso de error, limpiar sesión
+          Cookies.remove('accessToken');
+          Cookies.remove('refreshToken');
+          set({
+            user: null,
+            accessToken: null,
+            refreshToken: null,
+            isAuthenticated: false,
+            isLoading: false,
+          });
         } finally {
           set({ isLoading: false });
         }
