@@ -226,11 +226,8 @@ const UsersPage = () => {
       return;
     }
 
-    // Validar que se asigne tienda si no es admin
-    if (formData.role !== 'admin' && !formData.store) {
-      toast.error('Debes asignar una tienda para usuarios que no son administradores');
-      return;
-    }
+    // Nota: Ya NO es obligatorio asignar tienda
+    // Los usuarios pueden existir sin tienda y se les asigna despuÃ©s
 
     createUserMutation.mutate(formData);
   };
@@ -243,17 +240,14 @@ const UsersPage = () => {
       return;
     }
 
-    // Validar que se asigne tienda si no es admin
-    if (formData.role !== 'admin' && !formData.store) {
-      toast.error('Debes asignar una tienda para usuarios que no son administradores');
-      return;
-    }
+    // Nota: Ya NO es obligatorio asignar tienda
+    // Los usuarios pueden estar sin tienda asignada
 
     const updateData: any = {
       name: formData.name,
       email: formData.email,
       role: formData.role,
-      store: formData.role !== 'admin' ? formData.store : null,
+      store: formData.store || null, // null si no tiene tienda
     };
 
     updateUserMutation.mutate({
@@ -656,14 +650,14 @@ const UsersPage = () => {
           {formData.role !== 'admin' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Tienda <span className="text-red-500">*</span>
+                Tienda (Opcional)
               </label>
               <select
                 value={formData.store}
                 onChange={(e) => setFormData({ ...formData, store: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
-                <option value="">Seleccionar tienda</option>
+                <option value="">Sin asignar (puede asignarse después)</option>
                 {stores?.map((store) => (
                   <option key={store._id} value={store._id}>
                     {store.name}
@@ -744,14 +738,14 @@ const UsersPage = () => {
           {formData.role !== 'admin' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Tienda <span className="text-red-500">*</span>
+                Tienda (Opcional)
               </label>
               <select
                 value={formData.store}
                 onChange={(e) => setFormData({ ...formData, store: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
-                <option value="">Seleccionar tienda</option>
+                <option value="">Sin asignar (puede asignarse después)</option>
                 {stores?.map((store) => (
                   <option key={store._id} value={store._id}>
                     {store.name}
