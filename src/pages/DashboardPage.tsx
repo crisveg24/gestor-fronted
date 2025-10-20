@@ -1,0 +1,479 @@
+import { useQuery } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
+import {
+  TrendingUp,
+  Package,
+  ShoppingCart,
+  DollarSign,
+  AlertTriangle,
+  Store,
+  ArrowUpRight,
+  ArrowDownRight,
+} from 'lucide-react';
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
+import { Card, Loading } from '../components/ui';
+import api from '../lib/axios';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+
+// Tipos
+interface DashboardStats {
+  totalSales: number;
+  totalRevenue: number;
+  totalProducts: number;
+  totalStores: number;
+  salesGrowth: number;
+  revenueGrowth: number;
+  lowStockProducts: number;
+  activeUsers: number;
+}
+
+interface SalesData {
+  date: string;
+  ventas: number;
+  ingresos: number;
+}
+
+interface TopProduct {
+  name: string;
+  sales: number;
+  revenue: number;
+}
+
+interface StorePerformance {
+  name: string;
+  ventas: number;
+  ingresos: number;
+}
+
+interface LowStockItem {
+  productName: string;
+  sku: string;
+  currentStock: number;
+  minStock: number;
+  storeName: string;
+}
+
+// Colores para gráficos
+const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+
+const DashboardPage = () => {
+  // Queries
+  const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
+    queryKey: ['dashboard-stats'],
+    queryFn: async () => {
+      const response = await api.get('/dashboard/stats');
+      return response.data.data;
+    },
+  });
+
+  const { data: salesData, isLoading: salesLoading } = useQuery<SalesData[]>({
+    queryKey: ['dashboard-sales'],
+    queryFn: async () => {
+      const response = await api.get('/dashboard/sales-trend');
+      return response.data.data;
+    },
+  });
+
+  const { data: topProducts, isLoading: productsLoading } = useQuery<TopProduct[]>({
+    queryKey: ['dashboard-top-products'],
+    queryFn: async () => {
+      const response = await api.get('/dashboard/top-products');
+      return response.data.data;
+    },
+  });
+
+  const { data: storesPerformance, isLoading: storesLoading } = useQuery<StorePerformance[]>({
+    queryKey: ['dashboard-stores'],
+    queryFn: async () => {
+      const response = await api.get('/dashboard/stores-performance');
+      return response.data.data;
+    },
+  });
+
+  const { data: lowStockItems, isLoading: lowStockLoading } = useQuery<LowStockItem[]>({
+    queryKey: ['dashboard-low-stock'],
+    queryFn: async () => {
+      const response = await api.get('/dashboard/low-stock');
+      return response.data.data;
+    },
+  });
+
+  if (statsLoading) {
+    return <Loading fullScreen text="Cargando dashboard..." />;
+  }
+
+  // Tarjetas de estadísticas
+  const statCards = [
+    {
+      title: 'Ventas Totales',
+      value: stats?.totalSales || 0,
+      icon: ShoppingCart,
+      color: 'bg-blue-500',
+      growth: stats?.salesGrowth || 0,
+      prefix: '',
+      suffix: ' ventas',
+    },
+    {
+      title: 'Ingresos',
+      value: stats?.totalRevenue || 0,
+      icon: DollarSign,
+      color: 'bg-green-500',
+      growth: stats?.revenueGrowth || 0,
+      prefix: '$',
+      suffix: '',
+    },
+    {
+      title: 'Productos',
+      value: stats?.totalProducts || 0,
+      icon: Package,
+      color: 'bg-purple-500',
+      growth: 0,
+      prefix: '',
+      suffix: ' items',
+    },
+    {
+      title: 'Tiendas Activas',
+      value: stats?.totalStores || 0,
+      icon: Store,
+      color: 'bg-orange-500',
+      growth: 0,
+      prefix: '',
+      suffix: ' tiendas',
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+        <p className="text-gray-600 mt-1">
+          Bienvenido de vuelta, resumen de tu negocio
+        </p>
+      </motion.div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {statCards.map((stat, index) => (
+          <motion.div
+            key={stat.title}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1, duration: 0.3 }}
+          >
+            <Card hover>
+              <Card.Body>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600 font-medium">{stat.title}</p>
+                    <p className="text-2xl font-bold text-gray-900 mt-1">
+                      {stat.prefix}
+                      {stat.value.toLocaleString()}
+                      {stat.suffix}
+                    </p>
+                    {stat.growth !== 0 && (
+                      <div className="flex items-center gap-1 mt-2">
+                        {stat.growth > 0 ? (
+                          <>
+                            <ArrowUpRight size={16} className="text-green-500" />
+                            <span className="text-sm text-green-600 font-medium">
+                              +{stat.growth}%
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <ArrowDownRight size={16} className="text-red-500" />
+                            <span className="text-sm text-red-600 font-medium">
+                              {stat.growth}%
+                            </span>
+                          </>
+                        )}
+                        <span className="text-sm text-gray-500">vs mes anterior</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className={`${stat.color} p-3 rounded-lg`}>
+                    <stat.icon className="text-white" size={24} />
+                  </div>
+                </div>
+              </Card.Body>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Charts Row 1 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Sales Trend Chart */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.4, duration: 0.3 }}
+        >
+          <Card>
+            <Card.Header>
+              <h3 className="text-lg font-semibold text-gray-900">Tendencia de Ventas</h3>
+              <p className="text-sm text-gray-500">Últimos 7 días</p>
+            </Card.Header>
+            <Card.Body>
+              {salesLoading ? (
+                <div className="h-64 flex items-center justify-center">
+                  <Loading size="md" />
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={salesData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis
+                      dataKey="date"
+                      tickFormatter={(value) => format(new Date(value), 'dd MMM', { locale: es })}
+                      stroke="#6b7280"
+                    />
+                    <YAxis stroke="#6b7280" />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#fff',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                      }}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="ventas"
+                      stroke="#2563eb"
+                      strokeWidth={2}
+                      dot={{ fill: '#2563eb', r: 4 }}
+                      activeDot={{ r: 6 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="ingresos"
+                      stroke="#10b981"
+                      strokeWidth={2}
+                      dot={{ fill: '#10b981', r: 4 }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </Card.Body>
+          </Card>
+        </motion.div>
+
+        {/* Top Products Chart */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.5, duration: 0.3 }}
+        >
+          <Card>
+            <Card.Header>
+              <h3 className="text-lg font-semibold text-gray-900">Productos Más Vendidos</h3>
+              <p className="text-sm text-gray-500">Top 5 productos</p>
+            </Card.Header>
+            <Card.Body>
+              {productsLoading ? (
+                <div className="h-64 flex items-center justify-center">
+                  <Loading size="md" />
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={topProducts}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="name" stroke="#6b7280" />
+                    <YAxis stroke="#6b7280" />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#fff',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                      }}
+                    />
+                    <Legend />
+                    <Bar dataKey="sales" fill="#2563eb" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </Card.Body>
+          </Card>
+        </motion.div>
+      </div>
+
+      {/* Charts Row 2 */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Store Performance */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6, duration: 0.3 }}
+          className="lg:col-span-2"
+        >
+          <Card>
+            <Card.Header>
+              <h3 className="text-lg font-semibold text-gray-900">Rendimiento por Tienda</h3>
+              <p className="text-sm text-gray-500">Comparativa de tiendas</p>
+            </Card.Header>
+            <Card.Body>
+              {storesLoading ? (
+                <div className="h-64 flex items-center justify-center">
+                  <Loading size="md" />
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={storesPerformance} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis type="number" stroke="#6b7280" />
+                    <YAxis dataKey="name" type="category" width={100} stroke="#6b7280" />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#fff',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                      }}
+                    />
+                    <Legend />
+                    <Bar dataKey="ventas" fill="#2563eb" radius={[0, 8, 8, 0]} />
+                    <Bar dataKey="ingresos" fill="#10b981" radius={[0, 8, 8, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </Card.Body>
+          </Card>
+        </motion.div>
+
+        {/* Low Stock Alert */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7, duration: 0.3 }}
+        >
+          <Card>
+            <Card.Header>
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="text-orange-500" size={20} />
+                <h3 className="text-lg font-semibold text-gray-900">Stock Bajo</h3>
+              </div>
+              <p className="text-sm text-gray-500">
+                {lowStockItems?.length || 0} productos
+              </p>
+            </Card.Header>
+            <Card.Body className="p-0">
+              {lowStockLoading ? (
+                <div className="h-64 flex items-center justify-center">
+                  <Loading size="md" />
+                </div>
+              ) : lowStockItems && lowStockItems.length > 0 ? (
+                <div className="max-h-[300px] overflow-y-auto">
+                  {lowStockItems.slice(0, 5).map((item, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="px-6 py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {item.productName}
+                          </p>
+                          <p className="text-xs text-gray-500">{item.storeName}</p>
+                        </div>
+                        <div className="text-right ml-2">
+                          <p className="text-sm font-semibold text-orange-600">
+                            {item.currentStock}
+                          </p>
+                          <p className="text-xs text-gray-500">min: {item.minStock}</p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="px-6 py-12 text-center text-gray-500">
+                  <Package size={48} className="mx-auto mb-2 text-gray-300" />
+                  <p>No hay productos con stock bajo</p>
+                </div>
+              )}
+            </Card.Body>
+          </Card>
+        </motion.div>
+      </div>
+
+      {/* Quick Actions */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.8, duration: 0.3 }}
+      >
+        <Card>
+          <Card.Header>
+            <h3 className="text-lg font-semibold text-gray-900">Acciones Rápidas</h3>
+          </Card.Header>
+          <Card.Body>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <button
+                onClick={() => (window.location.href = '/productos/nuevo')}
+                className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all group"
+              >
+                <Package className="text-gray-400 group-hover:text-primary-600 mb-2" size={32} />
+                <span className="text-sm font-medium text-gray-700 group-hover:text-primary-700">
+                  Nuevo Producto
+                </span>
+              </button>
+
+              <button
+                onClick={() => (window.location.href = '/ventas')}
+                className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all group"
+              >
+                <ShoppingCart className="text-gray-400 group-hover:text-primary-600 mb-2" size={32} />
+                <span className="text-sm font-medium text-gray-700 group-hover:text-primary-700">
+                  Registrar Venta
+                </span>
+              </button>
+
+              <button
+                onClick={() => (window.location.href = '/inventario')}
+                className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all group"
+              >
+                <Package className="text-gray-400 group-hover:text-primary-600 mb-2" size={32} />
+                <span className="text-sm font-medium text-gray-700 group-hover:text-primary-700">
+                  Ajustar Inventario
+                </span>
+              </button>
+
+              <button
+                onClick={() => (window.location.href = '/reportes')}
+                className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all group"
+              >
+                <TrendingUp className="text-gray-400 group-hover:text-primary-600 mb-2" size={32} />
+                <span className="text-sm font-medium text-gray-700 group-hover:text-primary-700">
+                  Ver Reportes
+                </span>
+              </button>
+            </div>
+          </Card.Body>
+        </Card>
+      </motion.div>
+    </div>
+  );
+};
+
+export default DashboardPage;

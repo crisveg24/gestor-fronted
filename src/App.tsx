@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from './store/authStore';
 import LoginPage from './pages/LoginPage';
+import DashboardPage from './pages/DashboardPage';
 import { useEffect } from 'react';
 import { Toaster } from './components/ui';
 import DashboardLayout from './components/layout/DashboardLayout';
@@ -95,10 +96,7 @@ function App() {
               path="/dashboard"
               element={
                 <ProtectedRoute>
-                  <div className="p-8">
-                    <h1 className="text-3xl font-bold">Dashboard</h1>
-                    <p className="mt-4">Bienvenido al Gestor de Tiendas</p>
-                  </div>
+                  <DashboardPage />
                 </ProtectedRoute>
               }
             />
