@@ -6,6 +6,7 @@ import DashboardPage from './pages/DashboardPage';
 import ProductsPage from './pages/ProductsPage';
 import ProductFormPage from './pages/ProductFormPage';
 import InventoryPage from './pages/InventoryPage';
+import SalesPage from './pages/SalesPage';
 import { useEffect } from 'react';
 import { Toaster } from './components/ui';
 import DashboardLayout from './components/layout/DashboardLayout';
@@ -144,10 +145,7 @@ function App() {
               path="/ventas"
               element={
                 <ProtectedRoute>
-                  <div className="p-8">
-                    <h1 className="text-3xl font-bold">Ventas</h1>
-                    <p className="mt-4">Registro de ventas (próximamente)</p>
-                  </div>
+                  <SalesPage />
                 </ProtectedRoute>
               }
             />
