@@ -106,14 +106,34 @@ const ProductFormPage = () => {
   // Mutation para crear/actualizar
   const mutation = useMutation({
     mutationFn: async (data: ProductFormData) => {
-      if (isEditMode) {
-        await api.put(`/products/${id}`, data);
-      } else {
-        // Usar el nuevo endpoint para crear producto con inventario
-        await api.post('/products/with-inventory', data);
+      console.log('📡 [PRODUCT] Enviando petición al backend...');
+      console.log('📡 [PRODUCT] URL:', isEditMode ? `/products/${id}` : '/products/with-inventory');
+      console.log('📡 [PRODUCT] Método:', isEditMode ? 'PUT' : 'POST');
+      console.log('📡 [PRODUCT] Payload:', JSON.stringify(data, null, 2));
+
+      try {
+        if (isEditMode) {
+          const response = await api.put(`/products/${id}`, data);
+          console.log('✅ [PRODUCT] Respuesta exitosa (edición):', response.data);
+          return response.data;
+        } else {
+          // Usar el nuevo endpoint para crear producto con inventario
+          const response = await api.post('/products/with-inventory', data);
+          console.log('✅ [PRODUCT] Respuesta exitosa (creación):', response.data);
+          return response.data;
+        }
+      } catch (error: any) {
+        console.error('❌ [PRODUCT] Error en la petición:', {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+          message: error.message,
+        });
+        throw error;
       }
     },
     onSuccess: () => {
+      console.log('✅ [PRODUCT] Operación exitosa, invalidando queries...');
       queryClient.invalidateQueries({ queryKey: ['products'] });
       toast.success(
         isEditMode ? 'Producto actualizado exitosamente' : 'Producto creado exitosamente'
@@ -121,11 +141,20 @@ const ProductFormPage = () => {
       navigate('/productos');
     },
     onError: (error: any) => {
+      console.error('❌ [PRODUCT] Error en onError:', error);
       toast.error(error.response?.data?.message || 'Error al guardar el producto');
     },
   });
 
   const onSubmit = (data: ProductFormData) => {
+    console.log('🛍️ [PRODUCT] Iniciando envío de formulario...');
+    console.log('🛍️ [PRODUCT] Datos del formulario:', data);
+    console.log('🛍️ [PRODUCT] Usuario actual:', { 
+      role: user?.role, 
+      storeId: user?.store?._id,
+      storeName: user?.store?.name 
+    });
+
     // Asegurarnos de que los campos numéricos tengan valores
     const productData: any = {
       ...data,
@@ -134,19 +163,37 @@ const ProductFormPage = () => {
       maxStock: data.maxStock !== undefined ? data.maxStock : 1000,
     };
 
+    console.log('🛍️ [PRODUCT] Después de agregar defaults numéricos:', productData);
+
     // Limpiar store si está vacío
     if (!productData.store || productData.store === '') {
+      console.log('⚠️ [PRODUCT] Campo store vacío, verificando usuario...');
+
       // Si no es admin, usar la tienda del usuario
       if (user && user.role !== 'admin' && user.store) {
         productData.store = user.store._id;
+        console.log('✅ [PRODUCT] Asignando tienda del usuario:', user.store._id);
       } else {
         // Si es admin y no seleccionó, mostrar error
+        console.log('❌ [PRODUCT] Admin debe seleccionar tienda');
         toast.error('Debes seleccionar una tienda');
         return;
       }
     }
 
-    console.log('Enviando producto:', productData);
+    console.log('🛍️ [PRODUCT] Datos finales a enviar:', productData);
+    console.log('🛍️ [PRODUCT] Tipos de datos:', {
+      name: typeof productData.name,
+      sku: typeof productData.sku,
+      category: typeof productData.category,
+      price: typeof productData.price,
+      cost: typeof productData.cost,
+      store: typeof productData.store,
+      quantity: typeof productData.quantity,
+      minStock: typeof productData.minStock,
+      maxStock: typeof productData.maxStock,
+    });
+
     mutation.mutate(productData);
   };
 

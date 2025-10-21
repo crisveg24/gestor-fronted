@@ -29,22 +29,26 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
         try {
           set({ isLoading: true });
 
+          console.log('🔐 [AUTH] Iniciando sesión...');
+
           const response = await api.post('/auth/login', credentials);
           
           // El backend devuelve: { success: true, token, refreshToken, user }
           const { user, token, refreshToken } = response.data;
 
-          // Guardar tokens en cookies seguras
+          console.log('✅ [AUTH] Login exitoso, guardando sesión por 7 días');
+
+          // Guardar tokens en cookies seguras con 7 días
           Cookies.set('accessToken', token, {
             secure: true,
             sameSite: 'strict',
-            expires: 7, // 7 días
+            expires: 7,
           });
 
           Cookies.set('refreshToken', refreshToken, {
             secure: true,
             sameSite: 'strict',
-            expires: 7, // 7 días
+            expires: 7,
           });
 
           // Actualizar state
@@ -55,7 +59,10 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
             isAuthenticated: true,
             isLoading: false,
           });
+
+          console.log('✅ [AUTH] Estado actualizado correctamente');
         } catch (error: any) {
+          console.error('❌ [AUTH] Error al iniciar sesión:', error);
           set({ isLoading: false });
           throw new Error(error.response?.data?.error?.message || 'Error al iniciar sesión');
         }
@@ -63,6 +70,8 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
 
       // ==================== LOGOUT ====================
       logout: () => {
+        console.log('🚪 [AUTH] Cerrando sesión...');
+
         // Limpiar cookies
         Cookies.remove('accessToken');
         Cookies.remove('refreshToken');
@@ -84,6 +93,8 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
         window.history.pushState(null, '', '/login');
         window.history.replaceState(null, '', '/login');
 
+        console.log('✅ [AUTH] Sesión cerrada, redirigiendo...');
+
         // Redirigir al login con replace para no dejar rastro en historial
         window.location.replace('/login');
       },
@@ -94,18 +105,21 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
           const refreshToken = Cookies.get('refreshToken');
 
           if (!refreshToken) {
+            console.log('❌ [AUTH] No hay refresh token disponible');
             get().logout();
             return;
           }
 
+          console.log('🔄 [AUTH] Refrescando tokens...');
+
           const response = await api.post('/auth/refresh', { refreshToken });
           const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data.data;
 
-          // Actualizar tokens
+          // Actualizar tokens con 7 días
           Cookies.set('accessToken', newAccessToken, {
             secure: true,
             sameSite: 'strict',
-            expires: 7, // 7 días
+            expires: 7,
           });
 
           Cookies.set('refreshToken', newRefreshToken, {
@@ -114,11 +128,20 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
             expires: 7,
           });
 
+          // Obtener usuario actualizado
+          const userResponse = await api.get('/auth/me');
+          const user = userResponse.data.data;
+
+          console.log('✅ [AUTH] Tokens refrescados exitosamente');
+
           set({
+            user,
             accessToken: newAccessToken,
             refreshToken: newRefreshToken,
+            isAuthenticated: true,
           });
         } catch (error) {
+          console.error('❌ [AUTH] Error al refrescar tokens:', error);
           get().logout();
         }
       },
@@ -130,12 +153,22 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
 
       // ==================== CHECK AUTH ====================
       checkAuth: () => {
-        const { user } = get();
+        const { user, isAuthenticated } = get();
         const cookieToken = Cookies.get('accessToken');
         const cookieRefresh = Cookies.get('refreshToken');
 
-        // Verificar que exista usuario Y al menos un token válido
-        return !!user && (!!cookieToken || !!cookieRefresh);
+        const result = isAuthenticated && !!user && (!!cookieToken || !!cookieRefresh);
+
+        console.log('🔍 [AUTH] Verificando autenticación:', { 
+          isAuthenticated, 
+          hasUser: !!user, 
+          hasCookieToken: !!cookieToken, 
+          hasCookieRefresh: !!cookieRefresh,
+          result 
+        });
+
+        // Verificar que exista usuario autenticado Y al menos un token válido
+        return result;
       },
 
       // ==================== VERIFY TOKEN ====================
@@ -144,12 +177,17 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
           const accessToken = Cookies.get('accessToken');
           
           if (!accessToken) {
+            console.log('⚠️ [AUTH] No hay access token para verificar');
             return false;
           }
+
+          console.log('🔍 [AUTH] Verificando token con el backend...');
 
           // Verificar token con el backend usando /auth/me
           const response = await api.get('/auth/me');
           const user = response.data.data; // Backend devuelve el user directamente en data
+
+          console.log('✅ [AUTH] Token válido, usuario obtenido:', user.email);
 
           // Actualizar state con datos del usuario
           set({
@@ -163,6 +201,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
         } catch (error) {
           // Token inválido o expirado, pero NO hacer logout aquí
           // El initializeAuth manejará el refresh si es necesario
+          console.log('❌ [AUTH] Token inválido o expirado');
           return false;
         }
       },
@@ -172,9 +211,21 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
         const accessToken = Cookies.get('accessToken');
         const refreshToken = Cookies.get('refreshToken');
 
+        console.log('🔄 [AUTH] Inicializando autenticación...', { 
+          hasAccessToken: !!accessToken, 
+          hasRefreshToken: !!refreshToken 
+        });
+
         // Si no hay tokens, no hacer nada
         if (!accessToken && !refreshToken) {
-          set({ isLoading: false, isAuthenticated: false });
+          console.log('❌ [AUTH] No hay tokens, sesión no iniciada');
+          set({ 
+            isLoading: false, 
+            isAuthenticated: false,
+            user: null,
+            accessToken: null,
+            refreshToken: null,
+          });
           return;
         }
 
@@ -183,21 +234,27 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
         try {
           // Si tenemos access token, intentar verificar
           if (accessToken) {
+            console.log('📝 [AUTH] Paso 1: Verificando access token...');
             const isValid = await get().verifyToken();
             if (isValid) {
+              console.log('✅ [AUTH] Sesión restaurada exitosamente con access token');
               set({ isLoading: false });
               return;
             }
+            console.log('⚠️ [AUTH] Access token inválido, intentando con refresh...');
           }
 
           // Si el access token falló pero tenemos refresh token, intentar refrescar
           if (refreshToken) {
+            console.log('📝 [AUTH] Paso 2: Intentando refrescar token...');
             await get().refreshAuth();
+            console.log('✅ [AUTH] Sesión restaurada exitosamente con refresh token');
             set({ isLoading: false });
             return;
           }
 
           // Si llegamos aquí, no pudimos restaurar la sesión
+          console.log('❌ [AUTH] No se pudo restaurar la sesión, limpiando...');
           set({
             user: null,
             accessToken: null,
@@ -205,8 +262,12 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
             isAuthenticated: false,
             isLoading: false,
           });
+          
+          // Limpiar cookies inválidas
+          Cookies.remove('accessToken');
+          Cookies.remove('refreshToken');
         } catch (error) {
-          console.error('Error al inicializar autenticación:', error);
+          console.error('❌ [AUTH] Error al inicializar autenticación:', error);
           // No hacer logout automático, solo limpiar estado
           set({
             user: null,
@@ -215,6 +276,10 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
             isAuthenticated: false,
             isLoading: false,
           });
+          
+          // Limpiar cookies
+          Cookies.remove('accessToken');
+          Cookies.remove('refreshToken');
         }
       },
 }));
