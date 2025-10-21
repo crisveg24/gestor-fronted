@@ -353,8 +353,11 @@ const SalesPage = () => {
       })),
     ];
 
+    // Convertir store a string si es un objeto
+    const storeId = typeof user.store === 'string' ? user.store : user.store._id;
+
     const saleData = {
-      store: user.store._id || user.store,
+      store: storeId,
       items: allItems,
       discount: discountAmount,
       tax: taxAmount,
