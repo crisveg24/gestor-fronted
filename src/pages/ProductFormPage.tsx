@@ -126,7 +126,21 @@ const ProductFormPage = () => {
   });
 
   const onSubmit = (data: ProductFormData) => {
-    mutation.mutate(data);
+    // Asegurarnos de que los campos numéricos tengan valores
+    const productData = {
+      ...data,
+      quantity: data.quantity !== undefined ? data.quantity : 0,
+      minStock: data.minStock !== undefined ? data.minStock : 10,
+      maxStock: data.maxStock !== undefined ? data.maxStock : 1000,
+    };
+
+    // Si no es admin y no hay store, usar la tienda del usuario
+    if (!isEditMode && user && user.role !== 'admin' && !productData.store && user.store) {
+      productData.store = user.store._id;
+    }
+
+    console.log('Enviando producto:', productData);
+    mutation.mutate(productData);
   };
 
   // Calcular margen

@@ -161,15 +161,9 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
 
           return true;
         } catch (error) {
-          // Token inválido o expirado, intentar refresh
-          try {
-            await get().refreshAuth();
-            return true;
-          } catch (refreshError) {
-            // Ambos tokens inválidos, logout
-            get().logout();
-            return false;
-          }
+          // Token inválido o expirado, pero NO hacer logout aquí
+          // El initializeAuth manejará el refresh si es necesario
+          return false;
         }
       },
 
@@ -180,25 +174,30 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
 
         // Si no hay tokens, no hacer nada
         if (!accessToken && !refreshToken) {
-          set({ isLoading: false });
+          set({ isLoading: false, isAuthenticated: false });
           return;
         }
 
         set({ isLoading: true });
 
         try {
-          // Intentar verificar y restaurar sesión
-          const isValid = await get().verifyToken();
-          
-          if (!isValid) {
-            // Token inválido, limpiar todo
-            get().logout();
+          // Si tenemos access token, intentar verificar
+          if (accessToken) {
+            const isValid = await get().verifyToken();
+            if (isValid) {
+              set({ isLoading: false });
+              return;
+            }
           }
-        } catch (error) {
-          console.error('Error al inicializar autenticación:', error);
-          // En caso de error, limpiar sesión
-          Cookies.remove('accessToken');
-          Cookies.remove('refreshToken');
+
+          // Si el access token falló pero tenemos refresh token, intentar refrescar
+          if (refreshToken) {
+            await get().refreshAuth();
+            set({ isLoading: false });
+            return;
+          }
+
+          // Si llegamos aquí, no pudimos restaurar la sesión
           set({
             user: null,
             accessToken: null,
@@ -206,8 +205,16 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
             isAuthenticated: false,
             isLoading: false,
           });
-        } finally {
-          set({ isLoading: false });
+        } catch (error) {
+          console.error('Error al inicializar autenticación:', error);
+          // No hacer logout automático, solo limpiar estado
+          set({
+            user: null,
+            accessToken: null,
+            refreshToken: null,
+            isAuthenticated: false,
+            isLoading: false,
+          });
         }
       },
 }));
