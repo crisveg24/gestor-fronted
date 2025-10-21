@@ -149,7 +149,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
 
           // Verificar token con el backend usando /auth/me
           const response = await api.get('/auth/me');
-          const { user } = response.data.data;
+          const user = response.data.data; // Backend devuelve el user directamente en data
 
           // Actualizar state con datos del usuario
           set({

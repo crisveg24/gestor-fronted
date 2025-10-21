@@ -23,7 +23,7 @@ interface User {
   _id: string;
   name: string;
   email: string;
-  role: 'admin' | 'manager' | 'user';
+  role: 'admin' | 'user';
   store?: {
     _id: string;
     name: string;
@@ -299,7 +299,6 @@ const UsersPage = () => {
   const getRoleLabel = (role: string) => {
     const labels: Record<string, string> = {
       admin: 'Administrador',
-      manager: 'Gerente',
       user: 'Usuario',
     };
     return labels[role] || role;
@@ -308,7 +307,6 @@ const UsersPage = () => {
   const getRoleBadgeColor = (role: string) => {
     const colors: Record<string, string> = {
       admin: 'bg-purple-100 text-purple-800',
-      manager: 'bg-blue-100 text-blue-800',
       user: 'bg-gray-100 text-gray-800',
     };
     return colors[role] || 'bg-gray-100 text-gray-800';
@@ -439,7 +437,7 @@ const UsersPage = () => {
   const totalUsers = users?.length || 0;
   const activeUsers = users?.filter((u) => u.isActive).length || 0;
   const adminCount = users?.filter((u) => u.role === 'admin').length || 0;
-  const managerCount = users?.filter((u) => u.role === 'manager').length || 0;
+  const regularUsers = users?.filter((u) => u.role === 'user').length || 0;
 
   return (
     <div className="space-y-6">
@@ -529,11 +527,11 @@ const UsersPage = () => {
             <Card.Body>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Gerentes</p>
-                  <p className="text-3xl font-bold text-blue-600 mt-1">{managerCount}</p>
+                  <p className="text-sm text-gray-600">Usuarios Regulares</p>
+                  <p className="text-3xl font-bold text-blue-600 mt-1">{regularUsers}</p>
                 </div>
                 <div className="p-3 bg-blue-100 rounded-lg">
-                  <Store size={24} className="text-blue-600" />
+                  <Users size={24} className="text-blue-600" />
                 </div>
               </div>
             </Card.Body>
@@ -561,7 +559,6 @@ const UsersPage = () => {
               >
                 <option value="all">Todos los roles</option>
                 <option value="admin">Administradores</option>
-                <option value="manager">Gerentes</option>
                 <option value="user">Usuarios</option>
               </select>
             </div>
@@ -642,7 +639,7 @@ const UsersPage = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               <option value="user">Usuario</option>
-              <option value="manager">Gerente</option>
+
               <option value="admin">Administrador</option>
             </select>
           </div>
@@ -730,7 +727,7 @@ const UsersPage = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               <option value="user">Usuario</option>
-              <option value="manager">Gerente</option>
+
               <option value="admin">Administrador</option>
             </select>
           </div>
