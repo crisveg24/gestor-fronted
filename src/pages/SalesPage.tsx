@@ -1227,7 +1227,7 @@ const SalesPage = () => {
 
       {/* Modal para Agregar Ñapas */}
       <Modal
-        open={showFreebieModal}
+        isOpen={showFreebieModal}
         onClose={() => {
           setShowFreebieModal(false);
           setSelectedFreebie(null);
