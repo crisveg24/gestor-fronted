@@ -99,13 +99,19 @@ const InventoryPage = () => {
   const { data: inventory, isLoading } = useQuery<InventoryItem[]>({
     queryKey: ['inventory', selectedStore, searchQuery, filterLowStock],
     queryFn: async () => {
+      console.log('📦 [INVENTORY] Obteniendo inventario...');
+      console.log('📦 [INVENTORY] Tienda seleccionada:', selectedStore);
+      console.log('📦 [INVENTORY] Usuario:', { role: user?.role, store: user?.store?._id });
+      
       const response = await api.get('/inventory', {
         params: {
-          store: selectedStore !== 'all' ? selectedStore : undefined,
-          search: searchQuery,
-          lowStock: filterLowStock,
+          store: selectedStore,  // Enviar 'all' si está seleccionado
+          search: searchQuery || undefined,
+          lowStock: filterLowStock || undefined,
         },
       });
+      
+      console.log('✅ [INVENTORY] Inventario obtenido:', response.data.data?.length, 'items');
       return response.data.data;
     },
   });
