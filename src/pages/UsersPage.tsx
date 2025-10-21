@@ -78,7 +78,7 @@ const UsersPage = () => {
           role: roleFilter !== 'all' ? roleFilter : undefined,
         },
       });
-      return response.data.data.users;
+      return response.data.data || [];
     },
   });
 
@@ -88,7 +88,7 @@ const UsersPage = () => {
       const response = await api.get('/stores', {
         params: { active: true },
       });
-      return response.data.data.stores;
+      return response.data.data || [];
     },
     enabled: createModalOpen || editModalOpen,
   });
