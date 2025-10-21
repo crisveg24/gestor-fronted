@@ -21,10 +21,10 @@ const productSchema = z.object({
   cost: z.number().positive('El costo debe ser mayor a 0'),
   isActive: z.boolean(),
   // Campos de inventario (solo para crear)
-  store: z.string().optional(),
-  quantity: z.number().optional(),
-  minStock: z.number().optional(),
-  maxStock: z.number().optional(),
+  store: z.string().min(1, 'Debes seleccionar una tienda').optional().or(z.literal('')),
+  quantity: z.number().min(0).optional(),
+  minStock: z.number().min(0).optional(),
+  maxStock: z.number().positive().optional(),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -127,16 +127,23 @@ const ProductFormPage = () => {
 
   const onSubmit = (data: ProductFormData) => {
     // Asegurarnos de que los campos numéricos tengan valores
-    const productData = {
+    const productData: any = {
       ...data,
       quantity: data.quantity !== undefined ? data.quantity : 0,
       minStock: data.minStock !== undefined ? data.minStock : 10,
       maxStock: data.maxStock !== undefined ? data.maxStock : 1000,
     };
 
-    // Si no es admin y no hay store, usar la tienda del usuario
-    if (!isEditMode && user && user.role !== 'admin' && !productData.store && user.store) {
-      productData.store = user.store._id;
+    // Limpiar store si está vacío
+    if (!productData.store || productData.store === '') {
+      // Si no es admin, usar la tienda del usuario
+      if (user && user.role !== 'admin' && user.store) {
+        productData.store = user.store._id;
+      } else {
+        // Si es admin y no seleccionó, mostrar error
+        toast.error('Debes seleccionar una tienda');
+        return;
+      }
     }
 
     console.log('Enviando producto:', productData);
