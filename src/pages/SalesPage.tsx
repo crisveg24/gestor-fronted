@@ -168,13 +168,14 @@ const SalesPage = () => {
   // Mutation para crear venta
   const createSaleMutation = useMutation({
     mutationFn: async (data: {
-      products: Array<{ product: string; quantity: number; price: number }>;
-      subtotal: number;
+      store: string;
+      items: Array<{ product: string; quantity: number; unitPrice: number }>;
       discount: number;
       tax: number;
-      total: number;
       paymentMethod: string;
+      notes?: string;
     }) => {
+      console.log('💰 [SALES] Enviando venta:', data);
       await api.post('/sales', data);
     },
     onSuccess: () => {
@@ -185,6 +186,7 @@ const SalesPage = () => {
       clearCart();
     },
     onError: (error: any) => {
+      console.error('❌ [SALES] Error al crear venta:', error.response?.data);
       toast.error(error.response?.data?.message || 'Error al registrar la venta');
     },
   });
@@ -328,34 +330,39 @@ const SalesPage = () => {
       return;
     }
 
+    if (!user?.store) {
+      toast.error('No tienes una tienda asignada');
+      return;
+    }
+
+    console.log('💰 [SALES] Procesando venta...');
+    console.log('💰 [SALES] Carrito:', cart.length, 'items');
+    console.log('💰 [SALES] Ñapas:', freebies.length, 'items');
+
     // Combinar productos del carrito y ñapas
-    const allProducts = [
+    const allItems = [
       ...cart.map((item) => ({
         product: item.product._id,
         quantity: item.quantity,
-        price: item.price,
-        isFreebie: false,
+        unitPrice: item.price,
       })),
       ...freebies.map((item) => ({
         product: item.product._id,
         quantity: item.quantity,
-        price: 0, // Precio 0 para ñapas
-        isFreebie: true,
+        unitPrice: 0, // Precio 0 para ñapas
       })),
     ];
 
     const saleData = {
-      products: allProducts,
-      subtotal,
+      store: user.store._id || user.store,
+      items: allItems,
       discount: discountAmount,
       tax: taxAmount,
-      total,
       paymentMethod,
-      freebies: freebies.map((item) => ({
-        product: item.product._id,
-        quantity: item.quantity,
-      })),
+      notes: freebies.length > 0 ? `Incluye ${freebies.length} ñapa(s)` : undefined,
     };
+
+    console.log('💰 [SALES] Datos de venta:', saleData);
 
     createSaleMutation.mutate(saleData);
   };
