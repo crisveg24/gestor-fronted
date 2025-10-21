@@ -132,11 +132,11 @@ api.interceptors.response.use(
 
         const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data.data;
 
-        // Guardar nuevos tokens (secure, httpOnly simulado en frontend)
+        // Guardar nuevos tokens con 7 días de duración
         Cookies.set('accessToken', newAccessToken, { 
           secure: true, 
           sameSite: 'strict',
-          expires: 1 / 24 // 1 hora
+          expires: 7 // 7 días
         });
         
         Cookies.set('refreshToken', newRefreshToken, { 

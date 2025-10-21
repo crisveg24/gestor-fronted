@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   TrendingUp,
@@ -73,6 +74,8 @@ interface PaymentMethodStats {
 }
 
 const DashboardPage = () => {
+  const navigate = useNavigate();
+  
   // Queries
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ['dashboard-stats'],
@@ -614,7 +617,7 @@ const DashboardPage = () => {
           <Card.Body>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <button
-                onClick={() => (window.location.href = '/productos/nuevo')}
+                onClick={() => navigate('/productos/nuevo')}
                 className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all group"
               >
                 <Package className="text-gray-400 group-hover:text-primary-600 mb-2" size={32} />
@@ -624,7 +627,7 @@ const DashboardPage = () => {
               </button>
 
               <button
-                onClick={() => (window.location.href = '/ventas')}
+                onClick={() => navigate('/ventas')}
                 className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all group"
               >
                 <ShoppingCart className="text-gray-400 group-hover:text-primary-600 mb-2" size={32} />
@@ -634,7 +637,7 @@ const DashboardPage = () => {
               </button>
 
               <button
-                onClick={() => (window.location.href = '/inventario')}
+                onClick={() => navigate('/inventario')}
                 className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all group"
               >
                 <Package className="text-gray-400 group-hover:text-primary-600 mb-2" size={32} />
@@ -644,7 +647,7 @@ const DashboardPage = () => {
               </button>
 
               <button
-                onClick={() => (window.location.href = '/reportes')}
+                onClick={() => navigate('/reportes')}
                 className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-primary-500 hover:bg-primary-50 transition-all group"
               >
                 <TrendingUp className="text-gray-400 group-hover:text-primary-600 mb-2" size={32} />
