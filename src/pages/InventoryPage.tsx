@@ -309,11 +309,24 @@ const InventoryPage = () => {
     {
       key: 'lastUpdated',
       header: 'Última Actualización',
-      render: (item) => (
-        <span className="text-sm text-gray-600">
-          {format(new Date(item.lastUpdated), "dd MMM yyyy 'a las' HH:mm", { locale: es })}
-        </span>
-      ),
+      render: (item) => {
+        try {
+          if (!item.lastUpdated) {
+            return <span className="text-sm text-gray-400">No disponible</span>;
+          }
+          const date = new Date(item.lastUpdated);
+          if (isNaN(date.getTime())) {
+            return <span className="text-sm text-gray-400">Fecha inválida</span>;
+          }
+          return (
+            <span className="text-sm text-gray-600">
+              {format(date, "dd MMM yyyy 'a las' HH:mm", { locale: es })}
+            </span>
+          );
+        } catch (error) {
+          return <span className="text-sm text-gray-400">Error en fecha</span>;
+        }
+      },
     },
     {
       key: 'actions',
@@ -723,9 +736,16 @@ const InventoryPage = () => {
                             {movement.type.toUpperCase()}
                           </span>
                           <span className="text-sm text-gray-600">
-                            {format(new Date(movement.createdAt), "dd MMM yyyy 'a las' HH:mm", {
-                              locale: es,
-                            })}
+                            {(() => {
+                              try {
+                                if (!movement.createdAt) return 'Fecha no disponible';
+                                const date = new Date(movement.createdAt);
+                                if (isNaN(date.getTime())) return 'Fecha inválida';
+                                return format(date, "dd MMM yyyy 'a las' HH:mm", { locale: es });
+                              } catch {
+                                return 'Error en fecha';
+                              }
+                            })()}
                           </span>
                         </div>
                         <p className="text-sm text-gray-700">
