@@ -90,6 +90,13 @@ const SalesPage = () => {
   const [discountValue, setDiscountValue] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState('efectivo');
   
+  // Estados de ñapa (regalos)
+  const [freebies, setFreebies] = useState<CartItem[]>([]);
+  const [showFreebieModal, setShowFreebieModal] = useState(false);
+  const [freebieSearch, setFreebieSearch] = useState('');
+  const [selectedFreebie, setSelectedFreebie] = useState<Product | null>(null);
+  const [freebieQuantity, setFreebieQuantity] = useState(1);
+  
   // Estados del historial
   const [showHistory, setShowHistory] = useState(false);
   const [historySearch, setHistorySearch] = useState('');
@@ -254,8 +261,58 @@ const SalesPage = () => {
 
   const clearCart = () => {
     setCart([]);
+    setFreebies([]);
     setDiscountValue(0);
     setPaymentMethod('efectivo');
+  };
+
+  // Funciones para ñapas (regalos)
+  const addFreebie = () => {
+    if (!selectedFreebie || freebieQuantity <= 0) {
+      toast.error('Selecciona un producto y cantidad válida');
+      return;
+    }
+
+    // Verificar si el producto ya está en las ñapas
+    const existingFreebie = freebies.find((item) => item.product._id === selectedFreebie._id);
+    
+    if (existingFreebie) {
+      // Actualizar cantidad
+      setFreebies(
+        freebies.map((item) =>
+          item.product._id === selectedFreebie._id
+            ? {
+                ...item,
+                quantity: item.quantity + freebieQuantity,
+                subtotal: 0, // Las ñapas son gratis
+              }
+            : item
+        )
+      );
+    } else {
+      // Agregar nuevo item
+      setFreebies([
+        ...freebies,
+        {
+          product: selectedFreebie,
+          quantity: freebieQuantity,
+          price: 0, // Precio 0 para ñapas
+          subtotal: 0,
+        },
+      ]);
+    }
+
+    // Limpiar selección
+    setSelectedFreebie(null);
+    setFreebieSearch('');
+    setFreebieQuantity(1);
+    setShowFreebieModal(false);
+    toast.success('Ñapa agregada 🎁');
+  };
+
+  const removeFreebie = (productId: string) => {
+    setFreebies(freebies.filter((item) => item.product._id !== productId));
+    toast.success('Ñapa eliminada');
   };
 
   const processSale = () => {
@@ -264,17 +321,33 @@ const SalesPage = () => {
       return;
     }
 
-    const saleData = {
-      products: cart.map((item) => ({
+    // Combinar productos del carrito y ñapas
+    const allProducts = [
+      ...cart.map((item) => ({
         product: item.product._id,
         quantity: item.quantity,
         price: item.price,
+        isFreebie: false,
       })),
+      ...freebies.map((item) => ({
+        product: item.product._id,
+        quantity: item.quantity,
+        price: 0, // Precio 0 para ñapas
+        isFreebie: true,
+      })),
+    ];
+
+    const saleData = {
+      products: allProducts,
       subtotal,
       discount: discountAmount,
       tax: taxAmount,
       total,
       paymentMethod,
+      freebies: freebies.map((item) => ({
+        product: item.product._id,
+        quantity: item.quantity,
+      })),
     };
 
     createSaleMutation.mutate(saleData);
@@ -604,6 +677,84 @@ const SalesPage = () => {
                           </motion.div>
                         ))}
                       </AnimatePresence>
+                    </div>
+                  )}
+                </Card.Body>
+              </Card>
+            </motion.div>
+
+            {/* Ñapas (Regalos) */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 }}
+            >
+              <Card>
+                <Card.Header>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">🎁</span>
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        Ñapas (Gratis)
+                      </h3>
+                    </div>
+                    {freebies.length > 0 && (
+                      <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm font-medium">
+                        {freebies.length} {freebies.length === 1 ? 'ñapa' : 'ñapas'}
+                      </span>
+                    )}
+                  </div>
+                </Card.Header>
+                <Card.Body>
+                  {freebies.length === 0 ? (
+                    <div className="text-center py-6">
+                      <p className="text-gray-500 text-sm">Sin ñapas agregadas</p>
+                      <Button
+                        onClick={() => setShowFreebieModal(true)}
+                        variant="outline"
+                        size="sm"
+                        className="mt-2"
+                      >
+                        Agregar Ñapa
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <AnimatePresence>
+                        {freebies.map((item) => (
+                          <motion.div
+                            key={item.product._id}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                            className="flex items-center gap-3 p-3 border border-green-200 bg-green-50 rounded-lg"
+                          >
+                            <span className="text-xl">🎁</span>
+                            <div className="flex-1">
+                              <p className="font-medium text-gray-900 text-sm">
+                                {item.product.name}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                Cantidad: {item.quantity}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => removeFreebie(item.product._id)}
+                              className="p-1.5 text-red-600 hover:bg-red-100 rounded transition-colors"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </motion.div>
+                        ))}
+                      </AnimatePresence>
+                      <Button
+                        onClick={() => setShowFreebieModal(true)}
+                        variant="outline"
+                        size="sm"
+                        fullWidth
+                      >
+                        + Agregar Más Ñapas
+                      </Button>
                     </div>
                   )}
                 </Card.Body>
@@ -1063,6 +1214,139 @@ const SalesPage = () => {
             leftIcon={<Receipt size={18} />}
           >
             Descargar PDF
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Modal para Agregar Ñapas */}
+      <Modal
+        open={showFreebieModal}
+        onClose={() => {
+          setShowFreebieModal(false);
+          setSelectedFreebie(null);
+          setFreebieSearch('');
+          setFreebieQuantity(1);
+        }}
+        title="Agregar Ñapa (Regalo) 🎁"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Selecciona un producto para agregar como ñapa. <strong>Las ñapas son gratis</strong> y no afectan el total de la venta.
+          </p>
+
+          {/* Búsqueda de Producto */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Buscar Producto
+            </label>
+            <input
+              type="text"
+              value={freebieSearch}
+              onChange={(e) => setFreebieSearch(e.target.value)}
+              placeholder="Buscar por nombre o SKU..."
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              autoFocus
+            />
+          </div>
+
+          {/* Lista de Productos */}
+          {freebieSearch.length >= 2 && (
+            <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-lg">
+              {loadingProducts ? (
+                <div className="p-4 text-center text-gray-500">Buscando...</div>
+              ) : products && products.length > 0 ? (
+                <div className="divide-y divide-gray-200">
+                  {products.map((product) => (
+                    <button
+                      key={product._id}
+                      onClick={() => {
+                        setSelectedFreebie(product);
+                        setFreebieSearch('');
+                      }}
+                      className="w-full p-3 text-left hover:bg-gray-50 transition-colors"
+                    >
+                      <p className="font-medium text-gray-900">{product.name}</p>
+                      <p className="text-sm text-gray-500">
+                        SKU: {product.sku} | ${product.price.toLocaleString()}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 text-center text-gray-500">
+                  No se encontraron productos
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Producto Seleccionado */}
+          {selectedFreebie && (
+            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex-1">
+                  <p className="font-medium text-gray-900">{selectedFreebie.name}</p>
+                  <p className="text-sm text-gray-500">SKU: {selectedFreebie.sku}</p>
+                </div>
+                <button
+                  onClick={() => setSelectedFreebie(null)}
+                  className="p-1 text-gray-400 hover:text-gray-600"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Cantidad
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={freebieQuantity}
+                  onChange={(e) => setFreebieQuantity(Number(e.target.value))}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Ñapas Más Comunes (Sugerencias) */}
+          {!selectedFreebie && freebieSearch.length < 2 && (
+            <div>
+              <p className="text-sm font-medium text-gray-700 mb-2">
+                Ñapas Más Comunes:
+              </p>
+              <div className="text-sm text-gray-500 space-y-1">
+                <p>• Bolsas</p>
+                <p>• Muestras gratis</p>
+                <p>• Productos de promoción</p>
+                <p className="text-xs italic mt-2">
+                  Escribe en el buscador para encontrar productos...
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <Modal.Footer>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setShowFreebieModal(false);
+              setSelectedFreebie(null);
+              setFreebieSearch('');
+              setFreebieQuantity(1);
+            }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={addFreebie}
+            disabled={!selectedFreebie || freebieQuantity <= 0}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            Agregar Ñapa 🎁
           </Button>
         </Modal.Footer>
       </Modal>
