@@ -115,14 +115,21 @@ const SalesPage = () => {
     queryKey: ['products-search', searchProduct],
     queryFn: async () => {
       if (searchProduct.length < 2) return [];
+      
+      console.log('🔍 [SALES] Buscando productos:', searchProduct);
+      
       const response = await api.get('/products', {
         params: {
           search: searchProduct,
           limit: 10,
-          active: true,
+          isActive: true, // Cambiar de 'active' a 'isActive'
         },
       });
-      return response.data.data.products;
+      
+      console.log('✅ [SALES] Productos encontrados:', response.data);
+      console.log('📦 [SALES] Cantidad:', response.data.data?.products?.length || 0);
+      
+      return response.data.data.products || [];
     },
     enabled: searchProduct.length >= 2,
   });

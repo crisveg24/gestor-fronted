@@ -489,18 +489,34 @@ const InventoryPage = () => {
               </div>
 
               {isAdmin && stores && (
-                <select
-                  value={selectedStore}
-                  onChange={(e) => setSelectedStore(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                >
-                  <option value="all">Todas las tiendas</option>
-                  {stores.map((store) => (
-                    <option key={store._id} value={store._id}>
-                      {store.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex flex-col">
+                  <label className="text-xs font-medium text-gray-600 mb-1">
+                    Filtrar por Tienda
+                  </label>
+                  <select
+                    value={selectedStore}
+                    onChange={(e) => {
+                      console.log('🏪 [INVENTORY] Tienda seleccionada:', e.target.value);
+                      setSelectedStore(e.target.value);
+                    }}
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 min-w-[200px]"
+                  >
+                    <option value="all">📋 Todas las tiendas</option>
+                    {stores.map((store) => (
+                      <option key={store._id} value={store._id}>
+                        🏪 {store.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              
+              {!isAdmin && user?.store && (
+                <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg">
+                  <span className="text-sm font-medium text-blue-700">
+                    🏪 Tu tienda: {user.store.name}
+                  </span>
+                </div>
               )}
 
               <button
