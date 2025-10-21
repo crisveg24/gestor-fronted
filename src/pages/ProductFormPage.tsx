@@ -20,8 +20,8 @@ const productSchema = z.object({
   price: z.number().positive('El precio debe ser mayor a 0'),
   cost: z.number().positive('El costo debe ser mayor a 0'),
   isActive: z.boolean(),
-  // Campos de inventario (solo para crear)
-  store: z.string().min(1, 'Debes seleccionar una tienda').optional().or(z.literal('')),
+  // Campos de inventario (solo para crear) - store es requerido cuando no se está editando
+  store: z.string().optional(),
   quantity: z.number().min(0).optional(),
   minStock: z.number().min(0).optional(),
   maxStock: z.number().positive().optional(),
@@ -147,43 +147,81 @@ const ProductFormPage = () => {
   });
 
   const onSubmit = (data: ProductFormData) => {
-    console.log('🛍️ [PRODUCT] Iniciando envío de formulario...');
-    console.log('🛍️ [PRODUCT] Datos del formulario:', data);
+    console.log('🛍️ [PRODUCT] ========== INICIO ENVÍO FORMULARIO ==========');
+    console.log('🛍️ [PRODUCT] Datos del formulario (raw):', data);
     console.log('🛍️ [PRODUCT] Usuario actual:', { 
       role: user?.role, 
       storeId: user?.store?._id,
-      storeName: user?.store?.name 
+      storeName: user?.store?.name,
+      hasStore: !!user?.store,
     });
 
-    // Asegurarnos de que los campos numéricos tengan valores
-    const productData: any = {
-      ...data,
-      quantity: data.quantity !== undefined ? data.quantity : 0,
-      minStock: data.minStock !== undefined ? data.minStock : 10,
-      maxStock: data.maxStock !== undefined ? data.maxStock : 1000,
-    };
-
-    console.log('🛍️ [PRODUCT] Después de agregar defaults numéricos:', productData);
-
-    // Limpiar store si está vacío
-    if (!productData.store || productData.store === '') {
-      console.log('⚠️ [PRODUCT] Campo store vacío, verificando usuario...');
-
-      // Si no es admin, usar la tienda del usuario
-      if (user && user.role !== 'admin' && user.store) {
-        productData.store = user.store._id;
-        console.log('✅ [PRODUCT] Asignando tienda del usuario:', user.store._id);
-      } else {
-        // Si es admin y no seleccionó, mostrar error
-        console.log('❌ [PRODUCT] Admin debe seleccionar tienda');
-        toast.error('Debes seleccionar una tienda');
-        return;
-      }
+    // NO usar modo edición para crear productos
+    if (isEditMode) {
+      console.log('🛍️ [PRODUCT] Modo edición - enviando sin inventario');
+      mutation.mutate(data);
+      return;
     }
 
-    console.log('🛍️ [PRODUCT] Datos finales a enviar:', productData);
+    // Construir payload con validaciones estrictas
+    const productData: any = {
+      name: String(data.name).trim(),
+      description: String(data.description).trim(),
+      sku: String(data.sku).trim(),
+      category: String(data.category).trim(),
+      price: Number(data.price),
+      cost: Number(data.cost),
+      isActive: Boolean(data.isActive),
+    };
+
+    // Agregar barcode solo si existe
+    if (data.barcode && data.barcode.trim() !== '') {
+      productData.barcode = String(data.barcode).trim();
+    }
+
+    console.log('🛍️ [PRODUCT] Datos del producto procesados:', productData);
+
+    // DETERMINAR TIENDA (CRÍTICO)
+    let storeId: string | undefined;
+
+    // Caso 1: Store viene del formulario (admin lo seleccionó)
+    if (data.store && data.store.trim() !== '') {
+      storeId = String(data.store).trim();
+      console.log('✅ [PRODUCT] Tienda del formulario:', storeId);
+    }
+    // Caso 2: Usuario tiene tienda asignada (no es admin)
+    else if (user && user.store && user.store._id) {
+      storeId = String(user.store._id).trim();
+      console.log('✅ [PRODUCT] Tienda del usuario:', storeId);
+    }
+    // Caso 3: No hay tienda - ERROR
+    else {
+      console.error('❌ [PRODUCT] No se pudo determinar la tienda');
+      console.error('❌ [PRODUCT] data.store:', data.store);
+      console.error('❌ [PRODUCT] user.store:', user?.store);
+      toast.error('Debes seleccionar una tienda para el producto');
+      return;
+    }
+
+    // Validar que storeId no sea undefined
+    if (!storeId || storeId === '') {
+      console.error('❌ [PRODUCT] storeId está vacío después de validaciones');
+      toast.error('Error: ID de tienda inválido');
+      return;
+    }
+
+    productData.store = storeId;
+
+    // Agregar campos de inventario con defaults
+    productData.quantity = Number(data.quantity !== undefined ? data.quantity : 0);
+    productData.minStock = Number(data.minStock !== undefined ? data.minStock : 10);
+    productData.maxStock = Number(data.maxStock !== undefined ? data.maxStock : 1000);
+
+    console.log('🛍️ [PRODUCT] ========== DATOS FINALES ==========');
+    console.log('🛍️ [PRODUCT] Payload completo:', productData);
     console.log('🛍️ [PRODUCT] Tipos de datos:', {
       name: typeof productData.name,
+      description: typeof productData.description,
       sku: typeof productData.sku,
       category: typeof productData.category,
       price: typeof productData.price,
@@ -192,7 +230,14 @@ const ProductFormPage = () => {
       quantity: typeof productData.quantity,
       minStock: typeof productData.minStock,
       maxStock: typeof productData.maxStock,
+      isActive: typeof productData.isActive,
     });
+    console.log('🛍️ [PRODUCT] Valores:', {
+      store: productData.store,
+      storeLength: productData.store?.length,
+      quantity: productData.quantity,
+    });
+    console.log('🛍️ [PRODUCT] ========== ENVIANDO A MUTACIÓN ==========');
 
     mutation.mutate(productData);
   };
