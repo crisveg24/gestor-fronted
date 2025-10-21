@@ -5,10 +5,11 @@ import { z } from 'zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, Plus, X } from 'lucide-react';
 import { Card, Button, toast } from '../components/ui';
 import api from '../lib/axios';
 import { useAuthStore } from '../store/authStore';
+import { SIZE_TYPES, SIZE_PRESETS, type SizeType } from '../constants/sizePresets';
 
 // Esquema de validación
 const productSchema = z.object({
@@ -41,6 +42,12 @@ const ProductFormPage = () => {
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
   const [autoAssignedStore, setAutoAssignedStore] = useState(false);
+  
+  // Estados para generador de tallas
+  const [useSizes, setUseSizes] = useState(false);
+  const [sizeType, setSizeType] = useState<SizeType>('zapatos');
+  const [sizes, setSizes] = useState<string[]>([]);
+  const [customSize, setCustomSize] = useState('');
 
   const {
     register,
@@ -146,9 +153,69 @@ const ProductFormPage = () => {
     },
   });
 
+  // Mutation para crear productos con curva de tallas
+  const sizeCurveMutation = useMutation({
+    mutationFn: async (data: any) => {
+      console.log('👟 [SIZE-CURVE] Creando productos con tallas:', data);
+      const response = await api.post('/products/size-curve', data);
+      console.log('✅ [SIZE-CURVE] Respuesta:', response.data);
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      toast.success(`${data.data.products.length} productos creados con sus tallas exitosamente`);
+      navigate('/productos');
+    },
+    onError: (error: any) => {
+      console.error('❌ [SIZE-CURVE] Error:', error);
+      toast.error(error.response?.data?.message || 'Error al crear productos con tallas');
+    },
+  });
+
   const onSubmit = (data: ProductFormData) => {
     console.log('🛍️ [PRODUCT] ========== INICIO ENVÍO FORMULARIO ==========');
     console.log('🛍️ [PRODUCT] Datos del formulario (raw):', data);
+    console.log('🛍️ [PRODUCT] Modo tallas:', useSizes);
+    console.log('🛍️ [PRODUCT] Tallas seleccionadas:', sizes);
+
+    // MODO CURVA DE TALLAS
+    if (useSizes && !isEditMode && sizes.length > 0) {
+      console.log('👟 [PRODUCT] Usando generador de curva de tallas');
+
+      // Determinar tienda
+      let storeId: string | undefined;
+      if (data.store && data.store.trim() !== '') {
+        storeId = String(data.store).trim();
+      } else if (user && user.store && user.store._id) {
+        storeId = String(user.store._id).trim();
+      }
+
+      if (!storeId) {
+        toast.error('Debes seleccionar una tienda para crear los productos');
+        return;
+      }
+
+      const sizeCurveData = {
+        baseName: String(data.name).trim(),
+        baseSkuPrefix: String(data.sku).trim(),
+        description: String(data.description).trim(),
+        category: String(data.category).trim(),
+        price: Number(data.price),
+        cost: Number(data.cost),
+        sizeType,
+        sizes,
+        store: storeId,
+        quantityPerSize: Number(data.quantity || 0),
+        minStock: Number(data.minStock || 5),
+        maxStock: Number(data.maxStock || 50),
+      };
+
+      console.log('👟 [PRODUCT] Payload para curva:', sizeCurveData);
+      sizeCurveMutation.mutate(sizeCurveData);
+      return;
+    }
+
+    // MODO NORMAL (producto único)
     console.log('🛍️ [PRODUCT] Usuario actual:', { 
       role: user?.role, 
       storeId: user?.store?._id,
@@ -382,6 +449,146 @@ const ProductFormPage = () => {
                   <p className="mt-1 text-sm text-red-600">{errors.category.message}</p>
                 )}
               </div>
+
+              {/* Generador de Tallas (solo en modo creación) */}
+              {!isEditMode && (
+                <div className="border-t border-gray-200 pt-6 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="useSizes"
+                      checked={useSizes}
+                      onChange={(e) => {
+                        setUseSizes(e.target.checked);
+                        if (!e.target.checked) {
+                          setSizes([]);
+                        }
+                      }}
+                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="useSizes" className="text-sm font-medium text-gray-700">
+                      👟 Crear productos con múltiples tallas (Curva de Tallas)
+                    </label>
+                  </div>
+
+                  {useSizes && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-4">
+                      <p className="text-sm text-blue-700">
+                        <strong>📋 Generador de Curvas:</strong> El nombre será la base (ej: "Zapato Nike Air"), 
+                        el SKU será el prefijo (ej: "ZAP-001"), y se creará un producto por cada talla seleccionada.
+                      </p>
+
+                      {/* Tipo de Talla */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Tipo de Talla
+                        </label>
+                        <select
+                          value={sizeType}
+                          onChange={(e) => {
+                            setSizeType(e.target.value as SizeType);
+                            setSizes([]); // Limpiar tallas al cambiar tipo
+                          }}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        >
+                          {Object.entries(SIZE_TYPES).map(([key, label]) => (
+                            <option key={key} value={key}>{label}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Presets de Tallas */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Presets de Tallas
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {Object.entries(SIZE_PRESETS[sizeType] || {}).map(([presetName, presetSizes]) => (
+                            <button
+                              key={presetName}
+                              type="button"
+                              onClick={() => setSizes(presetSizes)}
+                              className="px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                            >
+                              {presetName} ({presetSizes.length})
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Tallas Seleccionadas */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Tallas Seleccionadas ({sizes.length})
+                        </label>
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {sizes.map((size) => (
+                            <span
+                              key={size}
+                              className="inline-flex items-center gap-1 px-2 py-1 bg-primary-100 text-primary-800 text-sm rounded-md"
+                            >
+                              {size}
+                              <button
+                                type="button"
+                                onClick={() => setSizes(sizes.filter(s => s !== size))}
+                                className="hover:text-primary-900"
+                              >
+                                <X size={14} />
+                              </button>
+                            </span>
+                          ))}
+                          {sizes.length === 0 && (
+                            <p className="text-sm text-gray-500">
+                              Selecciona un preset o agrega tallas manualmente
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Agregar talla manualmente */}
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={customSize}
+                            onChange={(e) => setCustomSize(e.target.value.toUpperCase())}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                if (customSize.trim() && !sizes.includes(customSize.trim())) {
+                                  setSizes([...sizes, customSize.trim()]);
+                                  setCustomSize('');
+                                }
+                              }
+                            }}
+                            placeholder="Agregar talla (ej: 38, XL)"
+                            className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (customSize.trim() && !sizes.includes(customSize.trim())) {
+                                setSizes([...sizes, customSize.trim()]);
+                                setCustomSize('');
+                              }
+                            }}
+                            className="px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                          >
+                            <Plus size={16} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {sizes.length > 0 && (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                          <p className="text-sm text-green-800">
+                            ✅ Se crearán <strong>{sizes.length} productos</strong> con las tallas seleccionadas.
+                            Cada uno tendrá un SKU único y el mismo precio/costo.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Precio y Costo */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
