@@ -75,9 +75,10 @@ interface Sale {
 const SalesPage = () => {
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
+  const isAdmin = user?.role === 'admin';
 
-  // Verificar si el usuario tiene tienda asignada
-  if (user && user.role !== 'admin' && !user.store) {
+  // Verificar si el usuario tiene tienda asignada (solo para no-admins)
+  if (user && !isAdmin && !user.store) {
     return <EmptyStateNoStore />;
   }
 
@@ -89,6 +90,11 @@ const SalesPage = () => {
   const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('percentage');
   const [discountValue, setDiscountValue] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState('efectivo');
+  
+  // Estado para tienda seleccionada (solo admins)
+  const [selectedStore, setSelectedStore] = useState<string>(
+    isAdmin ? '' : (typeof user?.store === 'string' ? user.store : user?.store?._id || '')
+  );
   
   // Estados de ñapa (regalos)
   const [freebies, setFreebies] = useState<CartItem[]>([]);
@@ -109,6 +115,16 @@ const SalesPage = () => {
   const [cutModalOpen, setCutModalOpen] = useState(false);
   const [cashCounted, setCashCounted] = useState('');
   const [cutObservations, setCutObservations] = useState('');
+
+  // Query para obtener tiendas (solo admins)
+  const { data: stores } = useQuery({
+    queryKey: ['stores'],
+    queryFn: async () => {
+      const response = await api.get('/stores');
+      return response.data.data.stores;
+    },
+    enabled: isAdmin,
+  });
 
   // Query para buscar productos
   const { data: products, isLoading: loadingProducts } = useQuery<Product[]>({
@@ -132,6 +148,29 @@ const SalesPage = () => {
       return response.data.data.products || [];
     },
     enabled: searchProduct.length >= 2,
+  });
+
+  // Query para buscar productos para ñapas (usa el mismo endpoint)
+  const { data: freebieProducts, isLoading: loadingFreebieProducts } = useQuery<Product[]>({
+    queryKey: ['freebie-products-search', freebieSearch],
+    queryFn: async () => {
+      if (freebieSearch.length < 2) return [];
+      
+      console.log('🎁 [FREEBIES] Buscando productos:', freebieSearch);
+      
+      const response = await api.get('/products', {
+        params: {
+          search: freebieSearch,
+          limit: 10,
+          isActive: true,
+        },
+      });
+      
+      console.log('✅ [FREEBIES] Productos encontrados:', response.data.data?.products?.length || 0);
+      
+      return response.data.data.products || [];
+    },
+    enabled: freebieSearch.length >= 2 && showFreebieModal,
   });
 
   // Query para historial de ventas
@@ -330,12 +369,16 @@ const SalesPage = () => {
       return;
     }
 
-    if (!user?.store) {
-      toast.error('No tienes una tienda asignada');
+    // Validar tienda seleccionada
+    const storeToUse = isAdmin ? selectedStore : (typeof user?.store === 'string' ? user.store : user?.store?._id);
+    
+    if (!storeToUse) {
+      toast.error(isAdmin ? 'Debes seleccionar una tienda' : 'No tienes una tienda asignada');
       return;
     }
 
     console.log('💰 [SALES] Procesando venta...');
+    console.log('💰 [SALES] Tienda:', storeToUse);
     console.log('💰 [SALES] Carrito:', cart.length, 'items');
     console.log('💰 [SALES] Ñapas:', freebies.length, 'items');
 
@@ -353,11 +396,8 @@ const SalesPage = () => {
       })),
     ];
 
-    // Convertir store a string si es un objeto
-    const storeId = typeof user.store === 'string' ? user.store : user.store._id;
-
     const saleData = {
-      store: storeId,
+      store: storeToUse,
       items: allItems,
       discount: discountAmount,
       tax: taxAmount,
@@ -793,6 +833,42 @@ const SalesPage = () => {
                   </h3>
                 </Card.Header>
                 <Card.Body className="space-y-4">
+                  {/* Selector de Tienda (solo para admins) */}
+                  {isAdmin && stores && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        🏪 Tienda *
+                      </label>
+                      <select
+                        value={selectedStore}
+                        onChange={(e) => setSelectedStore(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        required
+                      >
+                        <option value="">Selecciona una tienda</option>
+                        {stores.map((store: any) => (
+                          <option key={store._id} value={store._id}>
+                            {store.name}
+                          </option>
+                        ))}
+                      </select>
+                      {!selectedStore && cart.length > 0 && (
+                        <p className="text-xs text-red-600 mt-1">
+                          Debes seleccionar una tienda para procesar la venta
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Tienda asignada (usuarios normales) */}
+                  {!isAdmin && user?.store && (
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm text-blue-700">
+                        <span className="font-semibold">🏪 Tienda:</span> {typeof user.store === 'string' ? user.store : user.store.name}
+                      </p>
+                    </div>
+                  )}
+
                   {/* Descuento */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1269,11 +1345,11 @@ const SalesPage = () => {
           {/* Lista de Productos */}
           {freebieSearch.length >= 2 && (
             <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-lg">
-              {loadingProducts ? (
+              {loadingFreebieProducts ? (
                 <div className="p-4 text-center text-gray-500">Buscando...</div>
-              ) : products && products.length > 0 ? (
+              ) : freebieProducts && freebieProducts.length > 0 ? (
                 <div className="divide-y divide-gray-200">
-                  {products.map((product) => (
+                  {freebieProducts.map((product) => (
                     <button
                       key={product._id}
                       onClick={() => {
