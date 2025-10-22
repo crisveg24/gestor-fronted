@@ -73,6 +73,10 @@ export interface Product {
   price: number;
   cost: number;
   isActive: boolean;
+  // Campos para sistema de tallas
+  baseName?: string;
+  sizeType?: 'zapatos' | 'bebe' | 'nino' | 'adulto' | 'unica' | null;
+  size?: string;
   createdAt: string;
   updatedAt: string;
 }
