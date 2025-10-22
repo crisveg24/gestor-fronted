@@ -835,26 +835,31 @@ const SalesPage = () => {
                 <Card.Body className="space-y-4">
                   {/* Selector de Tienda (solo para admins) */}
                   {isAdmin && stores && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        🏪 Tienda *
+                    <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+                      <label className="block text-sm font-semibold text-indigo-900 mb-2">
+                        🏪 Tienda de la Venta *
                       </label>
                       <select
                         value={selectedStore}
                         onChange={(e) => setSelectedStore(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        className="w-full px-3 py-2 border border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
                         required
                       >
-                        <option value="">Selecciona una tienda</option>
+                        <option value="">⚠️ Selecciona una tienda</option>
                         {stores.map((store: any) => (
                           <option key={store._id} value={store._id}>
-                            {store.name}
+                            🏬 {store.name}
                           </option>
                         ))}
                       </select>
                       {!selectedStore && cart.length > 0 && (
-                        <p className="text-xs text-red-600 mt-1">
-                          Debes seleccionar una tienda para procesar la venta
+                        <p className="text-xs text-red-700 mt-2 font-medium">
+                          ⚠️ Debes seleccionar una tienda para procesar la venta
+                        </p>
+                      )}
+                      {selectedStore && (
+                        <p className="text-xs text-indigo-700 mt-2 font-medium">
+                          ✅ Venta se registrará en: {stores.find((s: any) => s._id === selectedStore)?.name}
                         </p>
                       )}
                     </div>
