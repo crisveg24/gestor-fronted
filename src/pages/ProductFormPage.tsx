@@ -507,7 +507,10 @@ const ProductFormPage = () => {
                             <button
                               key={presetName}
                               type="button"
-                              onClick={() => setSizes(presetSizes)}
+                              onClick={() => {
+                                console.log('👟 [PRESETS] Aplicando preset:', presetName, presetSizes);
+                                setSizes([...presetSizes]);
+                              }}
                               className="px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
                             >
                               {presetName} ({presetSizes.length})
