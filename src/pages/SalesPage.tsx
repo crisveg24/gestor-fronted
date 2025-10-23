@@ -382,12 +382,20 @@ const SalesPage = () => {
     if (!inventory || inventory.length === 0) {
       console.warn('⚠️ [VALIDATION] Inventario no cargado, permitiendo agregar sin validación');
     } else {
-      const inventoryItem = inventory?.find(
-        (inv: any) => {
-          console.log('🔍 Comparando:', inv.product?._id || inv.product, 'con', selectedProduct._id);
-          return (inv.product?._id || inv.product) === selectedProduct._id;
-        }
-      );
+      const inventoryItem = inventory?.find((inv: any) => {
+        // El inventario tiene: { product: { _id, name, ... }, quantity, store }
+        // El selectedProduct es: { _id, name, ... }
+        const invProductId = typeof inv.product === 'string' ? inv.product : inv.product?._id;
+        const selectedProductId = selectedProduct._id;
+        
+        console.log('🔍 Comparando IDs:', {
+          inventoryProductId: invProductId,
+          selectedProductId: selectedProductId,
+          match: invProductId === selectedProductId
+        });
+        
+        return invProductId === selectedProductId;
+      });
 
       console.log('🔍 [VALIDATION] Item encontrado en inventario:', inventoryItem);
 
