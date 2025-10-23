@@ -104,7 +104,7 @@ const SalesPage = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('percentage');
-  const [discountValue, setDiscountValue] = useState(0);
+  const [discountValue, setDiscountValue] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('efectivo');
   
   // Estados de IVA
@@ -327,10 +327,11 @@ const SalesPage = () => {
 
   // Cálculos
   const subtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
+  const numericDiscountValue = parseFloat(discountValue) || 0;
   const discountAmount =
     discountType === 'percentage'
-      ? (subtotal * discountValue) / 100
-      : discountValue;
+      ? (subtotal * numericDiscountValue) / 100
+      : numericDiscountValue;
   const taxAmount = includeIVA ? (subtotal - discountAmount) * (ivaPercentage / 100) : 0;
   const total = subtotal - discountAmount + taxAmount;
 
@@ -404,7 +405,7 @@ const SalesPage = () => {
   const clearCart = () => {
     setCart([]);
     setFreebies([]);
-    setDiscountValue(0);
+    setDiscountValue('');
     setPaymentMethod('efectivo');
   };
 
@@ -1154,7 +1155,7 @@ const SalesPage = () => {
                         min="0"
                         step="0.01"
                         value={discountValue}
-                        onChange={(e) => setDiscountValue(Number(e.target.value))}
+                        onChange={(e) => setDiscountValue(e.target.value)}
                         className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                         placeholder="0"
                       />
