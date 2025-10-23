@@ -190,7 +190,7 @@ const SalesPage = () => {
         params: {
           search: searchProduct,
           limit: 10,
-          isActive: true, // Cambiar de 'active' a 'isActive'
+          isActive: true,
         },
       });
       
@@ -200,6 +200,8 @@ const SalesPage = () => {
       return response.data.data.products || [];
     },
     enabled: searchProduct.length >= 2,
+    staleTime: 3 * 60 * 1000, // ✅ 3 minutos de caché
+    gcTime: 10 * 60 * 1000,   // ✅ 10 minutos antes de garbage collection
   });
 
   // Query para buscar productos para ñapas (usa el mismo endpoint)
@@ -223,6 +225,20 @@ const SalesPage = () => {
       return response.data.data.products || [];
     },
     enabled: freebieSearch.length >= 2 && showFreebieModal,
+  });
+
+  // ✅ Query para inventario (validación de stock)
+  const { data: inventory } = useQuery({
+    queryKey: ['inventory', selectedStore || user?.store?._id],
+    queryFn: async () => {
+      const storeId = isAdmin ? selectedStore : user?.store?._id;
+      if (!storeId) return [];
+      
+      const response = await api.get(`/inventory/${storeId}`);
+      return response.data.data.inventory || [];
+    },
+    enabled: !!(selectedStore || user?.store?._id),
+    staleTime: 2 * 60 * 1000, // 2 minutos de caché
   });
 
   // Query para historial de ventas
@@ -273,6 +289,8 @@ const SalesPage = () => {
       console.log('💰 [SALES] Enviando venta:', data);
       await api.post('/sales', data);
     },
+    retry: 2, // ✅ Reintentar hasta 2 veces si falla
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
     onSuccess: () => {
       // Invalidar solo las queries necesarias de forma más eficiente
       queryClient.invalidateQueries({ queryKey: ['sales'], exact: false });
@@ -347,6 +365,24 @@ const SalesPage = () => {
   const addToCart = () => {
     if (!selectedProduct || quantity <= 0) {
       toast.error('Selecciona un producto y cantidad válida');
+      return;
+    }
+
+    // ✅ VALIDACIÓN EN TIEMPO REAL: Verificar stock disponible
+    const inventoryItem = inventory?.find(
+      (inv: any) => inv.product._id === selectedProduct._id
+    );
+
+    const currentCartQty = cart.find(c => c.product._id === selectedProduct._id)?.quantity || 0;
+    const totalRequested = currentCartQty + quantity;
+
+    if (!inventoryItem) {
+      toast.error('Producto no disponible en inventario');
+      return;
+    }
+
+    if (inventoryItem.quantity < totalRequested) {
+      toast.error(`Stock insuficiente. Disponible: ${inventoryItem.quantity}, en carrito: ${currentCartQty}`);
       return;
     }
 

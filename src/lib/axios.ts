@@ -5,8 +5,8 @@ import DOMPurify from 'dompurify';
 
 // Configuración base de axios con medidas de seguridad
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://gestor-qlwn.onrender.com/api',
-  timeout: Number(import.meta.env.VITE_API_TIMEOUT) || 30000,
+  baseURL: import.meta.env.VITE_API_URL || 'https://gestor-glwn.onrender.com/api',
+  timeout: 60000, // 60 segundos para operaciones lentas como transacciones de ventas
   headers: {
     'Content-Type': 'application/json',
   },
