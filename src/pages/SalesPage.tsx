@@ -91,6 +91,10 @@ const SalesPage = () => {
   const [discountValue, setDiscountValue] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState('efectivo');
   
+  // Estados de IVA
+  const [includeIVA, setIncludeIVA] = useState(false);
+  const [ivaPercentage, setIvaPercentage] = useState(16);
+  
   // Estado para tienda seleccionada (solo admins)
   const [selectedStore, setSelectedStore] = useState<string>(
     isAdmin ? '' : (typeof user?.store === 'string' ? user.store : user?.store?._id || '')
@@ -122,10 +126,11 @@ const SalesPage = () => {
     queryFn: async () => {
       console.log('🏪 [STORES] Obteniendo tiendas...');
       const response = await api.get('/stores');
-      console.log('✅ [STORES] Tiendas obtenidas:', response.data.data.stores);
-      return response.data.data.stores;
+      console.log('✅ [STORES] Respuesta completa:', response.data);
+      return response.data.data; // data es el array directo
     },
     enabled: isAdmin,
+    retry: 2,
   });
 
   // Log de debug
@@ -249,8 +254,7 @@ const SalesPage = () => {
     discountType === 'percentage'
       ? (subtotal * discountValue) / 100
       : discountValue;
-  const taxRate = 0.16; // 16% IVA
-  const taxAmount = (subtotal - discountAmount) * taxRate;
+  const taxAmount = includeIVA ? (subtotal - discountAmount) * (ivaPercentage / 100) : 0;
   const total = subtotal - discountAmount + taxAmount;
 
   // Funciones del carrito
@@ -940,6 +944,45 @@ const SalesPage = () => {
                     </select>
                   </div>
 
+                  {/* IVA Opcional */}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="includeIVA"
+                        checked={includeIVA}
+                        onChange={(e) => setIncludeIVA(e.target.checked)}
+                        className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                      />
+                      <label htmlFor="includeIVA" className="text-sm font-medium text-gray-700">
+                        📊 Incluir IVA
+                      </label>
+                    </div>
+                    
+                    {includeIVA && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Porcentaje de IVA
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.1"
+                            value={ivaPercentage}
+                            onChange={(e) => setIvaPercentage(Number(e.target.value))}
+                            className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          />
+                          <span className="text-gray-700">%</span>
+                          <span className="text-sm text-gray-500">
+                            (${((subtotal - discountAmount) * (ivaPercentage / 100)).toLocaleString('es-MX', { minimumFractionDigits: 2 })})
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Totales */}
                   <div className="pt-4 border-t border-gray-200 space-y-2">
                     <div className="flex justify-between text-gray-700">
@@ -952,10 +995,12 @@ const SalesPage = () => {
                         <span>-${discountAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
                       </div>
                     )}
-                    <div className="flex justify-between text-gray-700">
-                      <span>IVA (16%):</span>
-                      <span>${taxAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
-                    </div>
+                    {includeIVA && taxAmount > 0 && (
+                      <div className="flex justify-between text-gray-700">
+                        <span>IVA ({ivaPercentage}%):</span>
+                        <span>${taxAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-xl font-bold text-gray-900 pt-2 border-t border-gray-200">
                       <span>Total:</span>
                       <span>${total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
