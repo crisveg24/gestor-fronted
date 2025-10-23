@@ -130,6 +130,13 @@ const SalesPage = () => {
   const [dateTo, setDateTo] = useState('');
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
+  
+  // Filtros avanzados
+  const [filterStore, setFilterStore] = useState('');
+  const [filterPaymentMethod, setFilterPaymentMethod] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [minAmount, setMinAmount] = useState('');
+  const [maxAmount, setMaxAmount] = useState('');
 
   // Estados para editar venta
   const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
@@ -220,14 +227,18 @@ const SalesPage = () => {
 
   // Query para historial de ventas
   const { data: sales, isLoading: loadingSales } = useQuery<Sale[]>({
-    queryKey: ['sales', historySearch, dateFrom, dateTo],
+    queryKey: ['sales', historySearch, dateFrom, dateTo, filterStore, filterPaymentMethod, filterStatus, minAmount, maxAmount],
     queryFn: async () => {
       const response = await api.get('/sales', {
         params: {
           search: historySearch,
           dateFrom,
           dateTo,
-          store: user?.role !== 'admin' ? user?.store?._id : undefined,
+          store: filterStore || (user?.role !== 'admin' ? user?.store?._id : undefined),
+          paymentMethod: filterPaymentMethod || undefined,
+          status: filterStatus || undefined,
+          minAmount: minAmount || undefined,
+          maxAmount: maxAmount || undefined,
         },
       });
       return response.data.data.sales;
@@ -1269,6 +1280,7 @@ const SalesPage = () => {
             <Card>
               <Card.Body>
                 <div className="space-y-4">
+                  {/* Primera fila de filtros */}
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="md:col-span-2">
                       <SearchBar
@@ -1295,6 +1307,102 @@ const SalesPage = () => {
                       />
                     </div>
                   </div>
+
+                  {/* Segunda fila de filtros avanzados */}
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    {/* Filtro por Tienda (solo admin) */}
+                    {isAdmin && (
+                      <div>
+                        <select
+                          value={filterStore}
+                          onChange={(e) => setFilterStore(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+                        >
+                          <option value="">Todas las tiendas</option>
+                          {stores?.map((store: any) => (
+                            <option key={store._id} value={store._id}>
+                              {store.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Filtro por Método de Pago */}
+                    <div>
+                      <select
+                        value={filterPaymentMethod}
+                        onChange={(e) => setFilterPaymentMethod(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+                      >
+                        <option value="">Todos los pagos</option>
+                        <option value="efectivo">💵 Efectivo</option>
+                        <option value="tarjeta">💳 Tarjeta</option>
+                        <option value="transferencia">🏦 Transferencia</option>
+                        <option value="nequi">📱 Nequi</option>
+                        <option value="daviplata">📱 Daviplata</option>
+                        <option value="llave_bancolombia">🔑 Llave Bancolombia</option>
+                      </select>
+                    </div>
+
+                    {/* Filtro por Estado */}
+                    <div>
+                      <select
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+                      >
+                        <option value="">Todos los estados</option>
+                        <option value="completed">✅ Completadas</option>
+                        <option value="cancelled">🚫 Canceladas</option>
+                        <option value="refunded">💰 Reembolsadas</option>
+                      </select>
+                    </div>
+
+                    {/* Filtro por Monto Mínimo */}
+                    <div>
+                      <input
+                        type="number"
+                        value={minAmount}
+                        onChange={(e) => setMinAmount(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+                        placeholder="Monto mínimo ($)"
+                        min="0"
+                      />
+                    </div>
+
+                    {/* Filtro por Monto Máximo */}
+                    <div>
+                      <input
+                        type="number"
+                        value={maxAmount}
+                        onChange={(e) => setMaxAmount(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+                        placeholder="Monto máximo ($)"
+                        min="0"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Botón para limpiar filtros */}
+                  {(filterStore || filterPaymentMethod || filterStatus || minAmount || maxAmount) && (
+                    <div className="flex justify-end">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setFilterStore('');
+                          setFilterPaymentMethod('');
+                          setFilterStatus('');
+                          setMinAmount('');
+                          setMaxAmount('');
+                        }}
+                      >
+                        <X size={16} className="mr-1" />
+                        Limpiar filtros
+                      </Button>
+                    </div>
+                  )}
 
                   {/* Botones de Exportación */}
                   <div className="flex items-center justify-between pt-2 border-t border-gray-200">
