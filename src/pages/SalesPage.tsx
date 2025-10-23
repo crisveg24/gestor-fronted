@@ -234,8 +234,13 @@ const SalesPage = () => {
       const storeId = isAdmin ? selectedStore : user?.store?._id;
       if (!storeId) return [];
       
+      console.log('📦 [INVENTORY] Cargando inventario para tienda:', storeId);
       const response = await api.get(`/inventory/${storeId}`);
-      return response.data.data.inventory || [];
+      console.log('📦 [INVENTORY] Respuesta completa:', response.data);
+      console.log('📦 [INVENTORY] Items:', response.data.data?.length || 0);
+      
+      // La respuesta es data directamente, no data.inventory
+      return response.data.data || [];
     },
     enabled: !!(selectedStore || user?.store?._id),
     staleTime: 2 * 60 * 1000, // 2 minutos de caché
@@ -369,21 +374,36 @@ const SalesPage = () => {
     }
 
     // ✅ VALIDACIÓN EN TIEMPO REAL: Verificar stock disponible
-    const inventoryItem = inventory?.find(
-      (inv: any) => inv.product._id === selectedProduct._id
-    );
+    console.log('🔍 [VALIDATION] Inventario completo:', inventory);
+    console.log('🔍 [VALIDATION] Producto seleccionado:', selectedProduct);
+    console.log('🔍 [VALIDATION] Tienda actual:', isAdmin ? selectedStore : user?.store?._id);
+    
+    // Si no hay inventario cargado, permitir agregar (fallback)
+    if (!inventory || inventory.length === 0) {
+      console.warn('⚠️ [VALIDATION] Inventario no cargado, permitiendo agregar sin validación');
+    } else {
+      const inventoryItem = inventory?.find(
+        (inv: any) => {
+          console.log('🔍 Comparando:', inv.product?._id || inv.product, 'con', selectedProduct._id);
+          return (inv.product?._id || inv.product) === selectedProduct._id;
+        }
+      );
 
-    const currentCartQty = cart.find(c => c.product._id === selectedProduct._id)?.quantity || 0;
-    const totalRequested = currentCartQty + quantity;
+      console.log('🔍 [VALIDATION] Item encontrado en inventario:', inventoryItem);
 
-    if (!inventoryItem) {
-      toast.error('Producto no disponible en inventario');
-      return;
-    }
+      const currentCartQty = cart.find(c => c.product._id === selectedProduct._id)?.quantity || 0;
+      const totalRequested = currentCartQty + quantity;
 
-    if (inventoryItem.quantity < totalRequested) {
-      toast.error(`Stock insuficiente. Disponible: ${inventoryItem.quantity}, en carrito: ${currentCartQty}`);
-      return;
+      if (!inventoryItem) {
+        toast.error(`Producto no encontrado en inventario de esta tienda`);
+        console.error('❌ [VALIDATION] Producto no en inventario:', selectedProduct);
+        return;
+      }
+
+      if (inventoryItem.quantity < totalRequested) {
+        toast.error(`Stock insuficiente. Disponible: ${inventoryItem.quantity}, en carrito: ${currentCartQty}`);
+        return;
+      }
     }
 
     // Verificar si el producto ya está en el carrito
