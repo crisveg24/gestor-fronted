@@ -90,7 +90,6 @@ const SalesPage = () => {
   const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('percentage');
   const [discountValue, setDiscountValue] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState('efectivo');
-  const [includeIVA, setIncludeIVA] = useState(false); // IVA opcional
   
   // Estado para tienda seleccionada (solo admins)
   const [selectedStore, setSelectedStore] = useState<string>(
@@ -118,13 +117,26 @@ const SalesPage = () => {
   const [cutObservations, setCutObservations] = useState('');
 
   // Query para obtener tiendas (solo admins)
-  const { data: stores } = useQuery({
+  const { data: stores, isLoading: loadingStores, error: storesError } = useQuery({
     queryKey: ['stores'],
     queryFn: async () => {
+      console.log('🏪 [STORES] Obteniendo tiendas...');
       const response = await api.get('/stores');
+      console.log('✅ [STORES] Tiendas obtenidas:', response.data.data.stores);
       return response.data.data.stores;
     },
     enabled: isAdmin,
+  });
+
+  // Log de debug
+  console.log('👤 [SALES] Estado actual:', {
+    isAdmin,
+    hasStores: !!stores,
+    storesCount: stores?.length,
+    loadingStores,
+    storesError,
+    selectedStore,
+    userStore: user?.store
   });
 
   // Query para buscar productos
@@ -237,7 +249,7 @@ const SalesPage = () => {
     discountType === 'percentage'
       ? (subtotal * discountValue) / 100
       : discountValue;
-  const taxRate = includeIVA ? 0.16 : 0; // IVA opcional (16% o 0%)
+  const taxRate = 0.16; // 16% IVA
   const taxAmount = (subtotal - discountAmount) * taxRate;
   const total = subtotal - discountAmount + taxAmount;
 
@@ -835,33 +847,41 @@ const SalesPage = () => {
                 </Card.Header>
                 <Card.Body className="space-y-4">
                   {/* Selector de Tienda (solo para admins) */}
-                  {isAdmin && stores && (
+                  {isAdmin && (
                     <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
                       <label className="block text-sm font-semibold text-indigo-900 mb-2">
                         🏪 Tienda de la Venta *
                       </label>
-                      <select
-                        value={selectedStore}
-                        onChange={(e) => setSelectedStore(e.target.value)}
-                        className="w-full px-3 py-2 border border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                        required
-                      >
-                        <option value="">⚠️ Selecciona una tienda</option>
-                        {stores.map((store: any) => (
-                          <option key={store._id} value={store._id}>
-                            🏬 {store.name}
-                          </option>
-                        ))}
-                      </select>
-                      {!selectedStore && cart.length > 0 && (
-                        <p className="text-xs text-red-700 mt-2 font-medium">
-                          ⚠️ Debes seleccionar una tienda para procesar la venta
-                        </p>
-                      )}
-                      {selectedStore && (
-                        <p className="text-xs text-indigo-700 mt-2 font-medium">
-                          ✅ Venta se registrará en: {stores.find((s: any) => s._id === selectedStore)?.name}
-                        </p>
+                      {stores ? (
+                        <>
+                          <select
+                            value={selectedStore}
+                            onChange={(e) => setSelectedStore(e.target.value)}
+                            className="w-full px-3 py-2 border border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                            required
+                          >
+                            <option value="">⚠️ Selecciona una tienda</option>
+                            {stores.map((store: any) => (
+                              <option key={store._id} value={store._id}>
+                                🏬 {store.name}
+                              </option>
+                            ))}
+                          </select>
+                          {!selectedStore && cart.length > 0 && (
+                            <p className="text-xs text-red-700 mt-2 font-medium">
+                              ⚠️ Debes seleccionar una tienda para procesar la venta
+                            </p>
+                          )}
+                          {selectedStore && (
+                            <p className="text-xs text-indigo-700 mt-2 font-medium">
+                              ✅ Venta se registrará en: {stores.find((s: any) => s._id === selectedStore)?.name}
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                          <p className="text-sm text-yellow-700">⏳ Cargando tiendas...</p>
+                        </div>
                       )}
                     </div>
                   )}
@@ -920,20 +940,6 @@ const SalesPage = () => {
                     </select>
                   </div>
 
-                  {/* IVA Opcional */}
-                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                    <input
-                      type="checkbox"
-                      id="includeIVA"
-                      checked={includeIVA}
-                      onChange={(e) => setIncludeIVA(e.target.checked)}
-                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                    />
-                    <label htmlFor="includeIVA" className="text-sm font-medium text-gray-700 cursor-pointer">
-                      📊 Incluir IVA (16%)
-                    </label>
-                  </div>
-
                   {/* Totales */}
                   <div className="pt-4 border-t border-gray-200 space-y-2">
                     <div className="flex justify-between text-gray-700">
@@ -946,12 +952,10 @@ const SalesPage = () => {
                         <span>-${discountAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
                       </div>
                     )}
-                    {includeIVA && (
-                      <div className="flex justify-between text-gray-700">
-                        <span>IVA (16%):</span>
-                        <span>${taxAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
-                      </div>
-                    )}
+                    <div className="flex justify-between text-gray-700">
+                      <span>IVA (16%):</span>
+                      <span>${taxAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                    </div>
                     <div className="flex justify-between text-xl font-bold text-gray-900 pt-2 border-t border-gray-200">
                       <span>Total:</span>
                       <span>${total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>

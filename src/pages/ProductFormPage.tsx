@@ -49,6 +49,14 @@ const ProductFormPage = () => {
   const [sizes, setSizes] = useState<string[]>([]);
   const [customSize, setCustomSize] = useState('');
 
+  // Query para obtener categorías dinámicas
+  const { data: categories = [] } = useQuery<string[]>({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const response = await api.get('/products/categories/list');
+      return response.data.data || [];
+    },
+  });
   const {
     register,
     handleSubmit,
@@ -436,14 +444,26 @@ const ProductFormPage = () => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   <option value="">Selecciona una categoría</option>
-                  <option value="Electrónicos">Electrónicos</option>
-                  <option value="Ropa">Ropa</option>
-                  <option value="Alimentos">Alimentos</option>
-                  <option value="Hogar">Hogar</option>
-                  <option value="Deportes">Deportes</option>
-                  <option value="Juguetes">Juguetes</option>
-                  <option value="Libros">Libros</option>
-                  <option value="Otros">Otros</option>
+                  {categories.length > 0 ? (
+                    categories.map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="Electrónica">Electrónica</option>
+                      <option value="Ropa">Ropa</option>
+                      <option value="Alimentos">Alimentos</option>
+                      <option value="Hogar">Hogar</option>
+                      <option value="Deportes">Deportes</option>
+                      <option value="Juguetes">Juguetes</option>
+                      <option value="Libros">Libros</option>
+                      <option value="Accesorios">Accesorios</option>
+                      <option value="Audio">Audio</option>
+                      <option value="Almacenamiento">Almacenamiento</option>
+                      <option value="Redes">Redes</option>
+                      <option value="Otros">Otros</option>
+                    </>
+                  )}
                 </select>
                 {errors.category && (
                   <p className="mt-1 text-sm text-red-600">{errors.category.message}</p>
