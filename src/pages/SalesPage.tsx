@@ -10,6 +10,8 @@ import {
   Search,
   X,
   AlertTriangle,
+  FileSpreadsheet,
+  FileText,
 } from 'lucide-react';
 import { Card, Button, Modal, toast, Table, SearchBar, EmptyStateNoStore } from '../components/ui';
 import type { Column } from '../components/ui';
@@ -17,6 +19,9 @@ import api from '../lib/axios';
 import { useAuthStore } from '../store/authStore';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // Función helper para formatear métodos de pago
 const formatPaymentMethod = (method: string): string => {
@@ -524,6 +529,127 @@ const SalesPage = () => {
       id: selectedSaleId,
       reason: cancellationReason,
     });
+  };
+
+  // Funciones de exportación
+  const exportToExcel = () => {
+    if (!sales || sales.length === 0) {
+      toast.error('No hay ventas para exportar');
+      return;
+    }
+
+    // Preparar datos para Excel
+    const excelData = sales.map((sale) => ({
+      Fecha: format(new Date(sale.createdAt), 'dd/MM/yyyy HH:mm', { locale: es }),
+      Tienda: sale.store.name,
+      Vendedor: sale.user.name,
+      Productos: sale.products.length,
+      Subtotal: `$${sale.subtotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
+      Descuento: `$${sale.discount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
+      IVA: `$${sale.tax.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
+      Total: `$${sale.total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
+      'Método de Pago': formatPaymentMethod(sale.paymentMethod),
+      Estado: sale.status === 'completed' ? 'Completada' : sale.status === 'cancelled' ? 'Cancelada' : 'Reembolsada',
+      Notas: sale.notes || '',
+    }));
+
+    // Crear libro de trabajo
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Ventas');
+
+    // Ajustar anchos de columna
+    const colWidths = [
+      { wch: 18 }, // Fecha
+      { wch: 20 }, // Tienda
+      { wch: 25 }, // Vendedor
+      { wch: 10 }, // Productos
+      { wch: 15 }, // Subtotal
+      { wch: 15 }, // Descuento
+      { wch: 15 }, // IVA
+      { wch: 15 }, // Total
+      { wch: 18 }, // Método de Pago
+      { wch: 12 }, // Estado
+      { wch: 30 }, // Notas
+    ];
+    worksheet['!cols'] = colWidths;
+
+    // Generar archivo
+    const fileName = `ventas_${format(new Date(), 'yyyy-MM-dd_HHmmss')}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+    toast.success(`Reporte Excel exportado: ${fileName}`);
+  };
+
+  const exportToPDF = () => {
+    if (!sales || sales.length === 0) {
+      toast.error('No hay ventas para exportar');
+      return;
+    }
+
+    // Crear PDF
+    const doc = new jsPDF();
+    
+    // Título
+    doc.setFontSize(18);
+    doc.text('Reporte de Ventas', 14, 22);
+    
+    // Subtítulo con fecha
+    doc.setFontSize(11);
+    doc.setTextColor(100);
+    doc.text(
+      `Generado el ${format(new Date(), "dd 'de' MMMM yyyy 'a las' HH:mm", { locale: es })}`,
+      14,
+      30
+    );
+
+    // Preparar datos para tabla
+    const tableData = sales.map((sale) => [
+      format(new Date(sale.createdAt), 'dd/MM/yyyy HH:mm', { locale: es }),
+      sale.store.name,
+      sale.user.name,
+      sale.products.length.toString(),
+      `$${sale.total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
+      formatPaymentMethod(sale.paymentMethod),
+      sale.status === 'completed' ? 'OK' : sale.status === 'cancelled' ? 'X' : 'R',
+    ]);
+
+    // Generar tabla
+    autoTable(doc, {
+      head: [['Fecha', 'Tienda', 'Vendedor', 'Items', 'Total', 'Pago', 'Estado']],
+      body: tableData,
+      startY: 35,
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [59, 130, 246], textColor: 255 },
+      alternateRowStyles: { fillColor: [245, 247, 250] },
+      columnStyles: {
+        0: { cellWidth: 30 },
+        1: { cellWidth: 35 },
+        2: { cellWidth: 35 },
+        3: { cellWidth: 15 },
+        4: { cellWidth: 25 },
+        5: { cellWidth: 25 },
+        6: { cellWidth: 15 },
+      },
+    });
+
+    // Totales
+    const totalVentas = sales.length;
+    const totalIngresos = sales.reduce((sum, sale) => sum + sale.total, 0);
+    
+    const finalY = (doc as any).lastAutoTable.finalY || 35;
+    doc.setFontSize(10);
+    doc.setTextColor(0);
+    doc.text(`Total de ventas: ${totalVentas}`, 14, finalY + 10);
+    doc.text(
+      `Total de ingresos: $${totalIngresos.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
+      14,
+      finalY + 16
+    );
+
+    // Guardar PDF
+    const fileName = `ventas_${format(new Date(), 'yyyy-MM-dd_HHmmss')}.pdf`;
+    doc.save(fileName);
+    toast.success(`Reporte PDF exportado: ${fileName}`);
   };
 
   // Columnas del historial
@@ -1142,30 +1268,59 @@ const SalesPage = () => {
           >
             <Card>
               <Card.Body>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="md:col-span-2">
-                    <SearchBar
-                      placeholder="Buscar por producto, tienda o vendedor..."
-                      onSearch={setHistorySearch}
-                    />
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="md:col-span-2">
+                      <SearchBar
+                        placeholder="Buscar por producto, tienda o vendedor..."
+                        onSearch={setHistorySearch}
+                      />
+                    </div>
+                    <div>
+                      <input
+                        type="date"
+                        value={dateFrom}
+                        onChange={(e) => setDateFrom(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        placeholder="Desde"
+                      />
+                    </div>
+                    <div>
+                      <input
+                        type="date"
+                        value={dateTo}
+                        onChange={(e) => setDateTo(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        placeholder="Hasta"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <input
-                      type="date"
-                      value={dateFrom}
-                      onChange={(e) => setDateFrom(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                      placeholder="Desde"
-                    />
-                  </div>
-                  <div>
-                    <input
-                      type="date"
-                      value={dateTo}
-                      onChange={(e) => setDateTo(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                      placeholder="Hasta"
-                    />
+
+                  {/* Botones de Exportación */}
+                  <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+                    <p className="text-sm text-gray-600">
+                      {sales?.length || 0} venta(s) encontrada(s)
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={exportToExcel}
+                        disabled={!sales || sales.length === 0}
+                      >
+                        <FileSpreadsheet size={16} className="mr-2" />
+                        Exportar Excel
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={exportToPDF}
+                        disabled={!sales || sales.length === 0}
+                      >
+                        <FileText size={16} className="mr-2" />
+                        Exportar PDF
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </Card.Body>
