@@ -1223,7 +1223,83 @@ const SalesPage = () => {
                   {formatPaymentMethod(selectedSale.paymentMethod)}
                 </p>
               </div>
+              {selectedSale.status && (
+                <div>
+                  <p className="text-sm text-gray-600">Estado</p>
+                  <span
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      selectedSale.status === 'completed'
+                        ? 'bg-green-100 text-green-800'
+                        : selectedSale.status === 'cancelled'
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}
+                  >
+                    {selectedSale.status === 'completed' && '✅ Completada'}
+                    {selectedSale.status === 'cancelled' && '🚫 Cancelada'}
+                    {selectedSale.status === 'refunded' && '💰 Reembolsada'}
+                  </span>
+                </div>
+              )}
             </div>
+
+            {/* Tracking de Modificaciones */}
+            {(selectedSale.modifiedBy || selectedSale.cancelledBy) && (
+              <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                <h4 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
+                  <span>📝</span> Historial de Cambios
+                </h4>
+                <div className="space-y-2 text-sm">
+                  {selectedSale.modifiedBy && selectedSale.modifiedAt && (
+                    <div className="flex items-start gap-2">
+                      <span className="text-blue-600">✏️</span>
+                      <div>
+                        <p className="text-gray-900">
+                          <span className="font-medium">Modificado por:</span>{' '}
+                          {selectedSale.modifiedBy.name}
+                        </p>
+                        <p className="text-gray-600">
+                          {format(new Date(selectedSale.modifiedAt), "dd MMMM yyyy 'a las' HH:mm", {
+                            locale: es,
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {selectedSale.cancelledBy && selectedSale.cancelledAt && (
+                    <div className="flex items-start gap-2">
+                      <span className="text-red-600">🚫</span>
+                      <div>
+                        <p className="text-gray-900">
+                          <span className="font-medium">Cancelado por:</span>{' '}
+                          {selectedSale.cancelledBy.name}
+                        </p>
+                        <p className="text-gray-600">
+                          {format(new Date(selectedSale.cancelledAt), "dd MMMM yyyy 'a las' HH:mm", {
+                            locale: es,
+                          })}
+                        </p>
+                        {selectedSale.cancellationReason && (
+                          <p className="text-gray-700 mt-1">
+                            <span className="font-medium">Razón:</span> {selectedSale.cancellationReason}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Notas */}
+            {selectedSale.notes && (
+              <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
+                <h4 className="font-semibold text-yellow-900 mb-2 flex items-center gap-2">
+                  <span>📌</span> Notas
+                </h4>
+                <p className="text-gray-700 text-sm">{selectedSale.notes}</p>
+              </div>
+            )}
 
             {/* Productos */}
             <div>

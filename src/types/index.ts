@@ -77,6 +77,9 @@ export interface Product {
   baseName?: string;
   sizeType?: 'zapatos' | 'bebe' | 'nino' | 'adulto' | 'unica' | null;
   size?: string;
+  // Tracking
+  createdBy?: User | string;
+  updatedBy?: User | string;
   createdAt: string;
   updatedAt: string;
 }

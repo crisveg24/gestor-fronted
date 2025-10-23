@@ -6,6 +6,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Save, Plus, X } from 'lucide-react';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { Card, Button, toast } from '../components/ui';
 import api from '../lib/axios';
 import { useAuthStore } from '../store/authStore';
@@ -355,6 +357,38 @@ const ProductFormPage = () => {
             ? 'Actualiza la información del producto'
             : 'Completa el formulario para agregar un nuevo producto'}
         </p>
+        
+        {/* Tracking de Creación/Modificación */}
+        {isEditMode && product && (
+          <div className="mt-4 bg-blue-50 border border-blue-200 p-3 rounded-lg">
+            <div className="flex flex-col gap-2 text-sm">
+              {product.createdBy && (
+                <div className="flex items-center gap-2 text-gray-700">
+                  <span className="font-medium">👤 Creado por:</span>
+                  <span>{typeof product.createdBy === 'string' ? product.createdBy : product.createdBy.name}</span>
+                  <span className="text-gray-500">•</span>
+                  <span className="text-gray-600">
+                    {format(new Date(product.createdAt), "dd MMM yyyy 'a las' HH:mm", {
+                      locale: es,
+                    })}
+                  </span>
+                </div>
+              )}
+              {product.updatedBy && product.updatedAt && (
+                <div className="flex items-center gap-2 text-gray-700">
+                  <span className="font-medium">✏️ Modificado por:</span>
+                  <span>{typeof product.updatedBy === 'string' ? product.updatedBy : product.updatedBy.name}</span>
+                  <span className="text-gray-500">•</span>
+                  <span className="text-gray-600">
+                    {format(new Date(product.updatedAt), "dd MMM yyyy 'a las' HH:mm", {
+                      locale: es,
+                    })}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </motion.div>
 
       {/* Formulario */}
