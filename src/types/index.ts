@@ -130,7 +130,13 @@ export interface Sale {
   discount: number;
   total: number;
   paymentMethod: 'cash' | 'card' | 'transfer';
+  status?: 'completed' | 'cancelled' | 'refunded';
   notes?: string;
+  modifiedBy?: User;
+  modifiedAt?: string;
+  cancelledBy?: User;
+  cancelledAt?: string;
+  cancellationReason?: string;
   createdAt: string;
   updatedAt: string;
 }

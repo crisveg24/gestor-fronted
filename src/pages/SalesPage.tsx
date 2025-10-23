@@ -69,6 +69,17 @@ interface Sale {
   tax: number;
   total: number;
   paymentMethod: string;
+  status?: 'completed' | 'cancelled' | 'refunded';
+  notes?: string;
+  modifiedBy?: {
+    name: string;
+  };
+  modifiedAt?: string;
+  cancelledBy?: {
+    name: string;
+  };
+  cancelledAt?: string;
+  cancellationReason?: string;
   createdAt: string;
 }
 
@@ -114,6 +125,17 @@ const SalesPage = () => {
   const [dateTo, setDateTo] = useState('');
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
+
+  // Estados para editar venta
+  const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editNotes, setEditNotes] = useState('');
+  const [editPaymentMethod, setEditPaymentMethod] = useState('efectivo');
+  const [editDiscount, setEditDiscount] = useState(0);
+
+  // Estados para cancelar venta
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [cancellationReason, setCancellationReason] = useState('');
 
   // Estados del corte de caja
   const [cutModalOpen, setCutModalOpen] = useState(false);
@@ -245,6 +267,45 @@ const SalesPage = () => {
     onError: (error: any) => {
       console.error('❌ [SALES] Error al crear venta:', error.response?.data);
       toast.error(error.response?.data?.message || 'Error al registrar la venta');
+    },
+  });
+
+  // Mutation para editar venta
+  const editSaleMutation = useMutation({
+    mutationFn: async (data: { id: string; notes?: string; paymentMethod?: string; discount?: number }) => {
+      console.log('✏️ [SALES] Editando venta:', data);
+      await api.put(`/sales/${data.id}`, {
+        notes: data.notes,
+        paymentMethod: data.paymentMethod,
+        discount: data.discount,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sales'] });
+      toast.success('Venta actualizada exitosamente');
+      setEditModalOpen(false);
+      setDetailModalOpen(false);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al actualizar la venta');
+    },
+  });
+
+  // Mutation para cancelar venta
+  const cancelSaleMutation = useMutation({
+    mutationFn: async (data: { id: string; reason: string }) => {
+      console.log('🚫 [SALES] Cancelando venta:', data);
+      await api.put(`/sales/${data.id}/cancel`, { reason: data.reason });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sales'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      toast.success('Venta cancelada exitosamente');
+      setCancelModalOpen(false);
+      setDetailModalOpen(false);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error al cancelar la venta');
     },
   });
 
@@ -425,6 +486,44 @@ const SalesPage = () => {
     console.log('💰 [SALES] Datos de venta:', saleData);
 
     createSaleMutation.mutate(saleData);
+  };
+
+  // Funciones para editar y cancelar ventas
+  const openEditModal = (sale: Sale) => {
+    setSelectedSaleId(sale._id);
+    setEditNotes(sale.notes || '');
+    setEditPaymentMethod(sale.paymentMethod);
+    setEditDiscount(sale.discount || 0);
+    setEditModalOpen(true);
+  };
+
+  const handleEditSale = () => {
+    if (!selectedSaleId) return;
+
+    editSaleMutation.mutate({
+      id: selectedSaleId,
+      notes: editNotes || undefined,
+      paymentMethod: editPaymentMethod,
+      discount: editDiscount,
+    });
+  };
+
+  const openCancelModal = (sale: Sale) => {
+    setSelectedSaleId(sale._id);
+    setCancellationReason('');
+    setCancelModalOpen(true);
+  };
+
+  const handleCancelSale = () => {
+    if (!selectedSaleId || !cancellationReason.trim()) {
+      toast.error('Debes proporcionar una razón para cancelar');
+      return;
+    }
+
+    cancelSaleMutation.mutate({
+      id: selectedSaleId,
+      reason: cancellationReason,
+    });
   };
 
   // Columnas del historial
@@ -1189,6 +1288,28 @@ const SalesPage = () => {
           </div>
         )}
         <Modal.Footer>
+          {isAdmin && selectedSale && selectedSale.status !== 'cancelled' && (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setDetailModalOpen(false);
+                  openEditModal(selectedSale);
+                }}
+              >
+                ✏️ Editar
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => {
+                  setDetailModalOpen(false);
+                  openCancelModal(selectedSale);
+                }}
+              >
+                🚫 Cancelar
+              </Button>
+            </>
+          )}
           <Button variant="ghost" onClick={() => setDetailModalOpen(false)}>
             Cerrar
           </Button>
@@ -1511,6 +1632,141 @@ const SalesPage = () => {
             className="bg-green-600 hover:bg-green-700"
           >
             Agregar Ñapa 🎁
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Modal de Editar Venta */}
+      <Modal
+        isOpen={editModalOpen}
+        onClose={() => {
+          setEditModalOpen(false);
+          setSelectedSaleId(null);
+          setEditNotes('');
+          setEditPaymentMethod('efectivo');
+          setEditDiscount(0);
+        }}
+        title="✏️ Editar Venta"
+        size="md"
+      >
+        <div className="space-y-4">
+          {/* Método de Pago */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Método de Pago
+            </label>
+            <select
+              value={editPaymentMethod}
+              onChange={(e) => setEditPaymentMethod(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="efectivo">💵 Efectivo</option>
+              <option value="tarjeta">💳 Tarjeta</option>
+              <option value="transferencia">🏦 Transferencia</option>
+              <option value="mixto">🔀 Mixto</option>
+            </select>
+          </div>
+
+          {/* Descuento */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Descuento ($)
+            </label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={editDiscount}
+              onChange={(e) => setEditDiscount(Number(e.target.value))}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              placeholder="0.00"
+            />
+          </div>
+
+          {/* Notas */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Notas (opcional)
+            </label>
+            <textarea
+              value={editNotes}
+              onChange={(e) => setEditNotes(e.target.value)}
+              rows={3}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+              placeholder="Agregar notas adicionales..."
+            />
+          </div>
+        </div>
+
+        <Modal.Footer>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setEditModalOpen(false);
+              setSelectedSaleId(null);
+            }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleEditSale}
+            disabled={editSaleMutation.isPending}
+          >
+            {editSaleMutation.isPending ? 'Guardando...' : 'Guardar Cambios'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Modal de Cancelar Venta */}
+      <Modal
+        isOpen={cancelModalOpen}
+        onClose={() => {
+          setCancelModalOpen(false);
+          setSelectedSaleId(null);
+          setCancellationReason('');
+        }}
+        title="🚫 Cancelar Venta"
+        size="md"
+      >
+        <div className="space-y-4">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-sm text-red-800">
+              ⚠️ <strong>Advertencia:</strong> Esta acción devolverá los productos al inventario y marcará la venta como cancelada. Esta operación no se puede deshacer.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Razón de Cancelación <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={cancellationReason}
+              onChange={(e) => setCancellationReason(e.target.value)}
+              rows={4}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
+              placeholder="Describe la razón de la cancelación..."
+              required
+            />
+          </div>
+        </div>
+
+        <Modal.Footer>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setCancelModalOpen(false);
+              setSelectedSaleId(null);
+              setCancellationReason('');
+            }}
+          >
+            Volver
+          </Button>
+          <Button
+            variant="danger"
+            onClick={handleCancelSale}
+            disabled={cancelSaleMutation.isPending || !cancellationReason.trim()}
+          >
+            {cancelSaleMutation.isPending ? 'Cancelando...' : 'Confirmar Cancelación'}
           </Button>
         </Modal.Footer>
       </Modal>
