@@ -274,15 +274,23 @@ const SalesPage = () => {
       await api.post('/sales', data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sales'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      // Invalidar solo las queries necesarias de forma más eficiente
+      queryClient.invalidateQueries({ queryKey: ['sales'], exact: false });
+      queryClient.invalidateQueries({ queryKey: ['inventory'], exact: false });
       toast.success('Venta registrada exitosamente');
       clearCart();
     },
     onError: (error: any) => {
-      console.error('❌ [SALES] Error al crear venta:', error.response?.data);
-      toast.error(error.response?.data?.message || 'Error al registrar la venta');
+      console.error('❌ [SALES] Error al crear venta:', error);
+      console.error('❌ [SALES] Error response:', error.response);
+      console.error('❌ [SALES] Error data:', error.response?.data);
+      
+      const errorMessage = error.response?.data?.message 
+        || error.response?.data?.error 
+        || error.message 
+        || 'Error al registrar la venta';
+      
+      toast.error(errorMessage);
     },
   });
 
