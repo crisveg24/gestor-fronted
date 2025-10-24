@@ -45,12 +45,13 @@ const ProductsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortKey, setSortKey] = useState('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [categoryFilter, setCategoryFilter] = useState(''); // ✅ Filtro por categoría
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
   // Query para obtener productos
   const { data, isLoading, error } = useQuery<ProductsResponse>({
-    queryKey: ['products', currentPage, itemsPerPage, searchQuery, sortKey, sortDirection],
+    queryKey: ['products', currentPage, itemsPerPage, searchQuery, sortKey, sortDirection, categoryFilter],
     queryFn: async () => {
       const response = await api.get('/products', {
         params: {
@@ -59,10 +60,12 @@ const ProductsPage = () => {
           search: searchQuery,
           sortBy: sortKey,
           sortOrder: sortDirection,
+          category: categoryFilter || undefined, // ✅ Filtro de categoría
         },
       });
       return response.data.data;
     },
+    staleTime: 2 * 60 * 1000, // ✅ 2 minutos de caché
   });
 
   // Mutation para eliminar producto
@@ -275,6 +278,21 @@ const ProductsPage = () => {
                   defaultValue={searchQuery}
                 />
               </div>
+              {/* ✅ Filtro de categoría */}
+              <select
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                value={categoryFilter}
+                onChange={(e) => {
+                  setCategoryFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+              >
+                <option value="">Todas las categorías</option>
+                <option value="Zapatos">Zapatos</option>
+                <option value="Electrónica">Electrónica</option>
+                <option value="Audio">Audio</option>
+                <option value="Accesorios">Accesorios</option>
+              </select>
               <div className="flex gap-2">
                 <select
                   className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"

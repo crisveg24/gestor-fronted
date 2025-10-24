@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -449,6 +449,10 @@ const SalesPage = () => {
     setSelectedProduct(null);
     setSearchProduct('');
     setQuantity(1);
+    
+    // ✅ Guardar en productos recientes
+    addToCartWithRecent(selectedProduct);
+    
     toast.success('Producto agregado al carrito');
   };
 
@@ -481,6 +485,36 @@ const SalesPage = () => {
     setFreebies([]);
     setDiscountValue('');
     setPaymentMethod('efectivo');
+  };
+
+  // ✅ PRODUCTOS RECIENTES - Guardar y cargar desde localStorage
+  const saveRecentProduct = (product: Product) => {
+    try {
+      const recent = JSON.parse(localStorage.getItem('recentProducts') || '[]');
+      // Evitar duplicados
+      const filtered = recent.filter((p: Product) => p._id !== product._id);
+      // Agregar al inicio y limitar a 10
+      const updated = [product, ...filtered].slice(0, 10);
+      localStorage.setItem('recentProducts', JSON.stringify(updated));
+    } catch (error) {
+      console.error('Error guardando producto reciente:', error);
+    }
+  };
+
+  const getRecentProducts = (): Product[] => {
+    try {
+      return JSON.parse(localStorage.getItem('recentProducts') || '[]');
+    } catch {
+      return [];
+    }
+  };
+
+  const [recentProducts, setRecentProducts] = useState<Product[]>(getRecentProducts());
+
+  // Actualizar productos recientes cuando se agrega al carrito
+  const addToCartWithRecent = (product: Product) => {
+    saveRecentProduct(product);
+    setRecentProducts(getRecentProducts());
   };
 
   // Funciones para ñapas (regalos)
@@ -816,6 +850,43 @@ const SalesPage = () => {
     },
   ];
 
+  // ✅ ATAJOS DE TECLADO
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // F2: Procesar venta
+      if (e.key === 'F2') {
+        e.preventDefault();
+        if (cart.length > 0 && !cutModalOpen && !editModalOpen && !cancelModalOpen) {
+          processSale();
+        }
+      }
+      
+      // ESC: Limpiar carrito
+      if (e.key === 'Escape') {
+        if (!cutModalOpen && !editModalOpen && !cancelModalOpen && !detailModalOpen) {
+          if (cart.length > 0 || freebies.length > 0) {
+            if (confirm('¿Deseas limpiar el carrito?')) {
+              clearCart();
+              toast.success('Carrito limpiado');
+            }
+          }
+        }
+      }
+      
+      // Ctrl+F: Focus en búsqueda
+      if (e.ctrlKey && e.key === 'f') {
+        e.preventDefault();
+        const searchInput = document.querySelector('input[placeholder*="Buscar por nombre"]') as HTMLInputElement;
+        if (searchInput) {
+          searchInput.focus();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [cart, freebies, cutModalOpen, editModalOpen, cancelModalOpen, detailModalOpen]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -882,6 +953,40 @@ const SalesPage = () => {
                       size={20}
                     />
                   </div>
+
+                  {/* ✅ PRODUCTOS RECIENTES */}
+                  {!searchProduct && recentProducts.length > 0 && (
+                    <div className="mt-4">
+                      <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                        🕒 Productos Recientes
+                      </h4>
+                      <div className="space-y-2 max-h-60 overflow-y-auto">
+                        {recentProducts.map((product) => (
+                          <button
+                            key={product._id}
+                            onClick={() => {
+                              setSelectedProduct(product);
+                            }}
+                            className="w-full text-left p-2 border border-gray-200 rounded-lg hover:bg-primary-50 hover:border-primary-300 transition-colors"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <p className="font-medium text-gray-900 text-sm">
+                                  {product.name}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {product.sku}
+                                </p>
+                              </div>
+                              <p className="font-semibold text-primary-600 text-sm ml-2">
+                                ${product.price.toLocaleString()}
+                              </p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Resultados de búsqueda */}
                   <AnimatePresence>
