@@ -41,7 +41,7 @@ const ProductsPage = () => {
 
   // Estados
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(50); // ✅ Aumentado de 10 a 50
   const [searchQuery, setSearchQuery] = useState('');
   const [sortKey, setSortKey] = useState('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');

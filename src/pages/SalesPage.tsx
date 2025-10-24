@@ -124,7 +124,7 @@ const SalesPage = () => {
   const [freebieQuantity, setFreebieQuantity] = useState(1);
   
   // Estados del historial
-  const [showHistory, setShowHistory] = useState(false);
+  const [showHistory, setShowHistory] = useState(true); // ✅ Mostrar historial por defecto
   const [historySearch, setHistorySearch] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -271,14 +271,16 @@ const SalesPage = () => {
   const { data: dailyCutData, isLoading: loadingDailyCut, refetch: refetchDailyCut } = useQuery({
     queryKey: ['daily-cut', user?.store?._id],
     queryFn: async () => {
+      const storeId = isAdmin ? selectedStore : user?.store?._id;
+      if (!storeId) return null;
+      
       const response = await api.get('/sales/daily-cut', {
-        params: {
-          storeId: user?.store?._id
-        }
+        params: { storeId }
       });
       return response.data.data;
     },
-    enabled: false, // Solo se ejecuta manualmente cuando se abre el modal
+    enabled: !!(isAdmin ? selectedStore : user?.store?._id), // ✅ Ejecutar cuando haya tienda
+    staleTime: 1 * 60 * 1000, // 1 minuto de caché
   });
 
   // Mutation para crear venta
