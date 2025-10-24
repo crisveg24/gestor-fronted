@@ -101,6 +101,7 @@ const StoresPage = () => {
   // Mutations
   const createStoreMutation = useMutation({
     mutationFn: async (data: StoreFormData) => {
+      console.log('🏪 [STORES] Creando tienda:', data);
       await api.post('/stores', data);
     },
     onSuccess: () => {
@@ -111,6 +112,8 @@ const StoresPage = () => {
       resetForm();
     },
     onError: (error: any) => {
+      console.error('❌ [STORES] Error creando tienda:', error);
+      console.error('❌ [STORES] Response:', error.response?.data);
       toast.error(error.response?.data?.message || 'Error al crear la tienda');
     },
   });
@@ -123,6 +126,7 @@ const StoresPage = () => {
       id: string;
       data: Partial<StoreFormData>;
     }) => {
+      console.log('🏪 [STORES] Actualizando tienda:', id, data);
       await api.put(`/stores/${id}`, data);
     },
     onSuccess: () => {
@@ -133,6 +137,7 @@ const StoresPage = () => {
       resetForm();
     },
     onError: (error: any) => {
+      console.error('❌ [STORES] Error actualizando tienda:', error);
       toast.error(error.response?.data?.message || 'Error al actualizar la tienda');
     },
   });

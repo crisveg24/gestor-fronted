@@ -96,6 +96,7 @@ const UsersPage = () => {
   // Mutations
   const createUserMutation = useMutation({
     mutationFn: async (data: UserFormData) => {
+      console.log('👤 [USERS] Creando usuario:', data);
       await api.post('/users', data);
     },
     onSuccess: () => {
@@ -105,6 +106,8 @@ const UsersPage = () => {
       resetForm();
     },
     onError: (error: any) => {
+      console.error('❌ [USERS] Error creando usuario:', error);
+      console.error('❌ [USERS] Response:', error.response?.data);
       toast.error(error.response?.data?.message || 'Error al crear el usuario');
     },
   });
@@ -117,6 +120,7 @@ const UsersPage = () => {
       id: string;
       data: Partial<UserFormData>;
     }) => {
+      console.log('👤 [USERS] Actualizando usuario:', id, data);
       await api.put(`/users/${id}`, data);
     },
     onSuccess: () => {
@@ -127,6 +131,7 @@ const UsersPage = () => {
       resetForm();
     },
     onError: (error: any) => {
+      console.error('❌ [USERS] Error actualizando usuario:', error);
       toast.error(error.response?.data?.message || 'Error al actualizar el usuario');
     },
   });

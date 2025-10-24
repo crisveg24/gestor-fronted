@@ -22,6 +22,7 @@ import { es } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { printTicket } from '../utils/printTicket';
 
 // Función helper para formatear métodos de pago
 const formatPaymentMethod = (method: string): string => {
@@ -298,11 +299,47 @@ const SalesPage = () => {
     },
     retry: 2, // ✅ Reintentar hasta 2 veces si falla
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
-    onSuccess: () => {
+    onSuccess: (_response, variables) => {
       // Invalidar solo las queries necesarias de forma más eficiente
       queryClient.invalidateQueries({ queryKey: ['sales'], exact: false });
       queryClient.invalidateQueries({ queryKey: ['inventory'], exact: false });
       toast.success('Venta registrada exitosamente');
+      
+      // ✅ Preguntar si desea imprimir ticket
+      const shouldPrint = confirm('✅ Venta registrada!\n\n¿Deseas imprimir el ticket?');
+      
+      if (shouldPrint) {
+        const ticketData = {
+          store: {
+            name: isAdmin 
+              ? stores?.find((s: any) => s._id === variables.store)?.name || 'Tienda'
+              : user?.store?.name || 'Tienda',
+            address: '',
+            phone: '',
+          },
+          items: variables.items.map((item: any) => {
+            const product = cart.find(c => c.product._id === item.product) 
+              || freebies.find(f => f.product._id === item.product);
+            return {
+              product: {
+                name: product?.product?.name || 'Producto',
+                price: item.unitPrice,
+              },
+              quantity: item.quantity,
+              subtotal: item.quantity * item.unitPrice,
+            };
+          }),
+          subtotal: subtotal,
+          discount: variables.discount,
+          tax: variables.tax,
+          total,
+          paymentMethod: variables.paymentMethod,
+          date: new Date(),
+        };
+        
+        printTicket(ticketData);
+      }
+      
       clearCart();
     },
     onError: (error: any) => {
