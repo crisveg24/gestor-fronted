@@ -12,7 +12,7 @@ import {
   TrendingDown,
   Filter,
 } from 'lucide-react';
-import { Card, SearchBar, Table, Button, Modal, toast, EmptyStateNoStore } from '../components/ui';
+import { Card, SearchBar, ResponsiveTable, Button, Modal, toast, EmptyStateNoStore } from '../components/ui';
 import type { Column } from '../components/ui';
 import api from '../lib/axios';
 import { useAuthStore } from '../store/authStore';
@@ -243,10 +243,18 @@ const InventoryPage = () => {
           <p className="text-xs text-gray-400">{item.product?.category || 'Sin categoría'}</p>
         </div>
       ),
+      mobileRender: (item) => (
+        <div>
+          <p className="font-semibold text-gray-900">{item.product?.name || 'Sin nombre'}</p>
+          <p className="text-sm text-gray-600 mt-0.5">SKU: {item.product?.sku || 'N/A'}</p>
+          <p className="text-xs text-gray-500 mt-0.5">{item.product?.category || 'Sin categoría'}</p>
+        </div>
+      ),
     },
     {
       key: 'store',
       header: 'Tienda',
+      hideOnMobile: !isAdmin, // Solo mostrar en admin, en mobile ocupa mucho espacio
       render: (item) => (
         <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
           {item.store?.name || 'Sin tienda'}
@@ -277,6 +285,29 @@ const InventoryPage = () => {
             <p className="text-xs text-gray-500 mt-1">
               Min: {item.minStock} | Max: {item.maxStock}
             </p>
+          </div>
+        );
+      },
+      mobileRender: (item) => {
+        const isLowStock = item.quantity <= item.minStock;
+        const isOverStock = item.quantity >= item.maxStock;
+        
+        return (
+          <div className="flex items-center gap-2">
+            <span
+              className={`text-xl font-bold ${
+                isLowStock
+                  ? 'text-red-600'
+                  : isOverStock
+                  ? 'text-orange-600'
+                  : 'text-green-600'
+              }`}
+            >
+              {item.quantity}
+            </span>
+            <span className="text-sm text-gray-500">
+              (Min: {item.minStock})
+            </span>
           </div>
         );
       },
@@ -313,10 +344,39 @@ const InventoryPage = () => {
           </span>
         );
       },
+      mobileRender: (item) => {
+        const isLowStock = item.quantity <= item.minStock;
+        const isOverStock = item.quantity >= item.maxStock;
+        
+        if (isLowStock) {
+          return (
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-800 text-xs font-semibold rounded-full">
+              <AlertTriangle size={14} />
+              Stock Bajo
+            </span>
+          );
+        }
+        
+        if (isOverStock) {
+          return (
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-800 text-xs font-semibold rounded-full">
+              <AlertTriangle size={14} />
+              Sobre Stock
+            </span>
+          );
+        }
+        
+        return (
+          <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">
+            Normal
+          </span>
+        );
+      },
     },
     {
       key: 'lastUpdated',
       header: 'Última Actualización',
+      hideOnMobile: true,
       render: (item) => {
         try {
           if (!item.lastUpdated) {
@@ -363,6 +423,33 @@ const InventoryPage = () => {
             title="Ver historial"
           >
             <History size={18} />
+          </button>
+        </div>
+      ),
+      mobileRender: (item) => (
+        <div className="flex flex-col gap-2 mt-3">
+          <button
+            onClick={() => handleAdjustStock(item)}
+            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+          >
+            <Plus size={18} />
+            Ajustar Stock
+          </button>
+          {isAdmin && (
+            <button
+              onClick={() => handleTransferStock(item)}
+              className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
+            >
+              <ArrowLeftRight size={18} />
+              Transferir
+            </button>
+          )}
+          <button
+            onClick={() => handleViewHistory(item)}
+            className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
+          >
+            <History size={18} />
+            Ver Historial
           </button>
         </div>
       ),
@@ -550,7 +637,7 @@ const InventoryPage = () => {
         transition={{ delay: 0.6 }}
       >
         <Card>
-          <Table
+          <ResponsiveTable
             columns={columns}
             data={inventory || []}
             isLoading={isLoading}

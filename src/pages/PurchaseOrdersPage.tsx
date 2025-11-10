@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import api from '../lib/axios';
 import type { PurchaseOrder, ApiResponse } from '../types';
-import { Card, Button, Table, Loading } from '../components/ui';
+import { Card, Button, ResponsiveTable, Loading } from '../components/ui';
+import type { Column } from '../components/ui';
 import { useAuthStore } from '../store/authStore';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
@@ -79,9 +80,17 @@ export default function PurchaseOrdersPage() {
       </div>
 
       <Card>
-        <Table
+        <ResponsiveTable
           columns={[
-            { key: 'orderNumber', header: 'Nº Orden' },
+            { 
+              key: 'orderNumber', 
+              header: 'Nº Orden',
+              mobileRender: (order: PurchaseOrder) => (
+                <div className="font-semibold text-gray-900">
+                  Orden #{order.orderNumber}
+                </div>
+              ),
+            },
             {
               key: 'supplier',
               header: 'Proveedor',
@@ -94,32 +103,54 @@ export default function PurchaseOrdersPage() {
                     {typeof order.supplier === 'object' ? order.supplier.contactName : ''}
                   </div>
                 </div>
-              )
+              ),
+              mobileRender: (order: PurchaseOrder) => (
+                <div className="text-sm text-gray-600">
+                  {typeof order.supplier === 'object' ? order.supplier.name : order.supplier}
+                </div>
+              ),
             },
             {
               key: 'store',
               header: 'Tienda',
+              hideOnMobile: true,
               render: (order: PurchaseOrder) => 
                 typeof order.store === 'object' ? order.store.name : order.store
             },
             {
               key: 'items',
               header: 'Items',
-              render: (order: PurchaseOrder) => order.items.length
+              render: (order: PurchaseOrder) => order.items.length,
+              mobileRender: (order: PurchaseOrder) => (
+                <div className="text-sm text-gray-600">
+                  Items: {order.items.length}
+                </div>
+              ),
             },
             {
               key: 'finalTotal',
               header: 'Total',
-              render: (order: PurchaseOrder) => `$${order.finalTotal.toFixed(2)}`
+              render: (order: PurchaseOrder) => `$${order.finalTotal.toFixed(2)}`,
+              mobileRender: (order: PurchaseOrder) => (
+                <div className="text-lg font-bold text-primary-600">
+                  ${order.finalTotal.toFixed(2)}
+                </div>
+              ),
             },
             {
               key: 'status',
               header: 'Estado',
-              render: (order: PurchaseOrder) => getStatusBadge(order.status)
+              render: (order: PurchaseOrder) => getStatusBadge(order.status),
+              mobileRender: (order: PurchaseOrder) => (
+                <div className="mt-1">
+                  {getStatusBadge(order.status)}
+                </div>
+              ),
             },
             {
               key: 'expectedDeliveryDate',
               header: 'Fecha Esperada',
+              hideOnMobile: true,
               render: (order: PurchaseOrder) => 
                 order.expectedDeliveryDate 
                   ? new Date(order.expectedDeliveryDate).toLocaleDateString()
@@ -156,9 +187,38 @@ export default function PurchaseOrdersPage() {
                     </Button>
                   )}
                 </div>
-              )
+              ),
+              mobileRender: (order: PurchaseOrder) => (
+                <div className="flex flex-col gap-2 mt-3">
+                  <Button
+                    variant="secondary"
+                    onClick={() => navigate(`/purchase-orders/${order._id}`)}
+                    className="w-full"
+                  >
+                    Ver Detalle
+                  </Button>
+                  {order.status === 'pending' && (
+                    <Button
+                      variant="primary"
+                      onClick={() => handleReceive(order._id)}
+                      className="w-full"
+                    >
+                      Recibir Orden
+                    </Button>
+                  )}
+                  {user?.role === 'admin' && order.status !== 'received' && order.status !== 'cancelled' && (
+                    <Button
+                      variant="danger"
+                      onClick={() => handleCancel(order._id)}
+                      className="w-full"
+                    >
+                      Cancelar Orden
+                    </Button>
+                  )}
+                </div>
+              ),
             }
-          ]}
+          ] as Column<PurchaseOrder>[]}
           data={orders}
         />
       </Card>
