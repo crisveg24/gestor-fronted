@@ -238,9 +238,9 @@ const InventoryPage = () => {
       sortable: true,
       render: (item) => (
         <div>
-          <p className="font-medium text-gray-900">{item.product.name}</p>
-          <p className="text-sm text-gray-500">{item.product.sku}</p>
-          <p className="text-xs text-gray-400">{item.product.category}</p>
+          <p className="font-medium text-gray-900">{item.product?.name || 'Sin nombre'}</p>
+          <p className="text-sm text-gray-500">{item.product?.sku || 'Sin SKU'}</p>
+          <p className="text-xs text-gray-400">{item.product?.category || 'Sin categoría'}</p>
         </div>
       ),
     },
@@ -249,7 +249,7 @@ const InventoryPage = () => {
       header: 'Tienda',
       render: (item) => (
         <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
-          {item.store.name}
+          {item.store?.name || 'Sin tienda'}
         </span>
       ),
     },
@@ -570,7 +570,7 @@ const InventoryPage = () => {
           <div className="space-y-4">
             <div className="bg-gray-50 p-4 rounded-lg">
               <p className="text-sm text-gray-600">Producto</p>
-              <p className="font-semibold text-gray-900">{selectedItem.product.name}</p>
+              <p className="font-semibold text-gray-900">{selectedItem.product?.name || 'Sin nombre'}</p>
               <p className="text-sm text-gray-600 mt-2">Stock Actual</p>
               <p className="text-2xl font-bold text-primary-600">{selectedItem.quantity}</p>
             </div>
@@ -653,9 +653,9 @@ const InventoryPage = () => {
           <div className="space-y-4">
             <div className="bg-gray-50 p-4 rounded-lg">
               <p className="text-sm text-gray-600">Producto</p>
-              <p className="font-semibold text-gray-900">{selectedItem.product.name}</p>
+              <p className="font-semibold text-gray-900">{selectedItem.product?.name || 'Sin nombre'}</p>
               <p className="text-sm text-gray-600 mt-2">Tienda Origen</p>
-              <p className="font-medium text-gray-900">{selectedItem.store.name}</p>
+              <p className="font-medium text-gray-900">{selectedItem.store?.name || 'Sin tienda'}</p>
               <p className="text-sm text-gray-600 mt-2">Stock Disponible</p>
               <p className="text-xl font-bold text-primary-600">{selectedItem.quantity}</p>
             </div>
@@ -671,7 +671,7 @@ const InventoryPage = () => {
               >
                 <option value="">Selecciona una tienda</option>
                 {stores
-                  .filter((store) => store._id !== selectedItem.store._id)
+                  .filter((store) => store._id !== selectedItem.store?._id)
                   .map((store) => (
                     <option key={store._id} value={store._id}>
                       {store.name}
@@ -730,8 +730,8 @@ const InventoryPage = () => {
           <div className="space-y-4">
             <div className="bg-gray-50 p-4 rounded-lg">
               <p className="text-sm text-gray-600">Producto</p>
-              <p className="font-semibold text-gray-900">{selectedItem.product.name}</p>
-              <p className="text-sm text-gray-500">{selectedItem.product.sku}</p>
+              <p className="font-semibold text-gray-900">{selectedItem.product?.name || 'Sin nombre'}</p>
+              <p className="text-sm text-gray-500">{selectedItem.product?.sku || 'Sin SKU'}</p>
             </div>
 
             <div className="space-y-2 max-h-96 overflow-y-auto">
@@ -789,7 +789,7 @@ const InventoryPage = () => {
                         </p>
                         <p className="text-sm text-gray-600 mt-1">{movement.reason}</p>
                         <p className="text-xs text-gray-500 mt-1">
-                          Por: {movement.createdBy.name}
+                          Por: {movement.createdBy?.name || 'Usuario desconocido'}
                         </p>
                       </div>
                     </div>
