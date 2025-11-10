@@ -841,22 +841,28 @@ const SalesPage = () => {
       header: 'Tienda',
       hideOnMobile: true,
       render: (sale) => (
-        <span className="text-sm text-gray-700">{sale.store.name}</span>
+        <span className="text-sm text-gray-700">{sale.store?.name || 'N/A'}</span>
       ),
     },
     {
       key: 'products',
       header: 'Productos',
-      render: (sale) => (
-        <span className="text-sm text-gray-700">
-          {sale.products.length} {sale.products.length === 1 ? 'producto' : 'productos'}
-        </span>
-      ),
-      mobileRender: (sale) => (
-        <span className="text-sm text-gray-600">
-          {sale.products.length} {sale.products.length === 1 ? 'item' : 'items'}
-        </span>
-      ),
+      render: (sale) => {
+        const productsCount = sale.products?.length || 0;
+        return (
+          <span className="text-sm text-gray-700">
+            {productsCount} {productsCount === 1 ? 'producto' : 'productos'}
+          </span>
+        );
+      },
+      mobileRender: (sale) => {
+        const productsCount = sale.products?.length || 0;
+        return (
+          <span className="text-sm text-gray-600">
+            {productsCount} {productsCount === 1 ? 'item' : 'items'}
+          </span>
+        );
+      },
     },
     {
       key: 'total',
@@ -889,7 +895,7 @@ const SalesPage = () => {
       header: 'Vendedor',
       hideOnMobile: true,
       render: (sale) => (
-        <span className="text-sm text-gray-600">{sale.user.name}</span>
+        <span className="text-sm text-gray-600">{sale.user?.name || 'N/A'}</span>
       ),
     },
     {
