@@ -7,6 +7,8 @@ export interface Column<T> {
   sortable?: boolean;
   render?: (item: T) => React.ReactNode;
   className?: string;
+  hideOnMobile?: boolean;
+  mobileRender?: (item: T) => React.ReactNode;
 }
 
 interface TableProps<T> {
