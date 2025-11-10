@@ -13,7 +13,7 @@ import {
   FileSpreadsheet,
   FileText,
 } from 'lucide-react';
-import { Card, Button, Modal, toast, Table, SearchBar, EmptyStateNoStore } from '../components/ui';
+import { Card, Button, Modal, toast, ResponsiveTable, SearchBar, EmptyStateNoStore } from '../components/ui';
 import type { Column } from '../components/ui';
 import api from '../lib/axios';
 import { useAuthStore } from '../store/authStore';
@@ -825,10 +825,21 @@ const SalesPage = () => {
           </p>
         </div>
       ),
+      mobileRender: (sale) => (
+        <div>
+          <p className="font-semibold text-gray-900">
+            {format(new Date(sale.createdAt), 'dd MMM yyyy', { locale: es })}
+          </p>
+          <p className="text-sm text-gray-600">
+            {format(new Date(sale.createdAt), 'HH:mm', { locale: es })}
+          </p>
+        </div>
+      ),
     },
     {
       key: 'store',
       header: 'Tienda',
+      hideOnMobile: true,
       render: (sale) => (
         <span className="text-sm text-gray-700">{sale.store.name}</span>
       ),
@@ -841,6 +852,11 @@ const SalesPage = () => {
           {sale.products.length} {sale.products.length === 1 ? 'producto' : 'productos'}
         </span>
       ),
+      mobileRender: (sale) => (
+        <span className="text-sm text-gray-600">
+          {sale.products.length} {sale.products.length === 1 ? 'item' : 'items'}
+        </span>
+      ),
     },
     {
       key: 'total',
@@ -851,11 +867,17 @@ const SalesPage = () => {
           ${sale.total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
         </span>
       ),
+      mobileRender: (sale) => (
+        <span className="text-lg font-bold text-primary-600">
+          ${sale.total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+        </span>
+      ),
       className: 'text-right',
     },
     {
       key: 'paymentMethod',
       header: 'Pago',
+      hideOnMobile: true,
       render: (sale) => (
         <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
           {formatPaymentMethod(sale.paymentMethod)}
@@ -865,6 +887,7 @@ const SalesPage = () => {
     {
       key: 'user',
       header: 'Vendedor',
+      hideOnMobile: true,
       render: (sale) => (
         <span className="text-sm text-gray-600">{sale.user.name}</span>
       ),
@@ -880,6 +903,18 @@ const SalesPage = () => {
             setSelectedSale(sale);
             setDetailModalOpen(true);
           }}
+        >
+          Ver Detalle
+        </Button>
+      ),
+      mobileRender: (sale) => (
+        <Button
+          onClick={() => {
+            setSelectedSale(sale);
+            setDetailModalOpen(true);
+          }}
+          variant="primary"
+          className="w-full mt-2"
         >
           Ver Detalle
         </Button>
@@ -1659,7 +1694,7 @@ const SalesPage = () => {
             transition={{ delay: 0.2 }}
           >
             <Card>
-              <Table
+              <ResponsiveTable
                 columns={salesColumns}
                 data={sales || []}
                 isLoading={loadingSales}
