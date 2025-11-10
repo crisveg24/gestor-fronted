@@ -68,8 +68,16 @@ const InventoryPage = () => {
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'admin';
 
+  console.log('📦 [INVENTORY PAGE] Inicializando página');
+  console.log('📦 [INVENTORY PAGE] Usuario:', { 
+    role: user?.role, 
+    hasStore: !!user?.store,
+    storeId: user?.store?._id 
+  });
+
   // Verificar si el usuario tiene tienda asignada
   if (user && !isAdmin && !user.store) {
+    console.log('⚠️ [INVENTORY PAGE] Usuario sin tienda asignada, mostrando EmptyStateNoStore');
     return <EmptyStateNoStore />;
   }
 
