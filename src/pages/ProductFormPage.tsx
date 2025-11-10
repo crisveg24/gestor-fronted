@@ -9,6 +9,7 @@ import { ArrowLeft, Save, Plus, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Card, Button, toast } from '../components/ui';
+import { QRGenerator } from '../components/QRGenerator';
 import api from '../lib/axios';
 import { useAuthStore } from '../store/authStore';
 import { SIZE_TYPES, SIZE_PRESETS, type SizeType } from '../constants/sizePresets';
@@ -50,6 +51,9 @@ const ProductFormPage = () => {
   const [sizeType, setSizeType] = useState<SizeType>('zapatos');
   const [sizes, setSizes] = useState<string[]>([]);
   const [customSize, setCustomSize] = useState('');
+
+  // Estados para QR
+  const [showQRModal, setShowQRModal] = useState(false);
 
   // Query para obtener categorías dinámicas
   const { data: categories = [] } = useQuery<string[]>({
@@ -456,14 +460,30 @@ const ProductFormPage = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Código de Barras
                   </label>
-                  <input
-                    type="text"
-                    {...register('barcode')}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 font-mono"
-                    placeholder="Ej: 1234567890123"
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      {...register('barcode')}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 font-mono"
+                      placeholder="Ej: 1234567890123"
+                    />
+                    {watch('barcode') && watch('barcode')!.trim() !== '' && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setShowQRModal(true)}
+                      >
+                        📱 Ver QR
+                      </Button>
+                    )}
+                  </div>
                   {errors.barcode && (
                     <p className="mt-1 text-sm text-red-600">{errors.barcode.message}</p>
+                  )}
+                  {watch('barcode') && watch('barcode')!.trim() !== '' && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      ✅ El código QR estará disponible para escaneo en ventas
+                    </p>
                   )}
                 </div>
               </div>
@@ -834,6 +854,43 @@ const ProductFormPage = () => {
             </Card.Footer>
           </Card>
         </form>
+
+        {/* Modal QR Generator */}
+        {watch('barcode') && watch('barcode')!.trim() !== '' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-6"
+          >
+            {showQRModal && (
+              <Card>
+                <Card.Header>
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      📱 Código QR del Producto
+                    </h3>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowQRModal(false)}
+                    >
+                      <X size={18} />
+                    </Button>
+                  </div>
+                </Card.Header>
+                <Card.Body>
+                  <QRGenerator
+                    value={watch('barcode') || ''}
+                    label={watch('name') || 'Producto'}
+                    size={256}
+                    showDownload={true}
+                  />
+                </Card.Body>
+              </Card>
+            )}
+          </motion.div>
+        )}
       </motion.div>
     </div>
   );

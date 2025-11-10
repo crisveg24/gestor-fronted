@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Card, Button, Modal, toast, ResponsiveTable, SearchBar, EmptyStateNoStore } from '../components/ui';
 import type { Column } from '../components/ui';
+import { BarcodeScanner } from '../components/BarcodeScanner';
 import api from '../lib/axios';
 import { useAuthStore } from '../store/authStore';
 import { format } from 'date-fns';
@@ -154,6 +155,9 @@ const SalesPage = () => {
   const [cutModalOpen, setCutModalOpen] = useState(false);
   const [cashCounted, setCashCounted] = useState('');
   const [cutObservations, setCutObservations] = useState('');
+
+  // Estados del scanner
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   // Query para obtener tiendas (solo admins)
   const { data: stores, isLoading: loadingStores, error: storesError } = useQuery({
@@ -404,6 +408,84 @@ const SalesPage = () => {
       : numericDiscountValue;
   const taxAmount = includeIVA ? (subtotal - discountAmount) * (ivaPercentage / 100) : 0;
   const total = subtotal - discountAmount + taxAmount;
+
+  // Función para buscar producto por código de barras
+  const handleBarcodeScanned = async (barcode: string) => {
+    try {
+      console.log('📷 [SCANNER] Código escaneado:', barcode);
+      toast.loading('Buscando producto...', { id: 'barcode-search' });
+
+      const response = await api.get(`/products/by-barcode/${barcode}`);
+      const product = response.data.data;
+
+      console.log('✅ [SCANNER] Producto encontrado:', product);
+
+      if (!product) {
+        toast.error('Producto no encontrado', { id: 'barcode-search' });
+        return;
+      }
+
+      // Verificar inventario en la tienda actual
+      const currentStoreId = isAdmin ? selectedStore : (typeof user?.store === 'string' ? user.store : user?.store?._id);
+      
+      if (!currentStoreId) {
+        toast.error('Selecciona una tienda primero', { id: 'barcode-search' });
+        return;
+      }
+
+      // El backend ya devuelve el stock de la tienda del usuario
+      if (product.stock === undefined || product.stock <= 0) {
+        toast.error(`Sin stock en esta tienda`, { id: 'barcode-search' });
+        return;
+      }
+
+      // Verificar stock en carrito
+      const currentCartQty = cart.find(c => c.product._id === product._id)?.quantity || 0;
+      
+      if (currentCartQty >= product.stock) {
+        toast.error(`Stock insuficiente. Disponible: ${product.stock}`, { id: 'barcode-search' });
+        return;
+      }
+
+      // Agregar automáticamente al carrito (cantidad 1)
+      const existingItem = cart.find((item) => item.product._id === product._id);
+      
+      if (existingItem) {
+        setCart(
+          cart.map((item) =>
+            item.product._id === product._id
+              ? {
+                  ...item,
+                  quantity: item.quantity + 1,
+                  subtotal: (item.quantity + 1) * item.price,
+                }
+              : item
+          )
+        );
+      } else {
+        setCart([
+          ...cart,
+          {
+            product: product,
+            quantity: 1,
+            price: product.price,
+            subtotal: product.price,
+          },
+        ]);
+      }
+
+      toast.success(`${product.name} agregado al carrito`, { id: 'barcode-search' });
+      addToCartWithRecent(product);
+    } catch (error: any) {
+      console.error('❌ [SCANNER] Error:', error);
+      
+      if (error.response?.status === 404) {
+        toast.error('Código no encontrado en el sistema', { id: 'barcode-search' });
+      } else {
+        toast.error('Error al buscar producto', { id: 'barcode-search' });
+      }
+    }
+  };
 
   // Funciones del carrito
   const addToCart = () => {
@@ -1031,6 +1113,15 @@ const SalesPage = () => {
                       size={20}
                     />
                   </div>
+
+                  {/* Botón de Scanner */}
+                  <Button
+                    variant="outline"
+                    onClick={() => setScannerOpen(true)}
+                    className="w-full flex items-center justify-center gap-2"
+                  >
+                    📷 Escanear Código de Barras / QR
+                  </Button>
 
                   {/* ✅ PRODUCTOS RECIENTES */}
                   {!searchProduct && recentProducts.length > 0 && (
@@ -2516,6 +2607,14 @@ const SalesPage = () => {
           </Button>
         </Modal.Footer>
       </Modal>
+
+      {/* Modal del Scanner */}
+      <BarcodeScanner
+        isOpen={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onScan={handleBarcodeScanned}
+        title="📷 Escanear Producto"
+      />
     </div>
   );
 };
