@@ -47,10 +47,13 @@ export default function LoginPage() {
       
       await login(data);
 
-      console.log('✅ [LOGIN] Login exitoso, redirigiendo...');
+      console.log('✅ [LOGIN] Login exitoso!');
+      console.log('⏸️ [LOGIN] Navegación deshabilitada para debugging');
       
-      // Redirigir al dashboard después del login exitoso
-      navigate('/dashboard');
+      // TEMPORALMENTE DESHABILITADO para debugging
+      // navigate('/dashboard');
+      
+      setError('✅ Login exitoso! (navegación deshabilitada para debugging)');
     } catch (err: any) {
       console.error('❌ [LOGIN] Error capturado:', err);
       const errorMessage = err.message || 'Error al iniciar sesión. Intenta nuevamente.';
