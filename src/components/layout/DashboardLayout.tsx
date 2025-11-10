@@ -13,6 +13,8 @@ import {
   LogOut,
   ChevronRight,
   Box,
+  Truck,
+  FileText,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { toast } from '../ui';
@@ -29,6 +31,8 @@ const menuItems: MenuItem[] = [
   { icon: <Package size={20} />, label: 'Productos', path: '/productos' },
   { icon: <Box size={20} />, label: 'Inventario', path: '/inventario' },
   { icon: <ShoppingCart size={20} />, label: 'Ventas', path: '/ventas' },
+  { icon: <Truck size={20} />, label: 'Proveedores', path: '/proveedores' },
+  { icon: <FileText size={20} />, label: 'Órdenes de Compra', path: '/ordenes-compra' },
   { icon: <Store size={20} />, label: 'Tiendas', path: '/tiendas', adminOnly: true },
   { icon: <Users size={20} />, label: 'Usuarios', path: '/usuarios', adminOnly: true },
   { icon: <BarChart3 size={20} />, label: 'Reportes', path: '/reportes' },

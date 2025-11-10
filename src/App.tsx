@@ -10,6 +10,8 @@ import SalesPage from './pages/SalesPage';
 import StoresPage from './pages/StoresPage';
 import UsersPage from './pages/UsersPage';
 import ReportsPage from './pages/ReportsPage';
+import SuppliersPage from './pages/SuppliersPage';
+import PurchaseOrdersPage from './pages/PurchaseOrdersPage';
 import { useEffect } from 'react';
 import { Toaster } from './components/ui';
 import DashboardLayout from './components/layout/DashboardLayout';
@@ -176,6 +178,24 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ReportsPage />
+                </ProtectedRoute>
+              }
+            />
+            
+            <Route
+              path="/proveedores"
+              element={
+                <ProtectedRoute>
+                  <SuppliersPage />
+                </ProtectedRoute>
+              }
+            />
+            
+            <Route
+              path="/ordenes-compra"
+              element={
+                <ProtectedRoute>
+                  <PurchaseOrdersPage />
                 </ProtectedRoute>
               }
             />

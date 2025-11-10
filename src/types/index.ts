@@ -238,3 +238,101 @@ export interface UpdateUserFormData {
   permissions?: UserPermissions;
   isActive?: boolean;
 }
+
+// ==================== SUPPLIER TYPES ====================
+export interface Supplier {
+  _id: string;
+  name: string;
+  contactName: string;
+  email: string;
+  phone: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  taxId?: string;
+  categories: string[];
+  paymentTerms?: string;
+  website?: string;
+  notes?: string;
+  isActive: boolean;
+  rating?: number;
+  createdBy?: User | string;
+  updatedBy?: User | string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateSupplierDto {
+  name: string;
+  contactName: string;
+  email: string;
+  phone: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  taxId?: string;
+  categories?: string[];
+  paymentTerms?: string;
+  website?: string;
+  notes?: string;
+  rating?: number;
+}
+
+// ==================== PURCHASE ORDER TYPES ====================
+export interface PurchaseOrder {
+  _id: string;
+  orderNumber: string;
+  supplier: Supplier;
+  store: Store;
+  items: PurchaseOrderItem[];
+  totalCost: number;
+  tax: number;
+  shippingCost: number;
+  finalTotal: number;
+  status: 'pending' | 'received' | 'partial' | 'cancelled';
+  expectedDeliveryDate?: string;
+  receivedDate?: string;
+  notes?: string;
+  invoiceNumber?: string;
+  paymentStatus: 'pending' | 'partial' | 'paid';
+  createdBy: User | string;
+  updatedBy: User | string;
+  receivedBy?: User | string;
+  cancelledBy?: User | string;
+  cancelledAt?: string;
+  cancellationReason?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PurchaseOrderItem {
+  product: Product | string;
+  quantityOrdered: number;
+  quantityReceived: number;
+  unitCost: number;
+  subtotal: number;
+  _id?: string;
+}
+
+export interface CreatePurchaseOrderDto {
+  supplier: string;
+  store: string;
+  items: {
+    product: string;
+    quantityOrdered: number;
+    unitCost: number;
+  }[];
+  tax?: number;
+  shippingCost?: number;
+  expectedDeliveryDate?: string;
+  notes?: string;
+  invoiceNumber?: string;
+}
+
+export interface ReceivePurchaseOrderDto {
+  items: {
+    productId: string;
+    quantityReceived: number;
+  }[];
+}
+
