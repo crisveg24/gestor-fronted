@@ -1,5 +1,5 @@
 import { useState } from 'react';
-// import { useNavigate } from 'react-router-dom'; // TEMPORALMENTE COMENTADO para debugging
+import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -23,7 +23,7 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
-  // const navigate = useNavigate(); // TEMPORALMENTE COMENTADO para debugging
+  const navigate = useNavigate();
   const { login } = useAuthStore();
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
@@ -47,13 +47,10 @@ export default function LoginPage() {
       
       await login(data);
 
-      console.log('✅ [LOGIN] Login exitoso!');
-      console.log('⏸️ [LOGIN] Navegación deshabilitada para debugging');
+      console.log('✅ [LOGIN] Login exitoso, redirigiendo al dashboard...');
       
-      // TEMPORALMENTE DESHABILITADO para debugging
-      // navigate('/dashboard');
-      
-      setError('✅ Login exitoso! (navegación deshabilitada para debugging)');
+      // Redirigir al dashboard después del login exitoso
+      navigate('/dashboard');
     } catch (err: any) {
       console.error('❌ [LOGIN] Error capturado:', err);
       const errorMessage = err.message || 'Error al iniciar sesión. Intenta nuevamente.';
