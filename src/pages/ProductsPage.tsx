@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Plus, Edit2, Trash2, Eye, AlertCircle } from 'lucide-react';
 import { Card, SearchBar, ResponsiveTable, Pagination, Button, Modal, toast, EmptyStateNoStore } from '../components/ui';
-import type { Column } from '../components/ui/ResponsiveTable';
+import type { Column } from '../components/ui';
 import api from '../lib/axios';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';

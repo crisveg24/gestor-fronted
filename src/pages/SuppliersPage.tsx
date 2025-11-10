@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../lib/axios';
 import type { Supplier, ApiResponse } from '../types';
 import { Card, Button, ResponsiveTable, Modal, SearchBar, Loading } from '../components/ui';
-import type { Column } from '../components/ui/ResponsiveTable';
+import type { Column } from '../components/ui';
 import { useAuthStore } from '../store/authStore';
 import toast from 'react-hot-toast';
 
