@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/axios';
 import type { Supplier, ApiResponse } from '../types';
-import { Card, Button, Table, Modal, SearchBar, Loading } from '../components/ui';
+import { Card, Button, ResponsiveTable, Modal, SearchBar, Loading } from '../components/ui';
+import type { Column } from '../components/ui/ResponsiveTable';
 import { useAuthStore } from '../store/authStore';
 import toast from 'react-hot-toast';
 
@@ -143,7 +144,7 @@ export default function SuppliersPage() {
           />
         </div>
 
-        <Table
+        <ResponsiveTable
           columns={[
             {
               key: 'name',
@@ -153,12 +154,23 @@ export default function SuppliersPage() {
                   <div className="font-medium">{supplier.name}</div>
                   <div className="text-sm text-gray-500">{supplier.city}</div>
                 </div>
+              ),
+              mobileRender: (supplier: Supplier) => (
+                <div>
+                  <div className="font-semibold text-gray-900">{supplier.name}</div>
+                  <div className="text-xs text-gray-500">{supplier.contactName}</div>
+                </div>
               )
             },
-            { key: 'contactName', header: 'Contacto' },
+            { 
+              key: 'contactName', 
+              header: 'Contacto',
+              hideOnMobile: true
+            },
             {
               key: 'email',
               header: 'Email',
+              hideOnMobile: true,
               render: (supplier: Supplier) => (
                 <a href={`mailto:${supplier.email}`} className="text-blue-600 hover:underline">
                   {supplier.email}
@@ -177,6 +189,7 @@ export default function SuppliersPage() {
             {
               key: 'categories',
               header: 'Categorías',
+              hideOnMobile: true,
               render: (supplier: Supplier) => (
                 <div className="flex flex-wrap gap-1">
                   {supplier.categories.slice(0, 2).map((cat: string) => (
@@ -195,6 +208,7 @@ export default function SuppliersPage() {
             {
               key: 'rating',
               header: 'Calificación',
+              hideOnMobile: true,
               render: (supplier: Supplier) => (
                 <div className="flex items-center">
                   {supplier.rating ? (
@@ -229,6 +243,28 @@ export default function SuppliersPage() {
                         Desactivar
                       </Button>
                     </>
+                  )}
+                </div>
+              ),
+              mobileRender: (supplier: Supplier) => (
+                <div className="flex flex-col gap-2">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => navigate(`/purchase-orders/new?supplier=${supplier._id}`)}
+                    className="w-full"
+                  >
+                    Crear Orden
+                  </Button>
+                  {user?.role === 'admin' && (
+                    <div className="flex gap-2">
+                      <Button variant="secondary" size="sm" onClick={() => handleEdit(supplier)} className="flex-1">
+                        Editar
+                      </Button>
+                      <Button variant="danger" size="sm" onClick={() => handleDelete(supplier._id)} className="flex-1">
+                        Desactivar
+                      </Button>
+                    </div>
                   )}
                 </div>
               )
