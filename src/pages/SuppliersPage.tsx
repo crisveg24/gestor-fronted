@@ -269,7 +269,7 @@ export default function SuppliersPage() {
                 </div>
               )
             }
-          ]}
+          ] as Column<Supplier>[]}
           data={suppliers}
         />
       </Card>
