@@ -54,6 +54,13 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const { initializeAuth, isLoading, logout } = useAuthStore();
 
   useEffect(() => {
+    // NO inicializar autenticación en la página de login
+    if (window.location.pathname === '/login') {
+      console.log('🔒 [AUTH GUARD] En página de login, no inicializando auth');
+      return;
+    }
+    
+    console.log('🔒 [AUTH GUARD] Inicializando autenticación...');
     // Inicializar autenticación al cargar la app
     initializeAuth();
 

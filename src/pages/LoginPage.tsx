@@ -43,12 +43,19 @@ export default function LoginPage() {
       setError('');
       setIsLoading(true);
 
+      console.log('🔑 [LOGIN] Intentando login con:', data.email);
+      
       await login(data);
 
+      console.log('✅ [LOGIN] Login exitoso, redirigiendo...');
+      
       // Redirigir al dashboard después del login exitoso
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Error al iniciar sesión. Intenta nuevamente.');
+      console.error('❌ [LOGIN] Error capturado:', err);
+      const errorMessage = err.message || 'Error al iniciar sesión. Intenta nuevamente.';
+      console.error('❌ [LOGIN] Mensaje de error:', errorMessage);
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
