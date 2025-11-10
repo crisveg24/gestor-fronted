@@ -1732,11 +1732,11 @@ const SalesPage = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-600">Tienda</p>
-                <p className="font-medium text-gray-900">{selectedSale.store.name}</p>
+                <p className="font-medium text-gray-900">{selectedSale.store?.name || 'N/A'}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Vendedor</p>
-                <p className="font-medium text-gray-900">{selectedSale.user.name}</p>
+                <p className="font-medium text-gray-900">{selectedSale.user?.name || 'N/A'}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Método de Pago</p>
@@ -1777,7 +1777,7 @@ const SalesPage = () => {
                       <div>
                         <p className="text-gray-900">
                           <span className="font-medium">Modificado por:</span>{' '}
-                          {selectedSale.modifiedBy.name}
+                          {selectedSale.modifiedBy?.name || 'N/A'}
                         </p>
                         <p className="text-gray-600">
                           {format(new Date(selectedSale.modifiedAt), "dd MMMM yyyy 'a las' HH:mm", {
@@ -1793,7 +1793,7 @@ const SalesPage = () => {
                       <div>
                         <p className="text-gray-900">
                           <span className="font-medium">Cancelado por:</span>{' '}
-                          {selectedSale.cancelledBy.name}
+                          {selectedSale.cancelledBy?.name || 'N/A'}
                         </p>
                         <p className="text-gray-600">
                           {format(new Date(selectedSale.cancelledAt), "dd MMMM yyyy 'a las' HH:mm", {
@@ -1826,25 +1826,29 @@ const SalesPage = () => {
             <div>
               <h4 className="font-semibold text-gray-900 mb-3">Productos</h4>
               <div className="space-y-2">
-                {selectedSale.products.map((item, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
-                  >
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900">{item.product.name}</p>
-                      <p className="text-sm text-gray-500">{item.product.sku}</p>
+                {selectedSale.products && selectedSale.products.length > 0 ? (
+                  selectedSale.products.map((item, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
+                    >
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">{item.product?.name || 'Producto sin nombre'}</p>
+                        <p className="text-sm text-gray-500">{item.product?.sku || 'N/A'}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-gray-600">
+                          {item.quantity} x ${item.price?.toLocaleString() || '0'}
+                        </p>
+                        <p className="font-semibold text-gray-900">
+                          ${((item.quantity || 0) * (item.price || 0)).toLocaleString()}
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm text-gray-600">
-                        {item.quantity} x ${item.price.toLocaleString()}
-                      </p>
-                      <p className="font-semibold text-gray-900">
-                        ${(item.quantity * item.price).toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-500 text-center py-4">No hay productos en esta venta</p>
+                )}
               </div>
             </div>
 
