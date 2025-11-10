@@ -2092,15 +2092,160 @@ const SalesPage = () => {
           >
             Cerrar
           </Button>
-          <Button
-            onClick={() => {
-              toast.success('Funcionalidad de PDF en desarrollo');
-              // TODO: Implementar generación de PDF
-            }}
-            leftIcon={<Receipt size={18} />}
-          >
-            Descargar PDF
-          </Button>
+          {dailyCutData && (
+            <>
+              <Button
+                onClick={() => {
+                  // Generar PDF del corte
+                  const doc = new jsPDF();
+                  
+                  // Título
+                  doc.setFontSize(20);
+                  doc.setFont('helvetica', 'bold');
+                  doc.text('💰 CORTE DE CAJA', 14, 20);
+                  
+                  // Fecha y tienda
+                  doc.setFontSize(12);
+                  doc.setFont('helvetica', 'normal');
+                  doc.text(`Fecha: ${format(new Date(dailyCutData.date), "dd 'de' MMMM yyyy", { locale: es })}`, 14, 30);
+                  doc.text(`Tienda: ${dailyCutData.store.name}`, 14, 37);
+                  doc.text(`Usuario: ${user?.name || 'N/A'}`, 14, 44);
+                  
+                  // Línea separadora
+                  doc.setLineWidth(0.5);
+                  doc.line(14, 48, 196, 48);
+                  
+                  // Resumen total
+                  doc.setFontSize(14);
+                  doc.setFont('helvetica', 'bold');
+                  doc.text('RESUMEN DEL DÍA', 14, 58);
+                  doc.setFontSize(24);
+                  doc.setTextColor(34, 197, 94);
+                  doc.text(`$${dailyCutData.summary.totalRevenue.toLocaleString('es-CO')}`, 14, 70);
+                  doc.setFontSize(10);
+                  doc.setTextColor(0);
+                  doc.setFont('helvetica', 'normal');
+                  doc.text(`${dailyCutData.summary.totalSales} ${dailyCutData.summary.totalSales === 1 ? 'venta' : 'ventas'}`, 14, 77);
+                  
+                  // Desglose por método de pago
+                  doc.setFontSize(12);
+                  doc.setFont('helvetica', 'bold');
+                  doc.text('DESGLOSE POR MÉTODO DE PAGO', 14, 90);
+                  
+                  let yPos = 100;
+                  dailyCutData.paymentMethods.forEach((pm: any) => {
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(10);
+                    doc.text(`${formatPaymentMethod(pm.method)}:`, 20, yPos);
+                    doc.text(`${pm.count} ${pm.count === 1 ? 'transacción' : 'transacciones'}`, 80, yPos);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(`$${pm.total.toLocaleString('es-CO')}`, 140, yPos, { align: 'right' });
+                    yPos += 7;
+                  });
+                  
+                  // Efectivo contado
+                  if (cashCounted) {
+                    yPos += 10;
+                    doc.setLineWidth(0.5);
+                    doc.line(14, yPos, 196, yPos);
+                    yPos += 10;
+                    
+                    doc.setFontSize(12);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('EFECTIVO', 14, yPos);
+                    yPos += 10;
+                    
+                    const efectivoSistema = dailyCutData.paymentMethods.find((pm: any) => pm.method === 'efectivo')?.total || 0;
+                    const diferencia = Number(cashCounted) - efectivoSistema;
+                    
+                    doc.setFontSize(10);
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(`Según sistema: $${efectivoSistema.toLocaleString('es-CO')}`, 20, yPos);
+                    yPos += 7;
+                    doc.text(`Efectivo contado: $${Number(cashCounted).toLocaleString('es-CO')}`, 20, yPos);
+                    yPos += 7;
+                    
+                    // Diferencia
+                    if (diferencia === 0) {
+                      doc.setTextColor(34, 197, 94);
+                      doc.setFont('helvetica', 'bold');
+                      doc.text('✓ Exacto', 20, yPos);
+                    } else if (diferencia > 0) {
+                      doc.setTextColor(245, 158, 11);
+                      doc.setFont('helvetica', 'bold');
+                      doc.text(`⚠ Sobrante: $${diferencia.toLocaleString('es-CO')}`, 20, yPos);
+                    } else {
+                      doc.setTextColor(239, 68, 68);
+                      doc.setFont('helvetica', 'bold');
+                      doc.text(`✗ Faltante: $${Math.abs(diferencia).toLocaleString('es-CO')}`, 20, yPos);
+                    }
+                    doc.setTextColor(0);
+                  }
+                  
+                  // Observaciones
+                  if (cutObservations) {
+                    yPos += 15;
+                    doc.setFontSize(10);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('OBSERVACIONES:', 14, yPos);
+                    yPos += 7;
+                    doc.setFont('helvetica', 'normal');
+                    const splitText = doc.splitTextToSize(cutObservations, 180);
+                    doc.text(splitText, 20, yPos);
+                  }
+                  
+                  // Pie de página
+                  doc.setFontSize(8);
+                  doc.setTextColor(128);
+                  doc.text(
+                    `Generado el ${format(new Date(), "dd/MM/yyyy 'a las' HH:mm")}`,
+                    105,
+                    285,
+                    { align: 'center' }
+                  );
+                  
+                  // Guardar PDF
+                  const fileName = `corte_caja_${format(new Date(dailyCutData.date), 'yyyy-MM-dd')}.pdf`;
+                  doc.save(fileName);
+                  toast.success(`Corte de caja descargado: ${fileName}`);
+                }}
+                leftIcon={<Receipt size={18} />}
+              >
+                Descargar PDF
+              </Button>
+              {cashCounted && (
+                <Button
+                  variant="primary"
+                  onClick={async () => {
+                    try {
+                      const efectivoSistema = dailyCutData.paymentMethods.find((pm: any) => pm.method === 'efectivo')?.total || 0;
+                      const diferencia = Number(cashCounted) - efectivoSistema;
+                      
+                      // Aquí podrías guardar el corte en la base de datos si tienes ese endpoint
+                      // await api.post('/daily-cuts', { ... });
+                      
+                      toast.success(
+                        diferencia === 0 
+                          ? '✅ Corte registrado - Efectivo exacto' 
+                          : diferencia > 0 
+                          ? `⚠️ Corte registrado - Sobrante de $${diferencia.toLocaleString('es-CO')}`
+                          : `❌ Corte registrado - Faltante de $${Math.abs(diferencia).toLocaleString('es-CO')}`
+                      );
+                      
+                      setCutModalOpen(false);
+                      setCashCounted('');
+                      setCutObservations('');
+                    } catch (error: any) {
+                      toast.error(error.response?.data?.message || 'Error al guardar el corte');
+                    }
+                  }}
+                  disabled={!cashCounted}
+                >
+                  Guardar Corte
+                </Button>
+              )}
+            </>
+          )}
         </Modal.Footer>
       </Modal>
 
