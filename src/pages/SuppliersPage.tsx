@@ -230,7 +230,7 @@ export default function SuppliersPage() {
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => navigate(`/purchase-orders/new?supplier=${supplier._id}`)}
+                    onClick={() => navigate(`/ordenes-compra/nueva?supplier=${supplier._id}`)}
                   >
                     Crear Orden
                   </Button>
@@ -251,7 +251,7 @@ export default function SuppliersPage() {
                   <Button
                     variant="primary"
                     size="sm"
-                    onClick={() => navigate(`/purchase-orders/new?supplier=${supplier._id}`)}
+                    onClick={() => navigate(`/ordenes-compra/nueva?supplier=${supplier._id}`)}
                     className="w-full"
                   >
                     Crear Orden

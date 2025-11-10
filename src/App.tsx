@@ -12,6 +12,7 @@ import UsersPage from './pages/UsersPage';
 import ReportsPage from './pages/ReportsPage';
 import SuppliersPage from './pages/SuppliersPage';
 import PurchaseOrdersPage from './pages/PurchaseOrdersPage';
+import PurchaseOrderFormPage from './pages/PurchaseOrderFormPage';
 import { useEffect } from 'react';
 import { Toaster } from './components/ui';
 import DashboardLayout from './components/layout/DashboardLayout';
@@ -203,6 +204,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <PurchaseOrdersPage />
+                </ProtectedRoute>
+              }
+            />
+            
+            <Route
+              path="/ordenes-compra/nueva"
+              element={
+                <ProtectedRoute>
+                  <PurchaseOrderFormPage />
                 </ProtectedRoute>
               }
             />

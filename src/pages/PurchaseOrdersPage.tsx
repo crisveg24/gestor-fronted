@@ -73,7 +73,7 @@ export default function PurchaseOrdersPage() {
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-900">Órdenes de Compra</h1>
         {user?.role === 'admin' && (
-          <Button onClick={() => navigate('/purchase-orders/new')}>
+          <Button onClick={() => navigate('/ordenes-compra/nueva')}>
             + Nueva Orden
           </Button>
         )}
