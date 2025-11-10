@@ -132,18 +132,16 @@ api.interceptors.response.use(
 
         const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data.data;
 
+        // Configuración de cookies para cross-domain HTTPS
+        const cookieConfig = {
+          secure: import.meta.env.PROD,
+          sameSite: import.meta.env.PROD ? ('none' as const) : ('strict' as const),
+          expires: 7,
+        };
+
         // Guardar nuevos tokens con 7 días de duración
-        Cookies.set('accessToken', newAccessToken, { 
-          secure: true, 
-          sameSite: 'strict',
-          expires: 7 // 7 días
-        });
-        
-        Cookies.set('refreshToken', newRefreshToken, { 
-          secure: true, 
-          sameSite: 'strict',
-          expires: 7 // 7 días
-        });
+        Cookies.set('accessToken', newAccessToken, cookieConfig);
+        Cookies.set('refreshToken', newRefreshToken, cookieConfig);
 
         // Reintentar request original con nuevo token
         if (originalRequest.headers) {

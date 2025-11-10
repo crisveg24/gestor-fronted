@@ -38,18 +38,16 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
 
           console.log('✅ [AUTH] Login exitoso, guardando sesión por 7 días');
 
-          // Guardar tokens en cookies seguras con 7 días
-          Cookies.set('accessToken', token, {
-            secure: true,
-            sameSite: 'strict',
+          // Configuración de cookies para cross-domain HTTPS
+          const cookieConfig = {
+            secure: import.meta.env.PROD, // true en producción (HTTPS)
+            sameSite: import.meta.env.PROD ? ('none' as const) : ('strict' as const),
             expires: 7,
-          });
+          };
 
-          Cookies.set('refreshToken', refreshToken, {
-            secure: true,
-            sameSite: 'strict',
-            expires: 7,
-          });
+          // Guardar tokens en cookies seguras con 7 días
+          Cookies.set('accessToken', token, cookieConfig);
+          Cookies.set('refreshToken', refreshToken, cookieConfig);
 
           // Actualizar state
           set({
@@ -115,18 +113,16 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
           const response = await api.post('/auth/refresh', { refreshToken });
           const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data.data;
 
-          // Actualizar tokens con 7 días
-          Cookies.set('accessToken', newAccessToken, {
-            secure: true,
-            sameSite: 'strict',
+          // Configuración de cookies para cross-domain HTTPS
+          const cookieConfig = {
+            secure: import.meta.env.PROD,
+            sameSite: import.meta.env.PROD ? ('none' as const) : ('strict' as const),
             expires: 7,
-          });
+          };
 
-          Cookies.set('refreshToken', newRefreshToken, {
-            secure: true,
-            sameSite: 'strict',
-            expires: 7,
-          });
+          // Actualizar tokens con 7 días
+          Cookies.set('accessToken', newAccessToken, cookieConfig);
+          Cookies.set('refreshToken', newRefreshToken, cookieConfig);
 
           // Obtener usuario actualizado
           const userResponse = await api.get('/auth/me');
