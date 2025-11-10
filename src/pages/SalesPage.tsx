@@ -1857,17 +1857,17 @@ const SalesPage = () => {
               <div className="flex justify-between text-gray-700">
                 <span>Subtotal:</span>
                 <span>
-                  ${selectedSale.subtotal.toLocaleString('es-MX', {
+                  ${(selectedSale.subtotal || 0).toLocaleString('es-MX', {
                     minimumFractionDigits: 2,
                   })}
                 </span>
               </div>
-              {selectedSale.discount > 0 && (
+              {(selectedSale.discount || 0) > 0 && (
                 <div className="flex justify-between text-green-600">
                   <span>Descuento:</span>
                   <span>
                     -$
-                    {selectedSale.discount.toLocaleString('es-MX', {
+                    {(selectedSale.discount || 0).toLocaleString('es-MX', {
                       minimumFractionDigits: 2,
                     })}
                   </span>
@@ -1876,13 +1876,13 @@ const SalesPage = () => {
               <div className="flex justify-between text-gray-700">
                 <span>IVA:</span>
                 <span>
-                  ${selectedSale.tax.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                  ${(selectedSale.tax || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                 </span>
               </div>
               <div className="flex justify-between text-xl font-bold text-gray-900 pt-2 border-t border-gray-200">
                 <span>Total:</span>
                 <span>
-                  ${selectedSale.total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                  ${(selectedSale.total || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                 </span>
               </div>
             </div>
