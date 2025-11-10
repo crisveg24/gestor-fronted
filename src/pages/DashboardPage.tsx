@@ -80,9 +80,7 @@ const DashboardPage = () => {
   const { data: stats, isLoading: statsLoading, error: statsError } = useQuery<DashboardStats>({
     queryKey: ['dashboard-stats'],
     queryFn: async () => {
-      console.log('📊 [DASHBOARD] Cargando estadísticas globales...');
       const response = await api.get('/dashboard/global');
-      console.log('📊 [DASHBOARD] Respuesta stats:', response.data);
       const data = response.data.data;
       
       // Mapear la respuesta del backend a la interfaz del frontend
@@ -104,11 +102,9 @@ const DashboardPage = () => {
   const { data: salesData, isLoading: salesLoading } = useQuery<SalesData[]>({
     queryKey: ['dashboard-sales'],
     queryFn: async () => {
-      console.log('📊 [DASHBOARD] Cargando tendencia de ventas...');
       const response = await api.get('/dashboard/sales-trend', {
         params: { days: 30 }
       });
-      console.log('📊 [DASHBOARD] Respuesta sales-trend:', response.data);
       // Mapear: { date, sales, revenue } -> { date, ventas, ingresos }
       return (response.data.data || []).map((item: any) => ({
         date: item.date,
@@ -123,11 +119,9 @@ const DashboardPage = () => {
   const { data: topProducts, isLoading: productsLoading } = useQuery<TopProduct[]>({
     queryKey: ['dashboard-top-products'],
     queryFn: async () => {
-      console.log('📊 [DASHBOARD] Cargando top productos...');
       const response = await api.get('/dashboard/top-products', {
         params: { limit: 10 }
       });
-      console.log('📊 [DASHBOARD] Respuesta top-products:', response.data);
       // Mapear: { name, totalQuantity, totalRevenue } -> { name, sales, revenue }
       return (response.data.data || []).map((item: any) => ({
         name: item.name,
@@ -142,9 +136,7 @@ const DashboardPage = () => {
   const { data: storesPerformance, isLoading: storesLoading } = useQuery<StorePerformance[]>({
     queryKey: ['dashboard-stores'],
     queryFn: async () => {
-      console.log('📊 [DASHBOARD] Cargando comparación de tiendas...');
       const response = await api.get('/dashboard/comparison');
-      console.log('📊 [DASHBOARD] Respuesta comparison:', response.data);
       // Mapear: { store: { name }, totalSales, totalRevenue } -> { name, ventas, ingresos }
       return (response.data.data || []).map((item: any) => ({
         name: item.store?.name || 'Sin nombre',
@@ -159,9 +151,7 @@ const DashboardPage = () => {
   const { data: lowStockItems, isLoading: lowStockLoading } = useQuery<LowStockItem[]>({
     queryKey: ['dashboard-low-stock'],
     queryFn: async () => {
-      console.log('📊 [DASHBOARD] Cargando alertas de stock...');
       const response = await api.get('/inventory/alerts/low-stock');
-      console.log('📊 [DASHBOARD] Respuesta low-stock:', response.data);
       return response.data.data || [];
     },
     staleTime: 5 * 60 * 1000,
@@ -171,18 +161,16 @@ const DashboardPage = () => {
   const { data: paymentMethodStats, isLoading: paymentStatsLoading } = useQuery<PaymentMethodStats[]>({
     queryKey: ['dashboard-payment-methods'],
     queryFn: async () => {
-      console.log('📊 [DASHBOARD] Cargando métodos de pago...');
       const response = await api.get('/dashboard/payment-methods');
-      console.log('📊 [DASHBOARD] Respuesta payment-methods:', response.data);
       return response.data.data;
     },
     staleTime: 5 * 60 * 1000,
     retry: 2,
   });
 
-  // ✅ Mostrar errores de carga
+  // Mostrar errores de carga
   if (statsError) {
-    console.error('❌ [DASHBOARD] Error cargando stats:', statsError);
+    console.error('Error cargando dashboard:', statsError);
   }
 
   if (statsLoading) {
