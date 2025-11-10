@@ -39,15 +39,33 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
           console.log('✅ [AUTH] Login exitoso, guardando sesión por 7 días');
 
           // Configuración de cookies para cross-domain HTTPS
+          const isProduction = import.meta.env.PROD;
+          
           const cookieConfig = {
-            secure: import.meta.env.PROD, // true en producción (HTTPS)
-            sameSite: import.meta.env.PROD ? ('none' as const) : ('strict' as const),
             expires: 7,
+            secure: isProduction, // true en producción (HTTPS)
+            sameSite: (isProduction ? 'none' : 'strict') as 'none' | 'strict',
+            path: '/',
           };
+
+          console.log('🍪 [AUTH] Configuración de cookies:', {
+            isProduction,
+            secure: cookieConfig.secure,
+            sameSite: cookieConfig.sameSite,
+          });
 
           // Guardar tokens en cookies seguras con 7 días
           Cookies.set('accessToken', token, cookieConfig);
           Cookies.set('refreshToken', refreshToken, cookieConfig);
+          
+          // Verificar que las cookies se guardaron
+          const savedAccessToken = Cookies.get('accessToken');
+          const savedRefreshToken = Cookies.get('refreshToken');
+          
+          console.log('🍪 [AUTH] Cookies guardadas:', {
+            accessToken: savedAccessToken ? '✅ Guardada' : '❌ No guardada',
+            refreshToken: savedRefreshToken ? '✅ Guardada' : '❌ No guardada',
+          });
 
           // Actualizar state
           set({
@@ -114,10 +132,13 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
           const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data.data;
 
           // Configuración de cookies para cross-domain HTTPS
+          const isProduction = import.meta.env.PROD;
+          
           const cookieConfig = {
-            secure: import.meta.env.PROD,
-            sameSite: import.meta.env.PROD ? ('none' as const) : ('strict' as const),
             expires: 7,
+            secure: isProduction,
+            sameSite: (isProduction ? 'none' : 'strict') as 'none' | 'strict',
+            path: '/',
           };
 
           // Actualizar tokens con 7 días

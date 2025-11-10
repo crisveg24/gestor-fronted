@@ -133,10 +133,13 @@ api.interceptors.response.use(
         const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data.data;
 
         // Configuración de cookies para cross-domain HTTPS
+        const isProduction = import.meta.env.PROD;
+        
         const cookieConfig = {
-          secure: import.meta.env.PROD,
-          sameSite: import.meta.env.PROD ? ('none' as const) : ('strict' as const),
           expires: 7,
+          secure: isProduction,
+          sameSite: (isProduction ? 'none' : 'strict') as 'none' | 'strict',
+          path: '/',
         };
 
         // Guardar nuevos tokens con 7 días de duración
