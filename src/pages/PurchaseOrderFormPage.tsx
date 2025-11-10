@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useQuery, useMutation } from '@tantml:invoke>
+import { useQuery, useMutation } from '@tanstack/react-query';
 import api from '../lib/axios';
 import { Card, Button, Loading } from '../components/ui';
 import toast from 'react-hot-toast';
