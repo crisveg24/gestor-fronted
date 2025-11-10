@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Plus, Edit2, Trash2, Eye, AlertCircle } from 'lucide-react';
-import { Card, SearchBar, Table, Pagination, Button, Modal, toast, EmptyStateNoStore } from '../components/ui';
-import type { Column } from '../components/ui';
+import { Card, SearchBar, ResponsiveTable, Pagination, Button, Modal, toast, EmptyStateNoStore } from '../components/ui';
+import type { Column } from '../components/ui/ResponsiveTable';
 import api from '../lib/axios';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
@@ -112,6 +112,7 @@ const ProductsPage = () => {
       key: 'sku',
       header: 'SKU',
       sortable: true,
+      hideOnMobile: true, // Oculto en móvil
       render: (product) => (
         <span className="font-mono text-sm font-medium">{product.sku}</span>
       ),
@@ -126,10 +127,17 @@ const ProductsPage = () => {
           <p className="text-sm text-gray-500">{product.category}</p>
         </div>
       ),
+      mobileRender: (product) => (
+        <div>
+          <p className="font-semibold text-gray-900">{product.name}</p>
+          <p className="text-xs text-gray-500">{product.sku}</p>
+        </div>
+      ),
     },
     {
       key: 'barcode',
       header: 'Código de Barras',
+      hideOnMobile: true, // Oculto en móvil
       render: (product) => (
         <span className="font-mono text-sm">{product.barcode || '-'}</span>
       ),
@@ -148,11 +156,18 @@ const ProductsPage = () => {
           </p>
         </div>
       ),
+      mobileRender: (product) => (
+        <div>
+          <p className="font-semibold text-gray-900">${product.price.toLocaleString()}</p>
+          <p className="text-xs text-gray-500">Costo: ${product.cost.toLocaleString()}</p>
+        </div>
+      ),
       className: 'text-right',
     },
     {
       key: 'margin',
       header: 'Margen',
+      hideOnMobile: true, // Oculto en móvil
       render: (product) => {
         const margin = ((product.price - product.cost) / product.price) * 100;
         return (
@@ -210,6 +225,28 @@ const ProductsPage = () => {
             title="Eliminar"
           >
             <Trash2 size={18} />
+          </button>
+        </div>
+      ),
+      mobileRender: (product) => (
+        <div className="flex gap-1">
+          <button
+            onClick={() => navigate(`/productos/${product._id}`)}
+            className="flex-1 px-3 py-2 text-xs text-blue-600 bg-blue-50 rounded hover:bg-blue-100"
+          >
+            Ver
+          </button>
+          <button
+            onClick={() => navigate(`/productos/editar/${product._id}`)}
+            className="flex-1 px-3 py-2 text-xs text-green-600 bg-green-50 rounded hover:bg-green-100"
+          >
+            Editar
+          </button>
+          <button
+            onClick={() => handleDelete(product)}
+            className="flex-1 px-3 py-2 text-xs text-red-600 bg-red-50 rounded hover:bg-red-100"
+          >
+            Eliminar
           </button>
         </div>
       ),
@@ -323,7 +360,7 @@ const ProductsPage = () => {
         transition={{ delay: 0.2 }}
       >
         <Card>
-          <Table
+          <ResponsiveTable
             columns={columns}
             data={data?.products || []}
             onSort={handleSort}
