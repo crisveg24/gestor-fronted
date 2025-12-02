@@ -215,7 +215,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
           });
 
           return true;
-        } catch (error) {
+        } catch {
           // Token inválido o expirado, pero NO hacer logout aquí
           // El initializeAuth manejará el refresh si es necesario
           console.log('❌ [AUTH] Token inválido o expirado');
