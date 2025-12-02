@@ -31,7 +31,7 @@ const formatPaymentMethod = (method: string): string => {
     efectivo: 'Efectivo',
     nequi: 'Nequi',
     daviplata: 'Daviplata',
-    'llave-bancolombia': 'Llave Bancolombia',
+    llave_bancolombia: 'Llave Bancolombia',
     tarjeta: 'Tarjeta',
     transferencia: 'Transferencia',
   };

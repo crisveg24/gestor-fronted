@@ -123,6 +123,8 @@ export interface UpdateInventoryDto {
 }
 
 // ==================== SALE TYPES ====================
+export type PaymentMethod = 'efectivo' | 'nequi' | 'daviplata' | 'llave_bancolombia' | 'tarjeta' | 'transferencia';
+
 export interface Sale {
   _id: string;
   store: Store;
@@ -132,7 +134,7 @@ export interface Sale {
   tax: number;
   discount: number;
   total: number;
-  paymentMethod: 'cash' | 'card' | 'transfer';
+  paymentMethod: PaymentMethod;
   status?: 'completed' | 'cancelled' | 'refunded';
   notes?: string;
   modifiedBy?: User;
@@ -159,7 +161,7 @@ export interface CreateSaleDto {
     quantity: number;
     price: number;
   }[];
-  paymentMethod: 'cash' | 'card' | 'transfer';
+  paymentMethod: PaymentMethod;
   discount?: number;
   notes?: string;
 }
