@@ -18,6 +18,7 @@ import api from '../lib/axios';
 import { useAuthStore } from '../store/authStore';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import type { AxiosApiError } from '../types';
 
 // Tipos
 interface InventoryItem {
@@ -146,8 +147,8 @@ const InventoryPage = () => {
       setAdjustReason('');
     },
     onError: (error: unknown) => {
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || 'Error al ajustar el stock');
+      const axiosError = error as AxiosApiError;
+      toast.error(axiosError.response?.data?.message || 'Error al ajustar el stock');
     },
   });
 
@@ -171,8 +172,8 @@ const InventoryPage = () => {
       setTransferQuantity(0);
     },
     onError: (error: unknown) => {
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || 'Error al realizar la transferencia');
+      const axiosError = error as AxiosApiError;
+      toast.error(axiosError.response?.data?.message || 'Error al realizar la transferencia');
     },
   });
 
