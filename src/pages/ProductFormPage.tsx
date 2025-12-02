@@ -13,6 +13,7 @@ import { QRGenerator } from '../components/QRGenerator';
 import api from '../lib/axios';
 import { useAuthStore } from '../store/authStore';
 import { SIZE_TYPES, SIZE_PRESETS, type SizeType } from '../constants/sizePresets';
+import type { AxiosApiError } from '../types';
 
 // Esquema de validación
 const productSchema = z.object({
@@ -143,12 +144,13 @@ const ProductFormPage = () => {
           console.log('✅ [PRODUCT] Respuesta exitosa (creación):', response.data);
           return response.data;
         }
-      } catch (error: any) {
+      } catch (error) {
+        const axiosError = error as AxiosApiError;
         console.error('❌ [PRODUCT] Error en la petición:', {
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          data: error.response?.data,
-          message: error.message,
+          status: axiosError.response?.status,
+          statusText: axiosError.response?.statusText,
+          data: axiosError.response?.data,
+          message: axiosError.message,
         });
         throw error;
       }
@@ -161,15 +163,32 @@ const ProductFormPage = () => {
       );
       navigate('/productos');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const axiosError = error as AxiosApiError;
       console.error('❌ [PRODUCT] Error en onError:', error);
-      toast.error(error.response?.data?.message || 'Error al guardar el producto');
+      toast.error(axiosError.response?.data?.message || 'Error al guardar el producto');
     },
   });
 
+  // Interface para datos de curva de tallas
+  interface SizeCurveData {
+    baseName: string;
+    baseSkuPrefix: string;
+    description: string;
+    category: string;
+    price: number;
+    cost: number;
+    sizeType: SizeType;
+    sizes: string[];
+    store: string;
+    quantityPerSize: number;
+    minStock: number;
+    maxStock: number;
+  }
+
   // Mutation para crear productos con curva de tallas
   const sizeCurveMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: SizeCurveData) => {
       console.log('👟 [SIZE-CURVE] Creando productos con tallas:', data);
       const response = await api.post('/products/size-curve', data);
       console.log('✅ [SIZE-CURVE] Respuesta:', response.data);
@@ -180,9 +199,10 @@ const ProductFormPage = () => {
       toast.success(`${data.data.products.length} productos creados con sus tallas exitosamente`);
       navigate('/productos');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const axiosError = error as AxiosApiError;
       console.error('❌ [SIZE-CURVE] Error:', error);
-      toast.error(error.response?.data?.message || 'Error al crear productos con tallas');
+      toast.error(axiosError.response?.data?.message || 'Error al crear productos con tallas');
     },
   });
 
@@ -245,7 +265,22 @@ const ProductFormPage = () => {
     }
 
     // Construir payload con validaciones estrictas
-    const productData: any = {
+    interface ProductPayload {
+      name: string;
+      description: string;
+      sku: string;
+      category: string;
+      price: number;
+      cost: number;
+      isActive: boolean;
+      barcode?: string;
+      store?: string;
+      quantity?: number;
+      minStock?: number;
+      maxStock?: number;
+    }
+    
+    const productData: ProductPayload = {
       name: String(data.name).trim(),
       description: String(data.description).trim(),
       sku: String(data.sku).trim(),

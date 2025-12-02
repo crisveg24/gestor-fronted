@@ -18,6 +18,7 @@ import {
 import { Card, Button, Modal, toast, Table, SearchBar } from '../components/ui';
 import type { Column } from '../components/ui';
 import api from '../lib/axios';
+import type { AxiosApiError } from '../types';
 
 // Tipos
 interface Store {
@@ -111,10 +112,11 @@ const StoresPage = () => {
       setCreateModalOpen(false);
       resetForm();
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const axiosError = error as AxiosApiError;
       console.error('❌ [STORES] Error creando tienda:', error);
-      console.error('❌ [STORES] Response:', error.response?.data);
-      toast.error(error.response?.data?.message || 'Error al crear la tienda');
+      console.error('❌ [STORES] Response:', axiosError.response?.data);
+      toast.error(axiosError.response?.data?.message || 'Error al crear la tienda');
     },
   });
 
@@ -136,9 +138,10 @@ const StoresPage = () => {
       setSelectedStore(null);
       resetForm();
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const axiosError = error as AxiosApiError;
       console.error('❌ [STORES] Error actualizando tienda:', error);
-      toast.error(error.response?.data?.message || 'Error al actualizar la tienda');
+      toast.error(axiosError.response?.data?.message || 'Error al actualizar la tienda');
     },
   });
 
@@ -152,8 +155,9 @@ const StoresPage = () => {
         variables.isActive ? 'Tienda activada exitosamente' : 'Tienda desactivada exitosamente'
       );
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Error al cambiar estado de la tienda');
+    onError: (error: unknown) => {
+      const axiosError = error as AxiosApiError;
+      toast.error(axiosError.response?.data?.message || 'Error al cambiar estado de la tienda');
     },
   });
 
@@ -167,8 +171,9 @@ const StoresPage = () => {
       setDeleteModalOpen(false);
       setSelectedStore(null);
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Error al eliminar la tienda');
+    onError: (error: unknown) => {
+      const axiosError = error as AxiosApiError;
+      toast.error(axiosError.response?.data?.message || 'Error al eliminar la tienda');
     },
   });
 

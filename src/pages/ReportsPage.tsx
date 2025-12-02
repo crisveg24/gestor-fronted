@@ -16,6 +16,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import type { PieLabelRenderProps } from 'recharts';
 import {
   TrendingUp,
   Download,
@@ -68,13 +69,15 @@ interface StorePerformanceData {
 interface CategoryData {
   name: string;
   value: number;
-  [key: string]: any;
+  percent?: number;
+  [key: string]: string | number | undefined;
 }
 
 interface PaymentMethodData {
   method: string;
   value: number;
-  [key: string]: any;
+  percent?: number;
+  [key: string]: string | number | undefined;
 }
 
 interface ReportStats {
@@ -82,6 +85,12 @@ interface ReportStats {
   totalRevenue: number;
   totalProducts: number;
   averageTicket: number;
+}
+
+// Tipo para Store en selects
+interface Store {
+  _id: string;
+  name: string;
 }
 
 const ReportsPage = () => {
@@ -224,7 +233,7 @@ const ReportsPage = () => {
       doc.text(`Período: ${dateFrom} - ${dateTo}`, 14, 28);
       if (selectedStore !== 'all') {
         const storeName =
-          stores?.find((s: any) => s._id === selectedStore)?.name || 'N/A';
+          stores?.find((s: Store) => s._id === selectedStore)?.name || 'N/A';
         doc.text(`Tienda: ${storeName}`, 14, 34);
       }
 
@@ -276,7 +285,7 @@ const ReportsPage = () => {
         storePerformance &&
         storePerformance.length > 0
       ) {
-        const finalY = (doc as any).lastAutoTable.finalY || yPos + 40;
+        const finalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable?.finalY || yPos + 40;
         doc.setFontSize(14);
         doc.text('Rendimiento por Tienda', 14, finalY + 12);
 
@@ -294,7 +303,7 @@ const ReportsPage = () => {
       }
 
       // Footer
-      const pageCount = (doc as any).internal.getNumberOfPages();
+      const pageCount = doc.getNumberOfPages();
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         doc.setFontSize(8);
@@ -564,7 +573,7 @@ const ReportsPage = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                     >
                       <option value="all">Todas las tiendas</option>
-                      {stores?.map((store: any) => (
+                      {stores?.map((store: Store) => (
                         <option key={store._id} value={store._id}>
                           {store.name}
                         </option>
@@ -748,7 +757,7 @@ const ReportsPage = () => {
                   <YAxis yAxisId="left" />
                   <YAxis yAxisId="right" orientation="right" />
                   <Tooltip
-                    formatter={(value: any, name: string) => {
+                    formatter={(value: number, name: string) => {
                       if (name === 'revenue') {
                         return `$${value.toLocaleString()}`;
                       }
@@ -804,7 +813,7 @@ const ReportsPage = () => {
                     <XAxis type="number" />
                     <YAxis dataKey="name" type="category" width={100} />
                     <Tooltip
-                      formatter={(value: any, name: string) => {
+                      formatter={(value: number, name: string) => {
                         if (name === 'revenue') {
                           return [`$${value.toLocaleString()}`, 'Ingresos'];
                         }
@@ -841,9 +850,10 @@ const ReportsPage = () => {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={(entry: any) =>
-                        `${entry.name}: ${(entry.percent * 100).toFixed(0)}%`
-                      }
+                      label={(props: PieLabelRenderProps) => {
+                        const { name, percent } = props;
+                        return `${name}: ${((Number(percent) || 0) * 100).toFixed(0)}%`;
+                      }}
                       outerRadius={100}
                       fill="#8884d8"
                       dataKey="value"
@@ -885,7 +895,7 @@ const ReportsPage = () => {
                       <YAxis yAxisId="left" />
                       <YAxis yAxisId="right" orientation="right" />
                       <Tooltip
-                        formatter={(value: any, name: string) => {
+                        formatter={(value: number, name: string) => {
                           if (name === 'revenue') {
                             return [`$${value.toLocaleString()}`, 'Ingresos'];
                           }
@@ -934,12 +944,14 @@ const ReportsPage = () => {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={(entry: any) =>
-                        `${formatPaymentMethod(entry.method)}: ${(entry.percent * 100).toFixed(0)}%`
-                      }
+                      label={(props: PieLabelRenderProps) => {
+                        const { name, percent } = props;
+                        return `${formatPaymentMethod(String(name))}: ${((Number(percent) || 0) * 100).toFixed(0)}%`;
+                      }}
                       outerRadius={100}
                       fill="#8884d8"
                       dataKey="value"
+                      nameKey="method"
                     >
                       {paymentMethodData?.map((_entry, index) => (
                         <Cell
@@ -949,7 +961,7 @@ const ReportsPage = () => {
                       ))}
                     </Pie>
                     <Tooltip
-                      formatter={(value: any) => `$${value.toLocaleString()}`}
+                      formatter={(value: number) => `$${value.toLocaleString()}`}
                     />
                   </PieChart>
                 </ResponsiveContainer>

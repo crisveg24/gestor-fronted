@@ -74,12 +74,13 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
 
         scannerRef.current = scanner;
         setIsScanning(true);
-      } catch (error: any) {
+      } catch (error) {
+        const scanError = error as { name?: string };
         console.error('❌ Error iniciando scanner:', error);
         
-        if (error.name === 'NotAllowedError') {
+        if (scanError.name === 'NotAllowedError') {
           toast.error('Necesitas permitir el acceso a la cámara');
-        } else if (error.name === 'NotFoundError') {
+        } else if (scanError.name === 'NotFoundError') {
           toast.error('No se detectó ninguna cámara');
         } else {
           toast.error('Error al iniciar el scanner');

@@ -24,6 +24,7 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { printTicket } from '../utils/printTicket';
+import type { AxiosApiError, Store as StoreType, Inventory as InventoryType, DailyCutPaymentMethod } from '../types';
 
 // Función helper para formatear métodos de pago
 const formatPaymentMethod = (method: string): string => {
@@ -321,12 +322,12 @@ const SalesPage = () => {
         const ticketData = {
           store: {
             name: isAdmin 
-              ? stores?.find((s: any) => s._id === variables.store)?.name || 'Tienda'
+              ? stores?.find((s: StoreType) => s._id === variables.store)?.name || 'Tienda'
               : user?.store?.name || 'Tienda',
             address: '',
             phone: '',
           },
-          items: variables.items.map((item: any) => {
+          items: variables.items.map((item: { product: string; quantity: number; unitPrice: number }) => {
             const product = cart.find(c => c.product._id === item.product) 
               || freebies.find(f => f.product._id === item.product);
             return {
@@ -351,14 +352,15 @@ const SalesPage = () => {
       
       clearCart();
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const axiosError = error as AxiosApiError;
       console.error('❌ [SALES] Error al crear venta:', error);
-      console.error('❌ [SALES] Error response:', error.response);
-      console.error('❌ [SALES] Error data:', error.response?.data);
+      console.error('❌ [SALES] Error response:', axiosError.response);
+      console.error('❌ [SALES] Error data:', axiosError.response?.data);
       
-      const errorMessage = error.response?.data?.message 
-        || error.response?.data?.error 
-        || error.message 
+      const errorMessage = axiosError.response?.data?.message 
+        || axiosError.response?.data?.error 
+        || axiosError.message 
         || 'Error al registrar la venta';
       
       toast.error(errorMessage);
@@ -381,8 +383,9 @@ const SalesPage = () => {
       setEditModalOpen(false);
       setDetailModalOpen(false);
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Error al actualizar la venta');
+    onError: (error: unknown) => {
+      const axiosError = error as AxiosApiError;
+      toast.error(axiosError.response?.data?.message || 'Error al actualizar la venta');
     },
   });
 
@@ -399,8 +402,9 @@ const SalesPage = () => {
       setCancelModalOpen(false);
       setDetailModalOpen(false);
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Error al cancelar la venta');
+    onError: (error: unknown) => {
+      const axiosError = error as AxiosApiError;
+      toast.error(axiosError.response?.data?.message || 'Error al cancelar la venta');
     },
   });
 
@@ -481,10 +485,11 @@ const SalesPage = () => {
 
       toast.success(`${product.name} agregado al carrito`, { id: 'barcode-search' });
       addToCartWithRecent(product);
-    } catch (error: any) {
+    } catch (error) {
+      const axiosError = error as AxiosApiError;
       console.error('❌ [SCANNER] Error:', error);
       
-      if (error.response?.status === 404) {
+      if (axiosError.response?.status === 404) {
         toast.error('Código no encontrado en el sistema', { id: 'barcode-search' });
       } else {
         toast.error('Error al buscar producto', { id: 'barcode-search' });
@@ -508,7 +513,7 @@ const SalesPage = () => {
     if (!inventory || inventory.length === 0) {
       console.warn('⚠️ [VALIDATION] Inventario no cargado, permitiendo agregar sin validación');
     } else {
-      const inventoryItem = inventory?.find((inv: any) => {
+      const inventoryItem = inventory?.find((inv: InventoryType) => {
         // El inventario tiene: { product: { _id, name, ... }, quantity, store }
         // El selectedProduct es: { _id, name, ... }
         const invProductId = typeof inv.product === 'string' ? inv.product : inv.product?._id;
@@ -870,7 +875,7 @@ const SalesPage = () => {
     const totalVentas = sales.length;
     const totalIngresos = sales.reduce((sum, sale) => sum + sale.total, 0);
     
-    const finalY = (doc as any).lastAutoTable.finalY || 35;
+    const finalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable?.finalY || 35;
     doc.setFontSize(10);
     doc.setTextColor(0);
     doc.text(`Total de ventas: ${totalVentas}`, 14, finalY + 10);
@@ -1450,7 +1455,7 @@ const SalesPage = () => {
                             required
                           >
                             <option value="">⚠️ Selecciona una tienda</option>
-                            {stores.map((store: any) => (
+                            {stores.map((store: StoreType) => (
                               <option key={store._id} value={store._id}>
                                 🏬 {store.name}
                               </option>
@@ -1463,7 +1468,7 @@ const SalesPage = () => {
                           )}
                           {selectedStore && (
                             <p className="text-xs text-indigo-700 mt-2 font-medium">
-                              ✅ Venta se registrará en: {stores.find((s: any) => s._id === selectedStore)?.name}
+                              ✅ Venta se registrará en: {stores.find((s: StoreType) => s._id === selectedStore)?.name}
                             </p>
                           )}
                         </>
@@ -1492,7 +1497,7 @@ const SalesPage = () => {
                     <div className="flex gap-2">
                       <select
                         value={discountType}
-                        onChange={(e) => setDiscountType(e.target.value as any)}
+                        onChange={(e) => setDiscountType(e.target.value as 'percentage' | 'fixed')}
                         className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                       >
                         <option value="percentage">%</option>
@@ -1668,7 +1673,7 @@ const SalesPage = () => {
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
                         >
                           <option value="">Todas las tiendas</option>
-                          {stores?.map((store: any) => (
+                          {stores?.map((store: StoreType) => (
                             <option key={store._id} value={store._id}>
                               {store.name}
                             </option>
@@ -2057,7 +2062,7 @@ const SalesPage = () => {
             <div>
               <h4 className="font-semibold text-gray-900 mb-3">Desglose por Método de Pago</h4>
               <div className="space-y-2">
-                {dailyCutData.paymentMethods.map((pm: any) => (
+                {dailyCutData.paymentMethods.map((pm: DailyCutPaymentMethod) => (
                   <div
                     key={pm.method}
                     className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50"
@@ -2094,61 +2099,67 @@ const SalesPage = () => {
             {/* Efectivo a contar */}
             <div className="border-t border-gray-200 pt-4">
               <h4 className="font-semibold text-gray-900 mb-3">Efectivo Contado</h4>
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-                <div className="flex items-start gap-2">
-                  <AlertTriangle size={20} className="text-yellow-600 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-yellow-800">
-                      Efectivo según sistema:
-                    </p>
-                    <p className="text-2xl font-bold text-yellow-900 mt-1">
-                      ${(dailyCutData.paymentMethods.find((pm: any) => pm.method === 'efectivo')?.total || 0).toLocaleString('es-CO')}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Efectivo Contado (ingresa el monto que contaste físicamente)
-                </label>
-                <input
-                  type="number"
-                  value={cashCounted}
-                  onChange={(e) => setCashCounted(e.target.value)}
-                  className="w-full px-4 py-3 text-lg border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder="0"
-                />
-              </div>
-
-              {/* Diferencia */}
-              {cashCounted && (
-                <div className="mt-4 p-4 rounded-lg border-2" style={{
-                  backgroundColor: Number(cashCounted) === (dailyCutData.paymentMethods.find((pm: any) => pm.method === 'efectivo')?.total || 0) ? '#f0fdf4' :
-                    Number(cashCounted) > (dailyCutData.paymentMethods.find((pm: any) => pm.method === 'efectivo')?.total || 0) ? '#fef3c7' : '#fee2e2',
-                  borderColor: Number(cashCounted) === (dailyCutData.paymentMethods.find((pm: any) => pm.method === 'efectivo')?.total || 0) ? '#22c55e' :
-                    Number(cashCounted) > (dailyCutData.paymentMethods.find((pm: any) => pm.method === 'efectivo')?.total || 0) ? '#f59e0b' : '#ef4444'
-                }}>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium" style={{
-                        color: Number(cashCounted) === (dailyCutData.paymentMethods.find((pm: any) => pm.method === 'efectivo')?.total || 0) ? '#16a34a' :
-                          Number(cashCounted) > (dailyCutData.paymentMethods.find((pm: any) => pm.method === 'efectivo')?.total || 0) ? '#d97706' : '#dc2626'
-                      }}>
-                        {Number(cashCounted) === (dailyCutData.paymentMethods.find((pm: any) => pm.method === 'efectivo')?.total || 0) ? '✅ Exacto' :
-                          Number(cashCounted) > (dailyCutData.paymentMethods.find((pm: any) => pm.method === 'efectivo')?.total || 0) ? '⚠️ Sobrante' : '❌ Faltante'}
-                      </p>
-                      <p className="text-2xl font-bold" style={{
-                        color: Number(cashCounted) === (dailyCutData.paymentMethods.find((pm: any) => pm.method === 'efectivo')?.total || 0) ? '#16a34a' :
-                          Number(cashCounted) > (dailyCutData.paymentMethods.find((pm: any) => pm.method === 'efectivo')?.total || 0) ? '#d97706' : '#dc2626'
-                      }}>
-                        {Number(cashCounted) > (dailyCutData.paymentMethods.find((pm: any) => pm.method === 'efectivo')?.total || 0) ? '+' : ''}
-                        ${(Number(cashCounted) - (dailyCutData.paymentMethods.find((pm: any) => pm.method === 'efectivo')?.total || 0)).toLocaleString('es-CO')}
-                      </p>
+              {(() => {
+                const efectivoSistema = dailyCutData.paymentMethods.find((pm: DailyCutPaymentMethod) => pm.method === 'efectivo')?.total || 0;
+                const cashCountedNum = Number(cashCounted);
+                const isExact = cashCountedNum === efectivoSistema;
+                const isSobrante = cashCountedNum > efectivoSistema;
+                
+                return (
+                  <>
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle size={20} className="text-yellow-600 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-yellow-800">
+                            Efectivo según sistema:
+                          </p>
+                          <p className="text-2xl font-bold text-yellow-900 mt-1">
+                            ${efectivoSistema.toLocaleString('es-CO')}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              )}
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Efectivo Contado (ingresa el monto que contaste físicamente)
+                      </label>
+                      <input
+                        type="number"
+                        value={cashCounted}
+                        onChange={(e) => setCashCounted(e.target.value)}
+                        className="w-full px-4 py-3 text-lg border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        placeholder="0"
+                      />
+                    </div>
+
+                    {/* Diferencia */}
+                    {cashCounted && (
+                      <div className="mt-4 p-4 rounded-lg border-2" style={{
+                        backgroundColor: isExact ? '#f0fdf4' : isSobrante ? '#fef3c7' : '#fee2e2',
+                        borderColor: isExact ? '#22c55e' : isSobrante ? '#f59e0b' : '#ef4444'
+                      }}>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium" style={{
+                              color: isExact ? '#16a34a' : isSobrante ? '#d97706' : '#dc2626'
+                            }}>
+                              {isExact ? '✅ Exacto' : isSobrante ? '⚠️ Sobrante' : '❌ Faltante'}
+                            </p>
+                            <p className="text-2xl font-bold" style={{
+                              color: isExact ? '#16a34a' : isSobrante ? '#d97706' : '#dc2626'
+                            }}>
+                              {isSobrante ? '+' : ''}
+                              ${(cashCountedNum - efectivoSistema).toLocaleString('es-CO')}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
 
             {/* Observaciones */}
@@ -2224,7 +2235,7 @@ const SalesPage = () => {
                   doc.text('DESGLOSE POR MÉTODO DE PAGO', 14, 90);
                   
                   let yPos = 100;
-                  dailyCutData.paymentMethods.forEach((pm: any) => {
+                  dailyCutData.paymentMethods.forEach((pm: DailyCutPaymentMethod) => {
                     doc.setFont('helvetica', 'normal');
                     doc.setFontSize(10);
                     doc.text(`${formatPaymentMethod(pm.method)}:`, 20, yPos);
@@ -2246,7 +2257,7 @@ const SalesPage = () => {
                     doc.text('EFECTIVO', 14, yPos);
                     yPos += 10;
                     
-                    const efectivoSistema = dailyCutData.paymentMethods.find((pm: any) => pm.method === 'efectivo')?.total || 0;
+                    const efectivoSistema = dailyCutData.paymentMethods.find((pm: DailyCutPaymentMethod) => pm.method === 'efectivo')?.total || 0;
                     const diferencia = Number(cashCounted) - efectivoSistema;
                     
                     doc.setFontSize(10);
@@ -2309,7 +2320,7 @@ const SalesPage = () => {
                   variant="primary"
                   onClick={async () => {
                     try {
-                      const efectivoSistema = dailyCutData.paymentMethods.find((pm: any) => pm.method === 'efectivo')?.total || 0;
+                      const efectivoSistema = dailyCutData.paymentMethods.find((pm: DailyCutPaymentMethod) => pm.method === 'efectivo')?.total || 0;
                       const diferencia = Number(cashCounted) - efectivoSistema;
                       
                       // Aquí podrías guardar el corte en la base de datos si tienes ese endpoint
@@ -2326,8 +2337,8 @@ const SalesPage = () => {
                       setCutModalOpen(false);
                       setCashCounted('');
                       setCutObservations('');
-                    } catch (error: any) {
-                      toast.error(error.response?.data?.message || 'Error al guardar el corte');
+                    } catch {
+                      toast.error('Error al guardar el corte');
                     }
                   }}
                   disabled={!cashCounted}

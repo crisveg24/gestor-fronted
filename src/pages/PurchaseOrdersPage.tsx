@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../lib/axios';
-import type { PurchaseOrder, ApiResponse } from '../types';
+import type { PurchaseOrder, ApiResponse, AxiosApiError } from '../types';
 import { Card, Button, ResponsiveTable, Loading } from '../components/ui';
 import type { Column } from '../components/ui';
 import { useAuthStore } from '../store/authStore';
@@ -22,8 +22,9 @@ export default function PurchaseOrdersPage() {
       setLoading(true);
       const response = await api.get<ApiResponse<{ orders: PurchaseOrder[] }>>('/purchase-orders');
       setOrders(response.data.data.orders);
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Error al cargar órdenes');
+    } catch (error) {
+      const axiosError = error as AxiosApiError;
+      toast.error(axiosError.response?.data?.message || 'Error al cargar órdenes');
     } finally {
       setLoading(false);
     }
@@ -61,8 +62,9 @@ export default function PurchaseOrdersPage() {
       await api.post(`/purchase-orders/${orderId}/cancel`, { cancellationReason: reason });
       toast.success('Orden cancelada');
       fetchOrders();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Error al cancelar orden');
+    } catch (error) {
+      const axiosError = error as AxiosApiError;
+      toast.error(axiosError.response?.data?.message || 'Error al cancelar orden');
     }
   };
 

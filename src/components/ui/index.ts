@@ -7,7 +7,8 @@ export { default as SearchBar } from './SearchBar';
 export { default as Table } from './Table';
 export { default as ResponsiveTable } from './ResponsiveTable';
 export { default as Pagination } from './Pagination';
-export { default as Toaster, toast } from './Toaster';
+export { default as Toaster } from './Toaster';
+export { toast } from 'react-hot-toast';
 export { default as EmptyStateNoStore } from './EmptyStateNoStore';
 
 // Types

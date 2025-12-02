@@ -202,6 +202,53 @@ export interface ApiError {
   };
 }
 
+// Tipo para errores de Axios
+export interface AxiosApiError {
+  response?: {
+    data?: {
+      message?: string;
+      error?: string;
+    };
+    status?: number;
+    statusText?: string;
+  };
+  message?: string;
+  name?: string;
+}
+
+// Tipos para datos de API response
+export interface SalesTrendItem {
+  date: string;
+  sales: number;
+  revenue: number;
+}
+
+export interface TopProductItem {
+  name: string;
+  totalQuantity: number;
+  totalRevenue: number;
+}
+
+export interface StoreComparisonItem {
+  store: {
+    name: string;
+  };
+  totalSales: number;
+  totalRevenue: number;
+}
+
+export interface DailyCutPaymentMethod {
+  method: string;
+  count: number;
+  total: number;
+}
+
+export interface DailyCutData {
+  totalSales: number;
+  totalRevenue: number;
+  paymentMethods: DailyCutPaymentMethod[];
+}
+
 export interface PaginatedResponse<T> {
   success: boolean;
   data: {

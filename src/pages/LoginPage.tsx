@@ -51,9 +51,10 @@ export default function LoginPage() {
       
       // Redirigir al dashboard después del login exitoso
       navigate('/dashboard');
-    } catch (err: any) {
+    } catch (err) {
+      const error = err as Error;
       console.error('❌ [LOGIN] Error capturado:', err);
-      const errorMessage = err.message || 'Error al iniciar sesión. Intenta nuevamente.';
+      const errorMessage = error.message || 'Error al iniciar sesión. Intenta nuevamente.';
       console.error('❌ [LOGIN] Mensaje de error:', errorMessage);
       setError(errorMessage);
     } finally {

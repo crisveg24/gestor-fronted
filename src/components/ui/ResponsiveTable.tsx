@@ -22,6 +22,7 @@ interface TableProps<T> {
   mobileCardRender?: (item: T, index: number) => React.ReactNode; // Render completo de card para móvil
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function ResponsiveTable<T extends Record<string, any>>({
   columns,
   data,

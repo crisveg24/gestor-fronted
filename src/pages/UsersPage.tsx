@@ -17,6 +17,7 @@ import {
 import { Card, Button, Modal, toast, Table, SearchBar } from '../components/ui';
 import type { Column } from '../components/ui';
 import api from '../lib/axios';
+import type { AxiosApiError } from '../types';
 
 // Tipos
 interface User {
@@ -105,10 +106,11 @@ const UsersPage = () => {
       setCreateModalOpen(false);
       resetForm();
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const axiosError = error as AxiosApiError;
       console.error('❌ [USERS] Error creando usuario:', error);
-      console.error('❌ [USERS] Response:', error.response?.data);
-      toast.error(error.response?.data?.message || 'Error al crear el usuario');
+      console.error('❌ [USERS] Response:', axiosError.response?.data);
+      toast.error(axiosError.response?.data?.message || 'Error al crear el usuario');
     },
   });
 
@@ -130,9 +132,10 @@ const UsersPage = () => {
       setSelectedUser(null);
       resetForm();
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const axiosError = error as AxiosApiError;
       console.error('❌ [USERS] Error actualizando usuario:', error);
-      toast.error(error.response?.data?.message || 'Error al actualizar el usuario');
+      toast.error(axiosError.response?.data?.message || 'Error al actualizar el usuario');
     },
   });
 
@@ -148,8 +151,9 @@ const UsersPage = () => {
           : 'Usuario desactivado exitosamente'
       );
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Error al cambiar estado del usuario');
+    onError: (error: unknown) => {
+      const axiosError = error as AxiosApiError;
+      toast.error(axiosError.response?.data?.message || 'Error al cambiar estado del usuario');
     },
   });
 
@@ -163,8 +167,9 @@ const UsersPage = () => {
       setDeleteModalOpen(false);
       setSelectedUser(null);
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Error al eliminar el usuario');
+    onError: (error: unknown) => {
+      const axiosError = error as AxiosApiError;
+      toast.error(axiosError.response?.data?.message || 'Error al eliminar el usuario');
     },
   });
 
@@ -179,9 +184,10 @@ const UsersPage = () => {
       setSelectedUser(null);
       setNewPassword('');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const axiosError = error as AxiosApiError;
       toast.error(
-        error.response?.data?.message || 'Error al restablecer la contraseña'
+        axiosError.response?.data?.message || 'Error al restablecer la contraseña'
       );
     },
   });
@@ -248,11 +254,11 @@ const UsersPage = () => {
     // Nota: Ya NO es obligatorio asignar tienda
     // Los usuarios pueden estar sin tienda asignada
 
-    const updateData: any = {
+    const updateData: Partial<UserFormData> = {
       name: formData.name,
       email: formData.email,
       role: formData.role,
-      store: formData.store || null, // null si no tiene tienda
+      store: formData.store || undefined, // undefined si no tiene tienda
     };
 
     updateUserMutation.mutate({

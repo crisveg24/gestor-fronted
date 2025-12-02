@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/axios';
-import type { Supplier, ApiResponse } from '../types';
+import type { Supplier, ApiResponse, AxiosApiError } from '../types';
 import { Card, Button, ResponsiveTable, Modal, SearchBar, Loading } from '../components/ui';
 import type { Column } from '../components/ui';
 import { useAuthStore } from '../store/authStore';
@@ -41,8 +41,9 @@ export default function SuppliersPage() {
       const params = searchTerm ? { search: searchTerm } : {};
       const response = await api.get<ApiResponse<{ suppliers: Supplier[] }>>('/suppliers', { params });
       setSuppliers(response.data.data.suppliers);
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Error al cargar proveedores');
+    } catch (error) {
+      const axiosError = error as AxiosApiError;
+      toast.error(axiosError.response?.data?.message || 'Error al cargar proveedores');
     } finally {
       setLoading(false);
     }
@@ -67,8 +68,9 @@ export default function SuppliersPage() {
       setShowModal(false);
       resetForm();
       fetchSuppliers();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Error al guardar proveedor');
+    } catch (error) {
+      const axiosError = error as AxiosApiError;
+      toast.error(axiosError.response?.data?.message || 'Error al guardar proveedor');
     }
   };
 
@@ -99,8 +101,9 @@ export default function SuppliersPage() {
       await api.delete(`/suppliers/${id}`);
       toast.success('Proveedor desactivado');
       fetchSuppliers();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Error al desactivar proveedor');
+    } catch (error) {
+      const axiosError = error as AxiosApiError;
+      toast.error(axiosError.response?.data?.message || 'Error al desactivar proveedor');
     }
   };
 

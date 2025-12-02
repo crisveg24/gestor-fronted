@@ -46,6 +46,25 @@ interface SalesData {
   ingresos: number;
 }
 
+// Tipos para respuestas del backend
+interface SalesTrendApiItem {
+  date: string;
+  sales: number;
+  revenue: number;
+}
+
+interface TopProductApiItem {
+  name: string;
+  totalQuantity: number;
+  totalRevenue: number;
+}
+
+interface StoreComparisonApiItem {
+  store: { name: string };
+  totalSales: number;
+  totalRevenue: number;
+}
+
 interface TopProduct {
   name: string;
   sales: number;
@@ -106,7 +125,7 @@ const DashboardPage = () => {
         params: { days: 30 }
       });
       // Mapear: { date, sales, revenue } -> { date, ventas, ingresos }
-      return (response.data.data || []).map((item: any) => ({
+      return (response.data.data || []).map((item: SalesTrendApiItem) => ({
         date: item.date,
         ventas: item.sales || 0,
         ingresos: item.revenue || 0,
@@ -123,7 +142,7 @@ const DashboardPage = () => {
         params: { limit: 10 }
       });
       // Mapear: { name, totalQuantity, totalRevenue } -> { name, sales, revenue }
-      return (response.data.data || []).map((item: any) => ({
+      return (response.data.data || []).map((item: TopProductApiItem) => ({
         name: item.name,
         sales: item.totalQuantity || 0,
         revenue: item.totalRevenue || 0,
@@ -138,7 +157,7 @@ const DashboardPage = () => {
     queryFn: async () => {
       const response = await api.get('/dashboard/comparison');
       // Mapear: { store: { name }, totalSales, totalRevenue } -> { name, ventas, ingresos }
-      return (response.data.data || []).map((item: any) => ({
+      return (response.data.data || []).map((item: StoreComparisonApiItem) => ({
         name: item.store?.name || 'Sin nombre',
         ventas: item.totalSales || 0,
         ingresos: item.totalRevenue || 0,

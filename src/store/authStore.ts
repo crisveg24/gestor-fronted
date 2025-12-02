@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import Cookies from 'js-cookie';
-import type { AuthState, User, LoginCredentials } from '../types';
+import type { AuthState, User, LoginCredentials, AxiosApiError } from '../types';
 import api from '../lib/axios';
 
 interface AuthActions {
@@ -77,10 +77,11 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
           });
 
           console.log('✅ [AUTH] Estado actualizado correctamente');
-        } catch (error: any) {
+        } catch (error) {
+          const axiosError = error as AxiosApiError;
           console.error('❌ [AUTH] Error al iniciar sesión:', error);
           set({ isLoading: false });
-          throw new Error(error.response?.data?.error?.message || 'Error al iniciar sesión');
+          throw new Error(axiosError.response?.data?.message || 'Error al iniciar sesión');
         }
       },
 

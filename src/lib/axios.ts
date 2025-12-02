@@ -14,23 +14,23 @@ const api = axios.create({
 });
 
 // ==================== SEGURIDAD: SANITIZACIÓN XSS ====================
-const sanitizeData = (data: any): any => {
+const sanitizeData = <T>(data: T): T => {
   if (typeof data === 'string') {
-    return DOMPurify.sanitize(data, { ALLOWED_TAGS: [] }); // Remueve todos los tags HTML
+    return DOMPurify.sanitize(data, { ALLOWED_TAGS: [] }) as T; // Remueve todos los tags HTML
   }
   
   if (Array.isArray(data)) {
-    return data.map(item => sanitizeData(item));
+    return data.map(item => sanitizeData(item)) as T;
   }
   
   if (data !== null && typeof data === 'object') {
-    const sanitized: any = {};
+    const sanitized: Record<string, unknown> = {};
     for (const key in data) {
       if (Object.prototype.hasOwnProperty.call(data, key)) {
-        sanitized[key] = sanitizeData(data[key]);
+        sanitized[key] = sanitizeData((data as Record<string, unknown>)[key]);
       }
     }
-    return sanitized;
+    return sanitized as T;
   }
   
   return data;

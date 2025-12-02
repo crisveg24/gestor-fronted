@@ -6,6 +6,7 @@ import { Card, Button, Loading } from '../components/ui';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../store/authStore';
 import { Plus, Trash2, Search } from 'lucide-react';
+import type { AxiosApiError, CreatePurchaseOrderDto } from '../types';
 
 interface Supplier {
   _id: string;
@@ -80,7 +81,7 @@ export default function PurchaseOrderFormPage() {
 
   // Mutation para crear orden
   const createOrderMutation = useMutation({
-    mutationFn: async (orderData: any) => {
+    mutationFn: async (orderData: CreatePurchaseOrderDto) => {
       const response = await api.post('/purchase-orders', orderData);
       return response.data;
     },
@@ -88,8 +89,9 @@ export default function PurchaseOrderFormPage() {
       toast.success('Orden de compra creada exitosamente');
       navigate('/ordenes-compra');
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Error al crear la orden');
+    onError: (error: unknown) => {
+      const axiosError = error as AxiosApiError;
+      toast.error(axiosError.response?.data?.message || 'Error al crear la orden');
     },
   });
 
@@ -170,12 +172,11 @@ export default function PurchaseOrderFormPage() {
       store: selectedStore,
       items: items.map(item => ({
         product: item.product,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
+        quantityOrdered: item.quantity,
+        unitCost: item.unitPrice,
       })),
-      subtotal,
       tax,
-      finalTotal: total,
+      shippingCost: 0,
       expectedDeliveryDate: expectedDeliveryDate || undefined,
       notes: notes || undefined,
     };

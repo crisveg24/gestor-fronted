@@ -31,6 +31,3 @@ const Toaster = () => {
 };
 
 export default Toaster;
-
-// Helper functions para usar en toda la app
-export { toast } from 'react-hot-toast';
