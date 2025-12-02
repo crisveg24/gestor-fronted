@@ -103,7 +103,8 @@ const ReportsPage = () => {
     queryKey: ['stores-list'],
     queryFn: async () => {
       const response = await api.get('/stores');
-      return response.data.data.stores;
+      // Backend devuelve: { success: true, data: [...stores] } - array directo
+      return response.data.data || [];
     },
     enabled: user?.role === 'admin',
   });

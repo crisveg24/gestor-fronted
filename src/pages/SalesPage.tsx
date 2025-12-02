@@ -95,12 +95,7 @@ const SalesPage = () => {
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'admin';
 
-  // Verificar si el usuario tiene tienda asignada (solo para no-admins)
-  if (user && !isAdmin && !user.store) {
-    return <EmptyStateNoStore />;
-  }
-
-  // Estados del carrito
+  // Estados del carrito - DEBEN estar antes de cualquier return condicional (reglas de React hooks)
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchProduct, setSearchProduct] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -126,7 +121,7 @@ const SalesPage = () => {
   const [freebieQuantity, setFreebieQuantity] = useState(1);
   
   // Estados del historial
-  const [showHistory, setShowHistory] = useState(true); // ✅ Mostrar historial por defecto
+  const [showHistory, setShowHistory] = useState(true);
   const [historySearch, setHistorySearch] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -158,6 +153,11 @@ const SalesPage = () => {
 
   // Estados del scanner
   const [scannerOpen, setScannerOpen] = useState(false);
+
+  // Verificar si el usuario tiene tienda asignada (después de los hooks)
+  if (user && !isAdmin && !user.store) {
+    return <EmptyStateNoStore />;
+  }
 
   // Query para obtener tiendas (solo admins)
   const { data: stores, isLoading: loadingStores, error: storesError } = useQuery({

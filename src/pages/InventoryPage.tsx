@@ -68,20 +68,7 @@ const InventoryPage = () => {
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'admin';
 
-  console.log('📦 [INVENTORY PAGE] Inicializando página');
-  console.log('📦 [INVENTORY PAGE] Usuario:', { 
-    role: user?.role, 
-    hasStore: !!user?.store,
-    storeId: user?.store?._id 
-  });
-
-  // Verificar si el usuario tiene tienda asignada
-  if (user && !isAdmin && !user.store) {
-    console.log('⚠️ [INVENTORY PAGE] Usuario sin tienda asignada, mostrando EmptyStateNoStore');
-    return <EmptyStateNoStore />;
-  }
-
-  // Estados
+  // Estados - DEBEN estar antes de cualquier return condicional (reglas de React hooks)
   const [selectedStore, setSelectedStore] = useState<string>(user?.store?._id || 'all');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterLowStock, setFilterLowStock] = useState(false);
@@ -94,12 +81,26 @@ const InventoryPage = () => {
   const [transferToStore, setTransferToStore] = useState('');
   const [transferQuantity, setTransferQuantity] = useState(0);
 
+  console.log('📦 [INVENTORY PAGE] Inicializando página');
+  console.log('📦 [INVENTORY PAGE] Usuario:', { 
+    role: user?.role, 
+    hasStore: !!user?.store,
+    storeId: user?.store?._id 
+  });
+
+  // Verificar si el usuario tiene tienda asignada (después de los hooks)
+  if (user && !isAdmin && !user.store) {
+    console.log('⚠️ [INVENTORY PAGE] Usuario sin tienda asignada, mostrando EmptyStateNoStore');
+    return <EmptyStateNoStore />;
+  }
+
   // Queries
   const { data: stores } = useQuery<Store[]>({
     queryKey: ['stores'],
     queryFn: async () => {
       const response = await api.get('/stores');
-      return response.data.data.stores;
+      // Backend devuelve: { success: true, data: [...stores] } - array directo
+      return response.data.data || [];
     },
     enabled: isAdmin,
   });

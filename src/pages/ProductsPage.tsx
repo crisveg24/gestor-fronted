@@ -34,20 +34,20 @@ const ProductsPage = () => {
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
 
-  // Verificar si el usuario tiene tienda asignada
-  if (user && user.role !== 'admin' && !user.store) {
-    return <EmptyStateNoStore />;
-  }
-
-  // Estados
+  // Estados - DEBEN estar antes de cualquier return condicional (reglas de React hooks)
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(50); // ✅ Aumentado de 10 a 50
+  const [itemsPerPage, setItemsPerPage] = useState(50);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortKey, setSortKey] = useState('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [categoryFilter, setCategoryFilter] = useState(''); // ✅ Filtro por categoría
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+
+  // Verificar si el usuario tiene tienda asignada (después de los hooks)
+  if (user && user.role !== 'admin' && !user.store) {
+    return <EmptyStateNoStore />;
+  }
 
   // Query para obtener productos
   const { data, isLoading, error } = useQuery<ProductsResponse>({
