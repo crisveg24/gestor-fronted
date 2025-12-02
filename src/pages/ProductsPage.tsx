@@ -44,12 +44,7 @@ const ProductsPage = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
-  // Verificar si el usuario tiene tienda asignada (después de los hooks)
-  if (user && user.role !== 'admin' && !user.store) {
-    return <EmptyStateNoStore />;
-  }
-
-  // Query para obtener productos
+  // Query para obtener productos - DEBE estar antes del return condicional
   const { data, isLoading, error } = useQuery<ProductsResponse>({
     queryKey: ['products', currentPage, itemsPerPage, searchQuery, sortKey, sortDirection, categoryFilter],
     queryFn: async () => {
@@ -68,7 +63,7 @@ const ProductsPage = () => {
     staleTime: 2 * 60 * 1000, // ✅ 2 minutos de caché
   });
 
-  // Mutation para eliminar producto
+  // Mutation para eliminar producto - DEBE estar antes del return condicional
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       await api.delete(`/products/${id}`);
@@ -83,6 +78,11 @@ const ProductsPage = () => {
       toast.error('Error al eliminar el producto');
     },
   });
+
+  // ✅ Verificar si el usuario tiene tienda asignada (DESPUÉS de todos los hooks)
+  if (user && user.role !== 'admin' && !user.store) {
+    return <EmptyStateNoStore />;
+  }
 
   // Handlers
   const handleSearch = (value: string) => {

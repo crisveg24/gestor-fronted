@@ -88,13 +88,7 @@ const InventoryPage = () => {
     storeId: user?.store?._id 
   });
 
-  // Verificar si el usuario tiene tienda asignada (después de los hooks)
-  if (user && !isAdmin && !user.store) {
-    console.log('⚠️ [INVENTORY PAGE] Usuario sin tienda asignada, mostrando EmptyStateNoStore');
-    return <EmptyStateNoStore />;
-  }
-
-  // Queries
+  // Queries - DEBEN estar antes del return condicional
   const { data: stores } = useQuery<Store[]>({
     queryKey: ['stores'],
     queryFn: async () => {
@@ -134,7 +128,7 @@ const InventoryPage = () => {
     enabled: !!selectedItem && historyModalOpen,
   });
 
-  // Mutations
+  // Mutations - DEBEN estar antes del return condicional
   const adjustMutation = useMutation({
     mutationFn: async (data: { inventoryId: string; quantity: number; reason: string }) => {
       await api.post(`/inventory/${data.inventoryId}/adjust`, {
@@ -151,8 +145,9 @@ const InventoryPage = () => {
       setAdjustQuantity(0);
       setAdjustReason('');
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Error al ajustar el stock');
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || 'Error al ajustar el stock');
     },
   });
 
@@ -175,10 +170,17 @@ const InventoryPage = () => {
       setTransferToStore('');
       setTransferQuantity(0);
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Error al realizar la transferencia');
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || 'Error al realizar la transferencia');
     },
   });
+
+  // ✅ Verificar si el usuario tiene tienda asignada (DESPUÉS de todos los hooks)
+  if (user && !isAdmin && !user.store) {
+    console.log('⚠️ [INVENTORY PAGE] Usuario sin tienda asignada, mostrando EmptyStateNoStore');
+    return <EmptyStateNoStore />;
+  }
 
   // Handlers
   const handleAdjustStock = (item: InventoryItem) => {
@@ -392,7 +394,7 @@ const InventoryPage = () => {
               {format(date, "dd MMM yyyy 'a las' HH:mm", { locale: es })}
             </span>
           );
-        } catch (error) {
+        } catch {
           return <span className="text-sm text-gray-400">Error en fecha</span>;
         }
       },
