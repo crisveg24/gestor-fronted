@@ -102,8 +102,16 @@ const StoresPage = () => {
   // Mutations
   const createStoreMutation = useMutation({
     mutationFn: async (data: StoreFormData) => {
-      console.log('🏪 [STORES] Creando tienda:', data);
-      await api.post('/stores', data);
+      // Limpiar datos antes de enviar - no enviar manager vacío
+      const cleanData = {
+        name: data.name,
+        address: data.address,
+        phone: data.phone,
+        email: data.email,
+        ...(data.manager && { manager: data.manager }), // Solo incluir si tiene valor
+      };
+      console.log('🏪 [STORES] Creando tienda:', cleanData);
+      await api.post('/stores', cleanData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['stores'] });
@@ -128,8 +136,13 @@ const StoresPage = () => {
       id: string;
       data: Partial<StoreFormData>;
     }) => {
-      console.log('🏪 [STORES] Actualizando tienda:', id, data);
-      await api.put(`/stores/${id}`, data);
+      // Limpiar datos antes de enviar - no enviar manager vacío
+      const cleanData = {
+        ...data,
+        manager: data.manager || undefined, // Convertir '' a undefined
+      };
+      console.log('🏪 [STORES] Actualizando tienda:', id, cleanData);
+      await api.put(`/stores/${id}`, cleanData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['stores'] });

@@ -97,8 +97,16 @@ const UsersPage = () => {
   // Mutations
   const createUserMutation = useMutation({
     mutationFn: async (data: UserFormData) => {
-      console.log('👤 [USERS] Creando usuario:', data);
-      await api.post('/users', data);
+      // Limpiar datos antes de enviar - no enviar store vacío
+      const cleanData = {
+        name: data.name,
+        email: data.email,
+        password: data.password,
+        role: data.role,
+        ...(data.store && { store: data.store }), // Solo incluir si tiene valor
+      };
+      console.log('👤 [USERS] Creando usuario:', cleanData);
+      await api.post('/users', cleanData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -122,8 +130,13 @@ const UsersPage = () => {
       id: string;
       data: Partial<UserFormData>;
     }) => {
-      console.log('👤 [USERS] Actualizando usuario:', id, data);
-      await api.put(`/users/${id}`, data);
+      // Limpiar datos antes de enviar - no enviar store vacío
+      const cleanData = {
+        ...data,
+        store: data.store || undefined, // Convertir '' a undefined
+      };
+      console.log('👤 [USERS] Actualizando usuario:', id, cleanData);
+      await api.put(`/users/${id}`, cleanData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
