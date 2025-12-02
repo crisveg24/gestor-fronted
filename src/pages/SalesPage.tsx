@@ -154,12 +154,17 @@ const SalesPage = () => {
   // Estados del scanner
   const [scannerOpen, setScannerOpen] = useState(false);
 
-  // Verificar si el usuario tiene tienda asignada (después de los hooks)
-  if (user && !isAdmin && !user.store) {
-    return <EmptyStateNoStore />;
-  }
+  // Estado para productos recientes (movido aquí antes del return condicional)
+  const getRecentProducts = (): Product[] => {
+    try {
+      return JSON.parse(localStorage.getItem('recentProducts') || '[]');
+    } catch {
+      return [];
+    }
+  };
+  const [recentProducts, setRecentProducts] = useState<Product[]>(getRecentProducts());
 
-  // Query para obtener tiendas (solo admins)
+  // Query para obtener tiendas (solo admins) - ANTES del return condicional
   const { data: stores, isLoading: loadingStores, error: storesError } = useQuery({
     queryKey: ['stores'],
     queryFn: async () => {
@@ -620,16 +625,6 @@ const SalesPage = () => {
     }
   };
 
-  const getRecentProducts = (): Product[] => {
-    try {
-      return JSON.parse(localStorage.getItem('recentProducts') || '[]');
-    } catch {
-      return [];
-    }
-  };
-
-  const [recentProducts, setRecentProducts] = useState<Product[]>(getRecentProducts());
-
   // Actualizar productos recientes cuando se agrega al carrito
   const addToCartWithRecent = (product: Product) => {
     saveRecentProduct(product);
@@ -1046,6 +1041,11 @@ const SalesPage = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [cart, freebies, cutModalOpen, editModalOpen, cancelModalOpen, detailModalOpen]);
+
+  // ✅ Verificar si el usuario tiene tienda asignada (DESPUÉS de todos los hooks)
+  if (user && !isAdmin && !user.store) {
+    return <EmptyStateNoStore />;
+  }
 
   return (
     <div className="space-y-6">
