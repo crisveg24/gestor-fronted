@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Plus, Edit2, Trash2, Eye, AlertCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, Eye, AlertCircle, Printer } from 'lucide-react';
 import { Card, SearchBar, ResponsiveTable, Pagination, Button, Modal, toast, EmptyStateNoStore } from '../components/ui';
 import type { Column } from '../components/ui';
 import api from '../lib/axios';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { ProductLabelPrint } from '../components/ProductLabelPrint';
 
 // Tipos
 interface Product {
@@ -43,6 +44,9 @@ const ProductsPage = () => {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [printModalOpen, setPrintModalOpen] = useState(false);
+  const [productToPrint, setProductToPrint] = useState<Product | null>(null);
+  const [printQuantity, setPrintQuantity] = useState(1);
 
   // Query para obtener productos - DEBE estar antes del return condicional
   const { data, isLoading, error } = useQuery<ProductsResponse>({
@@ -220,6 +224,17 @@ const ProductsPage = () => {
             <Edit2 size={18} />
           </button>
           <button
+            onClick={() => {
+              setProductToPrint(product);
+              setPrintQuantity(1);
+              setPrintModalOpen(true);
+            }}
+            className="p-1.5 text-purple-600 hover:bg-purple-50 rounded transition-colors"
+            title="Imprimir etiqueta"
+          >
+            <Printer size={18} />
+          </button>
+          <button
             onClick={() => handleDelete(product)}
             className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
             title="Eliminar"
@@ -229,7 +244,7 @@ const ProductsPage = () => {
         </div>
       ),
       mobileRender: (product) => (
-        <div className="flex gap-1">
+        <div className="flex gap-1 flex-wrap">
           <button
             onClick={() => navigate(`/productos/${product._id}`)}
             className="flex-1 px-3 py-2 text-xs text-blue-600 bg-blue-50 rounded hover:bg-blue-100"
@@ -241,6 +256,16 @@ const ProductsPage = () => {
             className="flex-1 px-3 py-2 text-xs text-green-600 bg-green-50 rounded hover:bg-green-100"
           >
             Editar
+          </button>
+          <button
+            onClick={() => {
+              setProductToPrint(product);
+              setPrintQuantity(1);
+              setPrintModalOpen(true);
+            }}
+            className="flex-1 px-3 py-2 text-xs text-purple-600 bg-purple-50 rounded hover:bg-purple-100"
+          >
+            Imprimir
           </button>
           <button
             onClick={() => handleDelete(product)}
@@ -426,6 +451,57 @@ const ProductsPage = () => {
             Eliminar Producto
           </Button>
         </Modal.Footer>
+      </Modal>
+
+      {/* Modal de Impresión de Etiquetas */}
+      <Modal
+        isOpen={printModalOpen}
+        onClose={() => {
+          setPrintModalOpen(false);
+          setProductToPrint(null);
+        }}
+        title="Imprimir Etiquetas"
+        size="lg"
+      >
+        <div className="space-y-4">
+          {productToPrint && (
+            <>
+              <div className="bg-gray-50 rounded-lg p-3">
+                <p className="font-medium text-gray-900">{productToPrint.name}</p>
+                <p className="text-sm text-gray-600">SKU: {productToPrint.sku}</p>
+                <p className="text-sm text-gray-600">Precio: Q{productToPrint.price.toFixed(2)}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Cantidad de etiquetas
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={printQuantity}
+                  onChange={(e) => setPrintQuantity(Math.max(1, Math.min(100, parseInt(e.target.value) || 1)))}
+                  className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+
+              <ProductLabelPrint
+                products={[{
+                  name: productToPrint.name,
+                  sku: productToPrint.sku,
+                  barcode: productToPrint.barcode,
+                  price: productToPrint.price,
+                  quantity: printQuantity,
+                }]}
+                onClose={() => {
+                  setPrintModalOpen(false);
+                  setProductToPrint(null);
+                }}
+              />
+            </>
+          )}
+        </div>
       </Modal>
     </div>
   );

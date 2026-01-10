@@ -57,6 +57,8 @@ const UsersPage = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [resetPasswordModalOpen, setResetPasswordModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [generatedPasswordModalOpen, setGeneratedPasswordModalOpen] = useState(false);
+  const [generatedPassword, setGeneratedPassword] = useState<{password: string; name: string; email: string} | null>(null);
 
   // Form states
   const [formData, setFormData] = useState<UserFormData>({
@@ -201,6 +203,28 @@ const UsersPage = () => {
       const axiosError = error as AxiosApiError;
       toast.error(
         axiosError.response?.data?.message || 'Error al restablecer la contraseña'
+      );
+    },
+  });
+
+  const generatePasswordMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await api.post(`/users/${id}/generate-password`);
+      return response.data.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      setGeneratedPassword({
+        password: data.temporaryPassword,
+        name: data.userName,
+        email: data.userEmail
+      });
+      setGeneratedPasswordModalOpen(true);
+    },
+    onError: (error: unknown) => {
+      const axiosError = error as AxiosApiError;
+      toast.error(
+        axiosError.response?.data?.message || 'Error al generar la contraseña'
       );
     },
   });
@@ -442,6 +466,16 @@ const UsersPage = () => {
             className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
           >
             Restablecer Contraseña
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => generatePasswordMutation.mutate(user._id)}
+            leftIcon={<Key size={16} />}
+            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+            disabled={generatePasswordMutation.isPending}
+          >
+            {generatePasswordMutation.isPending ? 'Generando...' : 'Generar Contraseña'}
           </Button>
           <Button
             size="sm"
@@ -895,6 +929,66 @@ const UsersPage = () => {
             leftIcon={<Trash2 size={18} />}
           >
             Eliminar Usuario
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Modal Mostrar Contraseña Generada */}
+      <Modal
+        isOpen={generatedPasswordModalOpen}
+        onClose={() => {
+          setGeneratedPasswordModalOpen(false);
+          setGeneratedPassword(null);
+        }}
+        title="Contraseña Generada"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <p className="text-sm text-green-700 mb-2">
+              Se ha generado una nueva contraseña temporal para:
+            </p>
+            <p className="font-semibold text-green-800">
+              {generatedPassword?.name} ({generatedPassword?.email})
+            </p>
+          </div>
+          
+          <div className="bg-gray-100 rounded-lg p-4 text-center">
+            <p className="text-xs text-gray-500 mb-1">Nueva Contraseña:</p>
+            <p className="font-mono text-2xl font-bold text-gray-900 select-all">
+              {generatedPassword?.password}
+            </p>
+          </div>
+
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+            <p className="text-xs text-yellow-700 flex items-center gap-1">
+              <AlertCircle size={14} />
+              Guarda esta contraseña. No podrás verla nuevamente.
+            </p>
+          </div>
+
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              if (generatedPassword?.password) {
+                navigator.clipboard.writeText(generatedPassword.password);
+                toast.success('Contraseña copiada al portapapeles');
+              }
+            }}
+          >
+            📋 Copiar Contraseña
+          </Button>
+        </div>
+
+        <Modal.Footer>
+          <Button
+            onClick={() => {
+              setGeneratedPasswordModalOpen(false);
+              setGeneratedPassword(null);
+            }}
+          >
+            Cerrar
           </Button>
         </Modal.Footer>
       </Modal>

@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Save, Plus, X } from 'lucide-react';
+import { ArrowLeft, Save, Plus, X, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Card, Button, toast } from '../components/ui';
@@ -55,6 +55,9 @@ const ProductFormPage = () => {
 
   // Estados para QR
   const [showQRModal, setShowQRModal] = useState(false);
+  const [isGeneratingCodes, setIsGeneratingCodes] = useState(false);
+  const [skuAvailable, setSkuAvailable] = useState<boolean | null>(null);
+  const [barcodeAvailable, setBarcodeAvailable] = useState<boolean | null>(null);
 
   // Query para obtener categorías dinámicas
   const { data: categories = [] } = useQuery<string[]>({
@@ -80,6 +83,52 @@ const ProductFormPage = () => {
       maxStock: 1000,
     },
   });
+
+  // Función para generar códigos automáticamente
+  const generateCodes = useCallback(async (categoryValue?: string, nameValue?: string) => {
+    setIsGeneratingCodes(true);
+    try {
+      const params = new URLSearchParams();
+      if (categoryValue) params.append('category', categoryValue);
+      if (nameValue) params.append('name', nameValue);
+      
+      const response = await api.get(`/products/generate-codes?${params.toString()}`);
+      const { sku, barcode } = response.data.data;
+      
+      setValue('sku', sku);
+      setValue('barcode', barcode);
+      setSkuAvailable(true);
+      setBarcodeAvailable(true);
+      toast.success('Códigos generados automáticamente');
+    } catch (error) {
+      console.error('Error generando códigos:', error);
+      toast.error('Error al generar códigos');
+    } finally {
+      setIsGeneratingCodes(false);
+    }
+  }, [setValue]);
+
+  // Función para verificar disponibilidad de códigos
+  const checkCodeAvailability = useCallback(async (type: 'sku' | 'barcode', value: string) => {
+    if (!value || value.trim() === '') {
+      if (type === 'sku') setSkuAvailable(null);
+      else setBarcodeAvailable(null);
+      return;
+    }
+    
+    try {
+      const params = new URLSearchParams();
+      params.append(type, value.trim());
+      
+      const response = await api.get(`/products/check-codes?${params.toString()}`);
+      const available = type === 'sku' ? response.data.data.skuAvailable : response.data.data.barcodeAvailable;
+      
+      if (type === 'sku') setSkuAvailable(available);
+      else setBarcodeAvailable(available);
+    } catch {
+      // Silently fail - no mostrar error
+    }
+  }, []);
 
   // Query para obtener tiendas (solo para crear productos)
   const { data: stores } = useQuery<Store[]>({
@@ -475,19 +524,54 @@ const ProductFormPage = () => {
               </div>
 
               {/* SKU y Código de Barras */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    SKU *
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">Códigos de Identificación</span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => generateCodes(watch('category'), watch('name'))}
+                    disabled={isGeneratingCodes}
+                    className="flex items-center gap-2"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isGeneratingCodes ? 'animate-spin' : ''}`} />
+                    {isGeneratingCodes ? 'Generando...' : 'Auto-generar códigos'}
+                  </Button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      SKU *
                   </label>
-                  <input
-                    type="text"
-                    {...register('sku')}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 font-mono"
-                    placeholder="Ej: LAPTOP-001"
-                  />
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <input
+                        type="text"
+                        {...register('sku', {
+                          onBlur: (e) => checkCodeAvailability('sku', e.target.value)
+                        })}
+                        className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 font-mono pr-10 ${
+                          skuAvailable === false ? 'border-red-500 bg-red-50' : 
+                          skuAvailable === true ? 'border-green-500 bg-green-50' : 
+                          'border-gray-300'
+                        }`}
+                        placeholder="Ej: LAPTOP-001"
+                      />
+                      {skuAvailable !== null && (
+                        <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-lg ${
+                          skuAvailable ? 'text-green-500' : 'text-red-500'
+                        }`}>
+                          {skuAvailable ? '✓' : '✗'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                   {errors.sku && (
                     <p className="mt-1 text-sm text-red-600">{errors.sku.message}</p>
+                  )}
+                  {skuAvailable === false && (
+                    <p className="mt-1 text-sm text-red-600">Este SKU ya está en uso</p>
                   )}
                 </div>
 
@@ -496,12 +580,27 @@ const ProductFormPage = () => {
                     Código de Barras
                   </label>
                   <div className="flex gap-2">
-                    <input
-                      type="text"
-                      {...register('barcode')}
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 font-mono"
-                      placeholder="Ej: 1234567890123"
-                    />
+                    <div className="relative flex-1">
+                      <input
+                        type="text"
+                        {...register('barcode', {
+                          onBlur: (e) => checkCodeAvailability('barcode', e.target.value)
+                        })}
+                        className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 font-mono pr-10 ${
+                          barcodeAvailable === false ? 'border-red-500 bg-red-50' : 
+                          barcodeAvailable === true ? 'border-green-500 bg-green-50' : 
+                          'border-gray-300'
+                        }`}
+                        placeholder="Se genera automáticamente"
+                      />
+                      {barcodeAvailable !== null && (
+                        <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-lg ${
+                          barcodeAvailable ? 'text-green-500' : 'text-red-500'
+                        }`}>
+                          {barcodeAvailable ? '✓' : '✗'}
+                        </span>
+                      )}
+                    </div>
                     {watch('barcode') && watch('barcode')!.trim() !== '' && (
                       <Button
                         type="button"
@@ -512,8 +611,8 @@ const ProductFormPage = () => {
                       </Button>
                     )}
                   </div>
-                  {errors.barcode && (
-                    <p className="mt-1 text-sm text-red-600">{errors.barcode.message}</p>
+                  {barcodeAvailable === false && (
+                    <p className="mt-1 text-sm text-red-600">Este código de barras ya está en uso</p>
                   )}
                   {watch('barcode') && watch('barcode')!.trim() !== '' && (
                     <p className="mt-1 text-xs text-gray-500">
@@ -521,6 +620,7 @@ const ProductFormPage = () => {
                     </p>
                   )}
                 </div>
+              </div>
               </div>
 
               {/* Categoría */}
