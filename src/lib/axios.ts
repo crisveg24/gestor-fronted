@@ -36,11 +36,17 @@ const sanitizeData = <T>(data: T): T => {
   return data;
 };
 
+// ==================== HELPER PARA OBTENER TOKEN ====================
+// Busca primero en cookies, luego en localStorage (fallback para cross-domain)
+const getToken = (key: string): string | undefined => {
+  return Cookies.get(key) || localStorage.getItem(key) || undefined;
+};
+
 // ==================== REQUEST INTERCEPTOR ====================
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // 1. Agregar token de autenticación
-    const accessToken = Cookies.get('accessToken');
+    // 1. Agregar token de autenticación (buscar en cookies Y localStorage)
+    const accessToken = getToken('accessToken');
     if (accessToken && config.headers) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
@@ -115,7 +121,7 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = Cookies.get('refreshToken');
+        const refreshToken = getToken('refreshToken');
         
         if (!refreshToken) {
           // No hay refresh token, redirigir al login
@@ -142,9 +148,11 @@ api.interceptors.response.use(
           path: '/',
         };
 
-        // Guardar nuevos tokens con 7 días de duración
+        // Guardar nuevos tokens en cookies Y localStorage (fallback)
         Cookies.set('accessToken', newAccessToken, cookieConfig);
         Cookies.set('refreshToken', newRefreshToken, cookieConfig);
+        localStorage.setItem('accessToken', newAccessToken);
+        localStorage.setItem('refreshToken', newRefreshToken);
 
         // Reintentar request original con nuevo token
         if (originalRequest.headers) {
@@ -153,9 +161,11 @@ api.interceptors.response.use(
         return api(originalRequest);
 
       } catch (refreshError) {
-        // Refresh token expirado o inválido, limpiar y redirigir
-        Cookies.remove('accessToken');
-        Cookies.remove('refreshToken');
+        // Refresh token expirado o inválido, limpiar cookies Y localStorage
+        Cookies.remove('accessToken', { path: '/' });
+        Cookies.remove('refreshToken', { path: '/' });
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
         window.location.href = '/login';
         return Promise.reject(refreshError);
       }

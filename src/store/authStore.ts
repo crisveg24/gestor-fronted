@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import Cookies from 'js-cookie';
 import type { AuthState, User, LoginCredentials, AxiosApiError } from '../types';
 import api from '../lib/axios';
@@ -16,8 +17,44 @@ interface AuthActions {
 
 type AuthStore = AuthState & AuthActions;
 
+// ==================== HELPERS PARA TOKENS ====================
+const TOKEN_KEYS = {
+  ACCESS: 'accessToken',
+  REFRESH: 'refreshToken',
+} as const;
+
+// Configuración de cookies según entorno
+const getCookieConfig = () => {
+  const isProduction = import.meta.env.PROD;
+  return {
+    expires: 7, // 7 días
+    secure: isProduction,
+    sameSite: (isProduction ? 'none' : 'strict') as 'none' | 'strict',
+    path: '/',
+  };
+};
+
+// Guardar token en AMBOS: cookies Y localStorage (fallback)
+const saveToken = (key: string, value: string) => {
+  Cookies.set(key, value, getCookieConfig());
+  localStorage.setItem(key, value);
+};
+
+// Obtener token: primero de cookies, luego de localStorage
+const getToken = (key: string): string | undefined => {
+  return Cookies.get(key) || localStorage.getItem(key) || undefined;
+};
+
+// Eliminar token de ambos lugares
+const removeToken = (key: string) => {
+  Cookies.remove(key, { path: '/' });
+  localStorage.removeItem(key);
+};
+
 // Store de autenticación con verificación de token
-export const useAuthStore = create<AuthStore>()((set, get) => ({
+export const useAuthStore = create<AuthStore>()(
+  persist(
+    (set, get) => ({
   // State inicial
   user: null,
   accessToken: null,
@@ -39,19 +76,9 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
 
           logger.log('[AUTH] Login exitoso');
 
-          // Configuración de cookies para cross-domain HTTPS
-          const isProduction = import.meta.env.PROD;
-          
-          const cookieConfig = {
-            expires: 7,
-            secure: isProduction, // true en producción (HTTPS)
-            sameSite: (isProduction ? 'none' : 'strict') as 'none' | 'strict',
-            path: '/',
-          };
-
-          // Guardar tokens en cookies seguras con 7 días
-          Cookies.set('accessToken', token, cookieConfig);
-          Cookies.set('refreshToken', refreshToken, cookieConfig);
+          // Guardar tokens en cookies Y localStorage (fallback para cross-domain)
+          saveToken(TOKEN_KEYS.ACCESS, token);
+          saveToken(TOKEN_KEYS.REFRESH, refreshToken);
 
           // Actualizar state
           set({
@@ -75,9 +102,9 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       logout: () => {
         logger.log('[AUTH] Cerrando sesión...');
 
-        // Limpiar cookies
-        Cookies.remove('accessToken');
-        Cookies.remove('refreshToken');
+        // Limpiar tokens de cookies Y localStorage
+        removeToken(TOKEN_KEYS.ACCESS);
+        removeToken(TOKEN_KEYS.REFRESH);
 
         // Limpiar state
         set({
@@ -103,7 +130,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       // ==================== REFRESH AUTH ====================
       refreshAuth: async () => {
         try {
-          const refreshToken = Cookies.get('refreshToken');
+          const refreshToken = getToken(TOKEN_KEYS.REFRESH);
 
           if (!refreshToken) {
             logger.log('[AUTH] No hay refresh token disponible');
@@ -116,19 +143,9 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
           const response = await api.post('/auth/refresh', { refreshToken });
           const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data.data;
 
-          // Configuración de cookies para cross-domain HTTPS
-          const isProduction = import.meta.env.PROD;
-          
-          const cookieConfig = {
-            expires: 7,
-            secure: isProduction,
-            sameSite: (isProduction ? 'none' : 'strict') as 'none' | 'strict',
-            path: '/',
-          };
-
-          // Actualizar tokens con 7 días
-          Cookies.set('accessToken', newAccessToken, cookieConfig);
-          Cookies.set('refreshToken', newRefreshToken, cookieConfig);
+          // Guardar tokens en cookies Y localStorage (fallback)
+          saveToken(TOKEN_KEYS.ACCESS, newAccessToken);
+          saveToken(TOKEN_KEYS.REFRESH, newRefreshToken);
 
           // Obtener usuario actualizado
           const userResponse = await api.get('/auth/me');
@@ -156,10 +173,10 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       // ==================== CHECK AUTH ====================
       checkAuth: () => {
         const { user, isAuthenticated } = get();
-        const cookieToken = Cookies.get('accessToken');
-        const cookieRefresh = Cookies.get('refreshToken');
+        const accessToken = getToken(TOKEN_KEYS.ACCESS);
+        const refreshToken = getToken(TOKEN_KEYS.REFRESH);
 
-        const result = isAuthenticated && !!user && (!!cookieToken || !!cookieRefresh);
+        const result = isAuthenticated && !!user && (!!accessToken || !!refreshToken);
 
         // Verificar que exista usuario autenticado Y al menos un token válido
         return result;
@@ -168,7 +185,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       // ==================== VERIFY TOKEN ====================
       verifyToken: async () => {
         try {
-          const accessToken = Cookies.get('accessToken');
+          const accessToken = getToken(TOKEN_KEYS.ACCESS);
           
           if (!accessToken) {
             logger.log('[AUTH] No hay access token para verificar');
@@ -185,7 +202,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
           set({
             user,
             accessToken,
-            refreshToken: Cookies.get('refreshToken'),
+            refreshToken: getToken(TOKEN_KEYS.REFRESH) || null,
             isAuthenticated: true,
           });
 
@@ -198,8 +215,8 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
 
       // ==================== INITIALIZE AUTH ====================
       initializeAuth: async () => {
-        const accessToken = Cookies.get('accessToken');
-        const refreshToken = Cookies.get('refreshToken');
+        const accessToken = getToken(TOKEN_KEYS.ACCESS);
+        const refreshToken = getToken(TOKEN_KEYS.REFRESH);
 
         logger.log('[AUTH] Inicializando autenticación...', { 
           hasAccessToken: !!accessToken, 
@@ -248,9 +265,9 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
             isLoading: false,
           });
           
-          // Limpiar cookies inválidas
-          Cookies.remove('accessToken');
-          Cookies.remove('refreshToken');
+          // Limpiar tokens inválidos
+          removeToken(TOKEN_KEYS.ACCESS);
+          removeToken(TOKEN_KEYS.REFRESH);
         } catch (error) {
           logger.error('[AUTH] Error al inicializar autenticación:', error);
           set({
@@ -261,9 +278,20 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
             isLoading: false,
           });
           
-          // Limpiar cookies
-          Cookies.remove('accessToken');
-          Cookies.remove('refreshToken');
+          // Limpiar tokens
+          removeToken(TOKEN_KEYS.ACCESS);
+          removeToken(TOKEN_KEYS.REFRESH);
         }
       },
-}));
+    }),
+    {
+      name: 'auth-storage', // nombre de la key en localStorage
+      storage: createJSONStorage(() => localStorage),
+      // Solo persistir el estado de usuario, los tokens se manejan por separado
+      partialize: (state) => ({
+        user: state.user,
+        isAuthenticated: state.isAuthenticated,
+      }),
+    }
+  )
+);
