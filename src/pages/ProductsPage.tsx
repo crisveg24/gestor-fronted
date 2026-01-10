@@ -24,10 +24,12 @@ interface Product {
 }
 
 interface ProductsResponse {
+  success: boolean;
+  count: number;
+  total: number;
+  page: number;
+  pages: number;
   products: Product[];
-  totalPages: number;
-  currentPage: number;
-  totalProducts: number;
 }
 
 const ProductsPage = () => {
@@ -59,12 +61,12 @@ const ProductsPage = () => {
           search: searchQuery,
           sortBy: sortKey,
           sortOrder: sortDirection,
-          category: categoryFilter || undefined, // ✅ Filtro de categoría
+          category: categoryFilter || undefined,
         },
       });
-      return response.data.data;
+      return response.data; // La respuesta ya tiene la estructura correcta
     },
-    staleTime: 2 * 60 * 1000, // ✅ 2 minutos de caché
+    staleTime: 2 * 60 * 1000,
   });
 
   // Mutation para eliminar producto - DEBE estar antes del return condicional
@@ -313,7 +315,7 @@ const ProductsPage = () => {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Productos</h1>
           <p className="text-gray-600 mt-1">
-            {data?.totalProducts || 0} productos en total
+            {data?.total || 0} productos en total
           </p>
         </div>
         <Button
@@ -394,13 +396,13 @@ const ProductsPage = () => {
             isLoading={isLoading}
             emptyMessage="No se encontraron productos"
           />
-          {data && data.totalProducts > 0 && (
+          {data && data.total > 0 && (
             <Pagination
               currentPage={currentPage}
-              totalPages={data.totalPages}
+              totalPages={data.pages}
               onPageChange={setCurrentPage}
               itemsPerPage={itemsPerPage}
-              totalItems={data.totalProducts}
+              totalItems={data.total}
               onItemsPerPageChange={(value) => {
                 setItemsPerPage(value);
                 setCurrentPage(1);
