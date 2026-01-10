@@ -167,15 +167,8 @@ api.interceptors.response.use(
       window.location.href = '/unauthorized';
     }
 
-    if (error.response?.status === 404) {
-      // Not Found
-      console.error('Recurso no encontrado');
-    }
-
-    if (error.response && error.response.status >= 500) {
-      // Server Error
-      console.error('Error del servidor');
-    }
+    // Los errores 404 y 500+ se manejan silenciosamente
+    // El componente que hizo la llamada debe manejar el error apropiadamente
 
     return Promise.reject(error);
   }

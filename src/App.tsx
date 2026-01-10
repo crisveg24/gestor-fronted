@@ -1,21 +1,36 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from './store/authStore';
-import LoginPage from './pages/LoginPage';
-import DashboardPage from './pages/DashboardPage';
-import ProductsPage from './pages/ProductsPage';
-import ProductFormPage from './pages/ProductFormPage';
-import InventoryPage from './pages/InventoryPage';
-import SalesPage from './pages/SalesPage';
-import StoresPage from './pages/StoresPage';
-import UsersPage from './pages/UsersPage';
-import ReportsPage from './pages/ReportsPage';
-import SuppliersPage from './pages/SuppliersPage';
-import PurchaseOrdersPage from './pages/PurchaseOrdersPage';
-import PurchaseOrderFormPage from './pages/PurchaseOrderFormPage';
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Toaster } from './components/ui';
 import DashboardLayout from './components/layout/DashboardLayout';
+import ErrorBoundary from './components/ErrorBoundary';
+import logger from './utils/logger';
+
+// ==================== LAZY LOADING DE PÁGINAS ====================
+// Esto reduce el bundle inicial y carga las páginas bajo demanda
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const ProductsPage = lazy(() => import('./pages/ProductsPage'));
+const ProductFormPage = lazy(() => import('./pages/ProductFormPage'));
+const InventoryPage = lazy(() => import('./pages/InventoryPage'));
+const SalesPage = lazy(() => import('./pages/SalesPage'));
+const StoresPage = lazy(() => import('./pages/StoresPage'));
+const UsersPage = lazy(() => import('./pages/UsersPage'));
+const ReportsPage = lazy(() => import('./pages/ReportsPage'));
+const SuppliersPage = lazy(() => import('./pages/SuppliersPage'));
+const PurchaseOrdersPage = lazy(() => import('./pages/PurchaseOrdersPage'));
+const PurchaseOrderFormPage = lazy(() => import('./pages/PurchaseOrderFormPage'));
+
+// ==================== LOADING FALLBACK ====================
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+      <p className="mt-4 text-gray-600">Cargando...</p>
+    </div>
+  </div>
+);
 
 // Configuración de React Query
 const queryClient = new QueryClient({
@@ -57,11 +72,11 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // NO inicializar autenticación en la página de login
     if (window.location.pathname === '/login') {
-      console.log('🔒 [AUTH GUARD] En página de login, no inicializando auth');
+      logger.log('[AUTH GUARD] En página de login, no inicializando auth');
       return;
     }
     
-    console.log('🔒 [AUTH GUARD] Inicializando autenticación...');
+    logger.log('[AUTH GUARD] Inicializando autenticación...');
     // Inicializar autenticación al cargar la app
     initializeAuth();
 
@@ -81,14 +96,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   }, [initializeAuth, logout]);
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Cargando...</p>
-        </div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   return <>{children}</>;
@@ -97,13 +105,15 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 // ==================== APP COMPONENT ====================
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <Toaster />
-      <BrowserRouter>
-        <AuthGuard>
-          <Routes>
-            {/* Redirect root to dashboard */}
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <Toaster />
+        <BrowserRouter>
+          <AuthGuard>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                {/* Redirect root to dashboard */}
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
             
             {/* Public Routes */}
             <Route path="/login" element={<LoginPage />} />
@@ -236,9 +246,11 @@ function App() {
               </div>
             } />
           </Routes>
+          </Suspense>
         </AuthGuard>
       </BrowserRouter>
     </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 
