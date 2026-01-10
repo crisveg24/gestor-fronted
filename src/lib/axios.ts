@@ -9,8 +9,6 @@ const api = axios.create({
   timeout: 60000, // 60 segundos para operaciones lentas como transacciones de ventas
   headers: {
     'Content-Type': 'application/json',
-    'Cache-Control': 'no-cache, no-store, must-revalidate',
-    'Pragma': 'no-cache',
   },
   withCredentials: true, // Enviar cookies con cada request
 });
