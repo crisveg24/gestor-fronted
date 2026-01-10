@@ -422,7 +422,18 @@ const SalesPage = () => {
       console.log('📷 [SCANNER] Código escaneado:', barcode);
       toast.loading('Buscando producto...', { id: 'barcode-search' });
 
-      const response = await api.get(`/products/by-barcode/${barcode}`);
+      // Determinar la tienda actual ANTES de la petición
+      const currentStoreId = isAdmin ? selectedStore : (typeof user?.store === 'string' ? user.store : user?.store?._id);
+      
+      if (!currentStoreId) {
+        toast.error('Selecciona una tienda primero', { id: 'barcode-search' });
+        return;
+      }
+
+      // Enviar storeId como parámetro para que el backend busque inventario correcto
+      const response = await api.get(`/products/by-barcode/${barcode}`, {
+        params: { storeId: currentStoreId }
+      });
       const product = response.data.data;
 
       console.log('✅ [SCANNER] Producto encontrado:', product);
@@ -432,15 +443,7 @@ const SalesPage = () => {
         return;
       }
 
-      // Verificar inventario en la tienda actual
-      const currentStoreId = isAdmin ? selectedStore : (typeof user?.store === 'string' ? user.store : user?.store?._id);
-      
-      if (!currentStoreId) {
-        toast.error('Selecciona una tienda primero', { id: 'barcode-search' });
-        return;
-      }
-
-      // El backend ya devuelve el stock de la tienda del usuario
+      // El backend ya devuelve el stock de la tienda seleccionada
       if (product.stock === undefined || product.stock <= 0) {
         toast.error(`Sin stock en esta tienda`, { id: 'barcode-search' });
         return;
