@@ -30,9 +30,7 @@ import { Card, Button, toast } from '../components/ui';
 import api from '../lib/axios';
 import { useAuthStore } from '../store/authStore';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
+// jsPDF, autoTable y XLSX se importan dinámicamente para reducir bundle inicial
 
 // Función helper para formatear métodos de pago
 const formatPaymentMethod = (method: string): string => {
@@ -220,9 +218,15 @@ const ReportsPage = () => {
     },
   });
 
-  // Funciones de exportación
-  const exportToPDF = () => {
+  // Funciones de exportación (con lazy loading para reducir bundle)
+  const exportToPDF = async () => {
     try {
+      // Lazy load jsPDF y autoTable
+      const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+        import('jspdf'),
+        import('jspdf-autotable')
+      ]);
+      
       const doc = new jsPDF();
 
       // Header
@@ -330,8 +334,11 @@ const ReportsPage = () => {
     }
   };
 
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
     try {
+      // Lazy load XLSX
+      const XLSX = await import('xlsx');
+      
       const wb = XLSX.utils.book_new();
 
       // Hoja 1: Resumen

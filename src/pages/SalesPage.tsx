@@ -20,9 +20,7 @@ import api from '../lib/axios';
 import { useAuthStore } from '../store/authStore';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import * as XLSX from 'xlsx';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+// XLSX, jsPDF y autoTable se importan dinámicamente para reducir bundle inicial
 import { printTicket } from '../utils/printTicket';
 import type { AxiosApiError, Store as StoreType, Inventory as InventoryType, DailyCutPaymentMethod } from '../types';
 
@@ -770,63 +768,78 @@ const SalesPage = () => {
     });
   };
 
-  // Funciones de exportación
-  const exportToExcel = () => {
+  // Funciones de exportación (con lazy loading para reducir bundle)
+  const exportToExcel = async () => {
     if (!sales || sales.length === 0) {
       toast.error('No hay ventas para exportar');
       return;
     }
 
-    // Preparar datos para Excel
-    const excelData = sales.map((sale) => ({
-      Fecha: format(new Date(sale.createdAt), 'dd/MM/yyyy HH:mm', { locale: es }),
-      Tienda: sale.store.name,
-      Vendedor: sale.user.name,
-      Productos: sale.products.length,
-      Subtotal: `$${sale.subtotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
-      Descuento: `$${sale.discount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
-      IVA: `$${sale.tax.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
-      Total: `$${sale.total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
-      'Método de Pago': formatPaymentMethod(sale.paymentMethod),
-      Estado: sale.status === 'completed' ? 'Completada' : sale.status === 'cancelled' ? 'Cancelada' : 'Reembolsada',
-      Notas: sale.notes || '',
-    }));
+    try {
+      // Lazy load XLSX
+      const XLSX = await import('xlsx');
+      
+      // Preparar datos para Excel
+      const excelData = sales.map((sale) => ({
+        Fecha: format(new Date(sale.createdAt), 'dd/MM/yyyy HH:mm', { locale: es }),
+        Tienda: sale.store.name,
+        Vendedor: sale.user.name,
+        Productos: sale.products.length,
+        Subtotal: `$${sale.subtotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
+        Descuento: `$${sale.discount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
+        IVA: `$${sale.tax.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
+        Total: `$${sale.total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
+        'Método de Pago': formatPaymentMethod(sale.paymentMethod),
+        Estado: sale.status === 'completed' ? 'Completada' : sale.status === 'cancelled' ? 'Cancelada' : 'Reembolsada',
+        Notas: sale.notes || '',
+      }));
 
-    // Crear libro de trabajo
-    const worksheet = XLSX.utils.json_to_sheet(excelData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Ventas');
+      // Crear libro de trabajo
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Ventas');
 
-    // Ajustar anchos de columna
-    const colWidths = [
-      { wch: 18 }, // Fecha
-      { wch: 20 }, // Tienda
-      { wch: 25 }, // Vendedor
-      { wch: 10 }, // Productos
-      { wch: 15 }, // Subtotal
-      { wch: 15 }, // Descuento
-      { wch: 15 }, // IVA
-      { wch: 15 }, // Total
-      { wch: 18 }, // Método de Pago
-      { wch: 12 }, // Estado
-      { wch: 30 }, // Notas
-    ];
-    worksheet['!cols'] = colWidths;
+      // Ajustar anchos de columna
+      const colWidths = [
+        { wch: 18 }, // Fecha
+        { wch: 20 }, // Tienda
+        { wch: 25 }, // Vendedor
+        { wch: 10 }, // Productos
+        { wch: 15 }, // Subtotal
+        { wch: 15 }, // Descuento
+        { wch: 15 }, // IVA
+        { wch: 15 }, // Total
+        { wch: 18 }, // Método de Pago
+        { wch: 12 }, // Estado
+        { wch: 30 }, // Notas
+      ];
+      worksheet['!cols'] = colWidths;
 
-    // Generar archivo
-    const fileName = `ventas_${format(new Date(), 'yyyy-MM-dd_HHmmss')}.xlsx`;
-    XLSX.writeFile(workbook, fileName);
-    toast.success(`Reporte Excel exportado: ${fileName}`);
+      // Generar archivo
+      const fileName = `ventas_${format(new Date(), 'yyyy-MM-dd_HHmmss')}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+      toast.success(`Reporte Excel exportado: ${fileName}`);
+    } catch (error) {
+      console.error('Error al exportar Excel:', error);
+      toast.error('Error al exportar Excel');
+    }
   };
 
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
     if (!sales || sales.length === 0) {
       toast.error('No hay ventas para exportar');
       return;
     }
 
-    // Crear PDF
-    const doc = new jsPDF();
+    try {
+      // Lazy load jsPDF y autoTable
+      const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+        import('jspdf'),
+        import('jspdf-autotable')
+      ]);
+
+      // Crear PDF
+      const doc = new jsPDF();
     
     // Título
     doc.setFontSize(18);
@@ -889,6 +902,10 @@ const SalesPage = () => {
     const fileName = `ventas_${format(new Date(), 'yyyy-MM-dd_HHmmss')}.pdf`;
     doc.save(fileName);
     toast.success(`Reporte PDF exportado: ${fileName}`);
+    } catch (error) {
+      console.error('Error al exportar PDF:', error);
+      toast.error('Error al exportar PDF');
+    }
   };
 
   // Columnas del historial
@@ -2197,9 +2214,13 @@ const SalesPage = () => {
           {dailyCutData && (
             <>
               <Button
-                onClick={() => {
-                  // Generar PDF del corte
-                  const doc = new jsPDF();
+                onClick={async () => {
+                  try {
+                    // Lazy load jsPDF
+                    const { default: jsPDF } = await import('jspdf');
+                    
+                    // Generar PDF del corte
+                    const doc = new jsPDF();
                   
                   // Título
                   doc.setFontSize(20);
@@ -2310,6 +2331,10 @@ const SalesPage = () => {
                   const fileName = `corte_caja_${format(new Date(dailyCutData.date), 'yyyy-MM-dd')}.pdf`;
                   doc.save(fileName);
                   toast.success(`Corte de caja descargado: ${fileName}`);
+                  } catch (error) {
+                    console.error('Error al generar PDF:', error);
+                    toast.error('Error al generar PDF');
+                  }
                 }}
                 leftIcon={<Receipt size={18} />}
               >
