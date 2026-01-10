@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { Button } from './ui';
 import { Printer } from 'lucide-react';
@@ -21,48 +21,40 @@ interface ProductLabelPrintProps {
 // Componente individual de etiqueta (5cm x 2.5cm = 50mm x 25mm)
 const ProductLabel = ({ product }: { product: ProductLabelData }) => {
   const barcodeRef = useRef<SVGSVGElement>(null);
-  const qrRef = useRef<HTMLImageElement>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string>('');
 
-  // Generar código de barras
-  if (barcodeRef.current && product.barcode) {
-    try {
-      JsBarcode(barcodeRef.current, product.barcode, {
-        format: 'EAN13',
-        width: 1.2,
-        height: 25,
-        displayValue: true,
-        fontSize: 8,
-        margin: 0,
+  // Generar QR al montar
+  useEffect(() => {
+    if (product.sku) {
+      QRCode.toDataURL(product.sku, {
+        width: 80,
+        margin: 1,
+        errorCorrectionLevel: 'M',
+      }).then((url) => {
+        setQrDataUrl(url);
+      }).catch(() => {
+        // Fallback si falla
       });
-    } catch {
-      // Si falla EAN13, intentar CODE128
+    }
+  }, [product.sku]);
+
+  // Generar código de barras al montar
+  useEffect(() => {
+    if (barcodeRef.current && product.barcode) {
       try {
         JsBarcode(barcodeRef.current, product.barcode, {
-          format: 'CODE128',
-          width: 1,
-          height: 25,
+          format: 'CODE128', // Más flexible que EAN13
+          width: 1.5,
+          height: 30,
           displayValue: true,
-          fontSize: 8,
-          margin: 0,
+          fontSize: 10,
+          margin: 2,
         });
       } catch {
-        // Ignorar si falla
+        // Ignorar errores
       }
     }
-  }
-
-  // Generar QR
-  if (qrRef.current && product.sku) {
-    QRCode.toDataURL(product.sku, {
-      width: 50,
-      margin: 0,
-      errorCorrectionLevel: 'M',
-    }).then((url) => {
-      if (qrRef.current) {
-        qrRef.current.src = url;
-      }
-    });
-  }
+  }, [product.barcode]);
 
   return (
     <div
@@ -71,7 +63,7 @@ const ProductLabel = ({ product }: { product: ProductLabelData }) => {
         width: '50mm',
         height: '25mm',
         padding: '2mm',
-        border: '0.5px solid #ccc',
+        border: '1px solid #ccc',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
@@ -84,33 +76,37 @@ const ProductLabel = ({ product }: { product: ProductLabelData }) => {
       {/* Nombre del producto */}
       <div
         style={{
-          fontSize: '7pt',
+          fontSize: '8pt',
           fontWeight: 'bold',
-          lineHeight: 1.1,
+          lineHeight: 1.2,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
-          maxHeight: '12px',
         }}
+        title={product.name}
       >
         {product.name}
       </div>
 
-      {/* Contenedor principal: Códigos + Precio */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '2mm', flex: 1 }}>
+      {/* Contenedor principal: QR + Código de barras + Precio */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '2mm', flex: 1, marginTop: '1mm' }}>
         {/* QR Code */}
-        <div style={{ width: '15mm', height: '15mm', flexShrink: 0 }}>
-          <img
-            ref={qrRef}
-            alt="QR"
-            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-          />
+        <div style={{ width: '12mm', height: '12mm', flexShrink: 0 }}>
+          {qrDataUrl ? (
+            <img
+              src={qrDataUrl}
+              alt="QR"
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            />
+          ) : (
+            <div style={{ width: '100%', height: '100%', backgroundColor: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '6pt' }}>QR</div>
+          )}
         </div>
 
         {/* Código de barras */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', overflow: 'hidden' }}>
           {product.barcode ? (
-            <svg ref={barcodeRef} style={{ maxWidth: '25mm', height: '25px' }} />
+            <svg ref={barcodeRef} style={{ maxWidth: '22mm', height: '28px' }} />
           ) : (
             <div style={{ fontSize: '6pt', color: '#999' }}>Sin código</div>
           )}
@@ -119,22 +115,25 @@ const ProductLabel = ({ product }: { product: ProductLabelData }) => {
         {/* Precio */}
         <div
           style={{
-            fontSize: '11pt',
+            fontSize: '12pt',
             fontWeight: 'bold',
             textAlign: 'right',
-            minWidth: '12mm',
+            minWidth: '14mm',
+            color: '#000',
           }}
         >
           Q{product.price.toFixed(2)}
         </div>
       </div>
 
-      {/* SKU */}
+      {/* SKU en la parte inferior */}
       <div
         style={{
           fontSize: '6pt',
-          color: '#666',
+          color: '#555',
           textAlign: 'center',
+          borderTop: '0.5px solid #ddd',
+          paddingTop: '1mm',
           marginTop: '1mm',
         }}
       >

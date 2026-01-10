@@ -102,7 +102,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   }, [isOpen, onScan, onClose]);
 
   const handleManualInput = () => {
-    const barcode = prompt('Ingresa el código manualmente:');
+    const barcode = prompt('Ingresa el código de barras o SKU manualmente:');
     if (barcode && barcode.trim()) {
       onScan(barcode.trim());
       onClose();
@@ -117,15 +117,27 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
       size="lg"
     >
       <div className="space-y-4">
-        {/* Instrucciones */}
+        {/* Botón de ingreso manual primero - más visible */}
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <p className="text-sm text-green-800 mb-3">
+            <strong>⌨️ ¿Prefieres escribir el código?</strong>
+          </p>
+          <Button
+            onClick={handleManualInput}
+            className="w-full bg-green-600 hover:bg-green-700 text-white"
+          >
+            Ingresar Código Manualmente
+          </Button>
+        </div>
+
+        {/* Instrucciones para cámara */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <p className="text-sm text-blue-800">
-            <strong>📱 Instrucciones:</strong>
+            <strong>📱 O escanea con la cámara:</strong>
           </p>
           <ul className="text-sm text-blue-700 mt-2 space-y-1 list-disc list-inside">
             <li>Permite el acceso a la cámara cuando se solicite</li>
             <li>Coloca el código de barras frente a la cámara</li>
-            <li>Mantén el código dentro del área marcada</li>
             <li>El escaneo es automático al detectar el código</li>
           </ul>
         </div>
@@ -151,13 +163,6 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         {/* Botones */}
         <div className="flex gap-2">
           <Button
-            variant="outline"
-            onClick={handleManualInput}
-            className="flex-1"
-          >
-            ⌨️ Ingresar Manualmente
-          </Button>
-          <Button
             variant="ghost"
             onClick={onClose}
             className="flex-1"
@@ -170,7 +175,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         <div className="text-xs text-gray-500 text-center">
           <p>💡 Funciona con códigos de barras EAN, UPC, QR y más</p>
           <p className="mt-1">
-            ⚠️ Requiere HTTPS en producción para acceso a la cámara
+            ⚠️ Requiere HTTPS y permisos de cámara
           </p>
         </div>
       </div>

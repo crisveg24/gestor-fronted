@@ -498,13 +498,25 @@ const ProductFormPage = () => {
                 </label>
                 <input
                   type="text"
-                  {...register('name')}
+                  {...register('name', {
+                    onBlur: (e) => {
+                      const nameValue = e.target.value?.trim();
+                      const currentSku = watch('sku');
+                      // Auto-generar códigos si el nombre tiene al menos 3 caracteres y no hay SKU
+                      if (nameValue && nameValue.length >= 3 && !currentSku && !isEditMode) {
+                        generateCodes(watch('category'), nameValue);
+                      }
+                    }
+                  })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                   placeholder="Ej: Laptop Dell Inspiron"
                 />
                 {errors.name && (
                   <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
                 )}
+                <p className="mt-1 text-xs text-gray-500">
+                  💡 Al salir de este campo se generarán automáticamente el SKU y código de barras
+                </p>
               </div>
 
               {/* Descripción */}
