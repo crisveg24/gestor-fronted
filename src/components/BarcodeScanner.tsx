@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Html5QrcodeScanner, Html5QrcodeScanType } from 'html5-qrcode';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { Html5QrcodeScanner, Html5QrcodeScanType, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
 import toast from 'react-hot-toast';
@@ -11,6 +11,8 @@ interface BarcodeScannerProps {
   title?: string;
 }
 
+type ScannerStatus = 'idle' | 'requesting' | 'scanning' | 'error' | 'no-camera';
+
 export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   isOpen,
   onClose,
@@ -18,93 +20,129 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   title = '📷 Escanear Código',
 }) => {
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
-  const [isScanning, setIsScanning] = useState(false);
+  const [status, setStatus] = useState<ScannerStatus>('idle');
+  const [errorMessage, setErrorMessage] = useState<string>('');
+  const [manualCode, setManualCode] = useState('');
+
+  const cleanupScanner = useCallback(() => {
+    if (scannerRef.current) {
+      scannerRef.current.clear().catch(() => {});
+      scannerRef.current = null;
+    }
+  }, []);
+
+  const startScanner = useCallback(async () => {
+    setStatus('requesting');
+    setErrorMessage('');
+
+    try {
+      // Primero verificar si hay cámaras disponibles
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const cameras = devices.filter(d => d.kind === 'videoinput');
+      
+      if (cameras.length === 0) {
+        setStatus('no-camera');
+        setErrorMessage('No se detectaron cámaras en este dispositivo');
+        return;
+      }
+
+      // Solicitar permisos de cámara
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'environment' // Preferir cámara trasera
+        } 
+      });
+      // Liberar el stream de prueba
+      stream.getTracks().forEach(track => track.stop());
+
+      // Limpiar cualquier scanner previo
+      cleanupScanner();
+
+      // Pequeño delay para asegurar que el DOM esté listo
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      const scanner = new Html5QrcodeScanner(
+        'barcode-reader',
+        {
+          fps: 10,
+          qrbox: { width: 280, height: 180 },
+          aspectRatio: 1.5,
+          showTorchButtonIfSupported: true,
+          showZoomSliderIfSupported: true,
+          defaultZoomValueIfSupported: 2,
+          formatsToSupport: [
+            Html5QrcodeSupportedFormats.QR_CODE,
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.UPC_A,
+            Html5QrcodeSupportedFormats.UPC_E,
+          ],
+          supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
+        },
+        false
+      );
+
+      scanner.render(
+        (decodedText) => {
+          console.log('✅ Código escaneado:', decodedText);
+          toast.success(`Código detectado: ${decodedText}`);
+          
+          cleanupScanner();
+          onScan(decodedText);
+          onClose();
+        },
+        () => {
+          // Silenciar errores de escaneo (normal mientras busca)
+        }
+      );
+
+      scannerRef.current = scanner;
+      setStatus('scanning');
+
+    } catch (error) {
+      const err = error as { name?: string; message?: string };
+      console.error('❌ Error iniciando scanner:', err);
+      
+      setStatus('error');
+      
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        setErrorMessage('Permiso de cámara denegado. Por favor permite el acceso en la configuración del navegador.');
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        setErrorMessage('No se encontró ninguna cámara en este dispositivo.');
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        setErrorMessage('La cámara está siendo usada por otra aplicación.');
+      } else if (err.name === 'OverconstrainedError') {
+        setErrorMessage('No se pudo acceder a la cámara con la configuración solicitada.');
+      } else if (err.name === 'TypeError' || err.message?.includes('mediaDevices')) {
+        setErrorMessage('Tu navegador no soporta acceso a la cámara. Usa Chrome, Firefox o Safari.');
+      } else {
+        setErrorMessage(`Error: ${err.message || 'No se pudo iniciar la cámara'}`);
+      }
+    }
+  }, [cleanupScanner, onScan, onClose]);
 
   useEffect(() => {
-    if (!isOpen) {
-      // Limpiar scanner al cerrar
-      if (scannerRef.current) {
-        scannerRef.current.clear().catch(console.error);
-        scannerRef.current = null;
-      }
-      setIsScanning(false);
-      return;
+    if (isOpen) {
+      setManualCode('');
+      // Auto-iniciar el scanner al abrir
+      startScanner();
+    } else {
+      cleanupScanner();
+      setStatus('idle');
+      setErrorMessage('');
     }
 
-    // Inicializar scanner
-    const initScanner = async () => {
-      try {
-        // Verificar permisos de cámara
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        stream.getTracks().forEach(track => track.stop());
-
-        const scanner = new Html5QrcodeScanner(
-          'barcode-reader',
-          {
-            fps: 10,
-            qrbox: { width: 250, height: 150 },
-            aspectRatio: 1.777778, // 16:9
-            supportedScanTypes: [
-              Html5QrcodeScanType.SCAN_TYPE_CAMERA,
-            ],
-          },
-          false
-        );
-
-        scanner.render(
-          (decodedText) => {
-            // Código escaneado exitosamente
-            console.log('✅ Código escaneado:', decodedText);
-            toast.success(`Código detectado: ${decodedText}`);
-            
-            // Limpiar y cerrar
-            scanner.clear().catch(console.error);
-            scannerRef.current = null;
-            
-            // Callback con el código
-            onScan(decodedText);
-            onClose();
-          },
-          (errorMessage) => {
-            // Error de escaneo (normal mientras busca)
-            // No mostrar toast para evitar spam
-            console.debug('Escaneando...', errorMessage);
-          }
-        );
-
-        scannerRef.current = scanner;
-        setIsScanning(true);
-      } catch (error) {
-        const scanError = error as { name?: string };
-        console.error('❌ Error iniciando scanner:', error);
-        
-        if (scanError.name === 'NotAllowedError') {
-          toast.error('Necesitas permitir el acceso a la cámara');
-        } else if (scanError.name === 'NotFoundError') {
-          toast.error('No se detectó ninguna cámara');
-        } else {
-          toast.error('Error al iniciar el scanner');
-        }
-        
-        onClose();
-      }
-    };
-
-    // Pequeño delay para asegurar que el DOM esté listo
-    const timer = setTimeout(initScanner, 300);
-
     return () => {
-      clearTimeout(timer);
-      if (scannerRef.current) {
-        scannerRef.current.clear().catch(console.error);
-      }
+      cleanupScanner();
     };
-  }, [isOpen, onScan, onClose]);
+  }, [isOpen, startScanner, cleanupScanner]);
 
-  const handleManualInput = () => {
-    const barcode = prompt('Ingresa el código de barras o SKU manualmente:');
-    if (barcode && barcode.trim()) {
-      onScan(barcode.trim());
+  const handleManualSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (manualCode.trim()) {
+      onScan(manualCode.trim());
       onClose();
     }
   };
@@ -117,68 +155,82 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
       size="lg"
     >
       <div className="space-y-4">
-        {/* Botón de ingreso manual primero - más visible */}
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <p className="text-sm text-green-800 mb-3">
-            <strong>⌨️ ¿Prefieres escribir el código?</strong>
-          </p>
-          <Button
-            onClick={handleManualInput}
-            className="w-full bg-green-600 hover:bg-green-700 text-white"
-          >
-            Ingresar Código Manualmente
-          </Button>
-        </div>
+        {/* Formulario de entrada manual - siempre visible */}
+        <form onSubmit={handleManualSubmit} className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <label className="block text-sm font-medium text-green-800 mb-2">
+            ⌨️ Ingresar código manualmente:
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={manualCode}
+              onChange={(e) => setManualCode(e.target.value)}
+              placeholder="Escribe el código de barras o SKU"
+              className="flex-1 px-3 py-2 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              autoFocus
+            />
+            <Button type="submit" disabled={!manualCode.trim()}>
+              Buscar
+            </Button>
+          </div>
+        </form>
 
-        {/* Instrucciones para cámara */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-sm text-blue-800">
-            <strong>📱 O escanea con la cámara:</strong>
-          </p>
-          <ul className="text-sm text-blue-700 mt-2 space-y-1 list-disc list-inside">
-            <li>Permite el acceso a la cámara cuando se solicite</li>
-            <li>Coloca el código de barras frente a la cámara</li>
-            <li>El escaneo es automático al detectar el código</li>
-          </ul>
-        </div>
+        {/* Estado del scanner */}
+        {status === 'requesting' && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+            <p className="text-blue-700">Solicitando acceso a la cámara...</p>
+            <p className="text-sm text-blue-600 mt-1">Acepta el permiso cuando el navegador lo solicite</p>
+          </div>
+        )}
 
-        {/* Área del scanner */}
-        <div className="relative">
-          <div
-            id="barcode-reader"
-            className="w-full"
-            style={{ minHeight: isScanning ? '400px' : '200px' }}
-          />
-          
-          {!isScanning && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-                <p className="text-gray-600">Iniciando cámara...</p>
-              </div>
+        {status === 'error' && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-red-700 font-medium">❌ {errorMessage}</p>
+            <div className="mt-3 flex gap-2">
+              <Button onClick={startScanner} variant="outline" size="sm">
+                🔄 Reintentar
+              </Button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Botones */}
-        <div className="flex gap-2">
-          <Button
-            variant="ghost"
-            onClick={onClose}
-            className="flex-1"
-          >
+        {status === 'no-camera' && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <p className="text-yellow-700 font-medium">📵 {errorMessage}</p>
+            <p className="text-sm text-yellow-600 mt-1">Usa el campo de arriba para ingresar el código manualmente.</p>
+          </div>
+        )}
+
+        {/* Área del scanner - solo mostrar si está escaneando */}
+        {(status === 'scanning' || status === 'requesting') && (
+          <div className="relative">
+            <div
+              id="barcode-reader"
+              className="w-full rounded-lg overflow-hidden"
+              style={{ minHeight: status === 'scanning' ? '350px' : '150px' }}
+            />
+          </div>
+        )}
+
+        {/* Instrucciones cuando está escaneando */}
+        {status === 'scanning' && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p className="text-sm text-blue-700">
+              📱 Apunta la cámara al código de barras o QR. El escaneo es automático.
+            </p>
+          </div>
+        )}
+
+        {/* Botón cancelar */}
+        <div className="flex justify-end">
+          <Button variant="ghost" onClick={onClose}>
             Cancelar
           </Button>
-        </div>
-
-        {/* Compatibilidad */}
-        <div className="text-xs text-gray-500 text-center">
-          <p>💡 Funciona con códigos de barras EAN, UPC, QR y más</p>
-          <p className="mt-1">
-            ⚠️ Requiere HTTPS y permisos de cámara
-          </p>
         </div>
       </div>
     </Modal>
   );
 };
+
+export default BarcodeScanner;
