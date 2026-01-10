@@ -27,6 +27,13 @@ const ProductLabel = ({ product }: { product: ProductLabelData }) => {
   // Código a usar para el código de barras (preferir barcode, sino SKU)
   const barcodeValue = product.barcode || product.sku || '';
 
+  // Formatear precio en pesos colombianos (sin decimales, con separador de miles)
+  const formattedPrice = new Intl.NumberFormat('es-CO', {
+    style: 'decimal',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(product.price);
+
   // Generar QR al montar
   useEffect(() => {
     const code = product.sku || product.barcode;
@@ -91,7 +98,7 @@ const ProductLabel = ({ product }: { product: ProductLabelData }) => {
       }}>
         <div
           style={{
-            fontSize: '9pt',
+            fontSize: '8pt',
             fontWeight: 'bold',
             lineHeight: 1.1,
             flex: 1,
@@ -108,13 +115,13 @@ const ProductLabel = ({ product }: { product: ProductLabelData }) => {
         </div>
         <div
           style={{
-            fontSize: '14pt',
+            fontSize: product.price >= 100000 ? '10pt' : '12pt',
             fontWeight: 'bold',
             marginLeft: '2mm',
             whiteSpace: 'nowrap',
           }}
         >
-          Q{product.price.toFixed(2)}
+          ${formattedPrice}
         </div>
       </div>
 
