@@ -18,80 +18,116 @@ interface ProductLabelPrintProps {
   onClose?: () => void;
 }
 
-// Componente individual de etiqueta (5cm x 2.5cm = 50mm x 25mm)
+// Componente individual de etiqueta (50mm x 30mm para mejor legibilidad)
 const ProductLabel = ({ product }: { product: ProductLabelData }) => {
-  const barcodeRef = useRef<SVGSVGElement>(null);
+  const barcodeCanvasRef = useRef<HTMLCanvasElement>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
+  const [barcodeError, setBarcodeError] = useState(false);
+
+  // Código a usar para el código de barras (preferir barcode, sino SKU)
+  const barcodeValue = product.barcode || product.sku || '';
 
   // Generar QR al montar
   useEffect(() => {
-    if (product.sku) {
-      QRCode.toDataURL(product.sku, {
-        width: 80,
+    const code = product.sku || product.barcode;
+    if (code) {
+      QRCode.toDataURL(code, {
+        width: 100,
         margin: 1,
         errorCorrectionLevel: 'M',
       }).then((url) => {
         setQrDataUrl(url);
       }).catch(() => {
-        // Fallback si falla
+        // Fallback silencioso
       });
     }
-  }, [product.sku]);
+  }, [product.sku, product.barcode]);
 
-  // Generar código de barras al montar
+  // Generar código de barras al montar usando canvas
   useEffect(() => {
-    if (barcodeRef.current && product.barcode) {
+    if (barcodeCanvasRef.current && barcodeValue) {
       try {
-        JsBarcode(barcodeRef.current, product.barcode, {
-          format: 'CODE128', // Más flexible que EAN13
-          width: 1.5,
-          height: 30,
+        JsBarcode(barcodeCanvasRef.current, barcodeValue, {
+          format: 'CODE128',
+          width: 2,
+          height: 40,
           displayValue: true,
-          fontSize: 10,
-          margin: 2,
+          fontSize: 12,
+          margin: 5,
+          background: '#ffffff',
+          lineColor: '#000000',
         });
+        setBarcodeError(false);
       } catch {
-        // Ignorar errores
+        setBarcodeError(true);
       }
     }
-  }, [product.barcode]);
+  }, [barcodeValue]);
 
   return (
     <div
       className="label-container"
       style={{
         width: '50mm',
-        height: '25mm',
+        height: '30mm',
         padding: '2mm',
-        border: '1px solid #ccc',
+        border: '1px solid #000',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'space-between',
         pageBreakInside: 'avoid',
         boxSizing: 'border-box',
         fontFamily: 'Arial, sans-serif',
         backgroundColor: 'white',
       }}
     >
-      {/* Nombre del producto */}
-      <div
-        style={{
-          fontSize: '8pt',
-          fontWeight: 'bold',
-          lineHeight: 1.2,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}
-        title={product.name}
-      >
-        {product.name}
+      {/* Fila superior: Nombre + Precio */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'flex-start',
+        marginBottom: '1mm',
+        borderBottom: '0.5px solid #000',
+        paddingBottom: '1mm',
+      }}>
+        <div
+          style={{
+            fontSize: '9pt',
+            fontWeight: 'bold',
+            lineHeight: 1.1,
+            flex: 1,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            maxHeight: '5mm',
+          }}
+          title={product.name}
+        >
+          {product.name}
+        </div>
+        <div
+          style={{
+            fontSize: '14pt',
+            fontWeight: 'bold',
+            marginLeft: '2mm',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Q{product.price.toFixed(2)}
+        </div>
       </div>
 
-      {/* Contenedor principal: QR + Código de barras + Precio */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '2mm', flex: 1, marginTop: '1mm' }}>
+      {/* Fila central: QR + Código de barras */}
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        gap: '3mm', 
+        flex: 1,
+      }}>
         {/* QR Code */}
-        <div style={{ width: '12mm', height: '12mm', flexShrink: 0 }}>
+        <div style={{ width: '14mm', height: '14mm', flexShrink: 0 }}>
           {qrDataUrl ? (
             <img
               src={qrDataUrl}
@@ -99,40 +135,57 @@ const ProductLabel = ({ product }: { product: ProductLabelData }) => {
               style={{ width: '100%', height: '100%', objectFit: 'contain' }}
             />
           ) : (
-            <div style={{ width: '100%', height: '100%', backgroundColor: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '6pt' }}>QR</div>
+            <div style={{ 
+              width: '100%', 
+              height: '100%', 
+              border: '1px dashed #999',
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              fontSize: '6pt',
+              color: '#999',
+            }}>
+              QR
+            </div>
           )}
         </div>
 
         {/* Código de barras */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', overflow: 'hidden' }}>
-          {product.barcode ? (
-            <svg ref={barcodeRef} style={{ maxWidth: '22mm', height: '28px' }} />
+        <div style={{ 
+          flex: 1, 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+        }}>
+          {barcodeValue && !barcodeError ? (
+            <canvas 
+              ref={barcodeCanvasRef} 
+              style={{ 
+                maxWidth: '28mm',
+                height: '12mm',
+              }} 
+            />
           ) : (
-            <div style={{ fontSize: '6pt', color: '#999' }}>Sin código</div>
+            <div style={{ 
+              fontSize: '8pt', 
+              color: '#666',
+              textAlign: 'center',
+            }}>
+              {barcodeValue || 'Sin código'}
+            </div>
           )}
-        </div>
-
-        {/* Precio */}
-        <div
-          style={{
-            fontSize: '12pt',
-            fontWeight: 'bold',
-            textAlign: 'right',
-            minWidth: '14mm',
-            color: '#000',
-          }}
-        >
-          Q{product.price.toFixed(2)}
         </div>
       </div>
 
-      {/* SKU en la parte inferior */}
+      {/* Fila inferior: SKU */}
       <div
         style={{
-          fontSize: '6pt',
-          color: '#555',
+          fontSize: '7pt',
+          color: '#333',
           textAlign: 'center',
-          borderTop: '0.5px solid #ddd',
+          borderTop: '0.5px solid #000',
           paddingTop: '1mm',
           marginTop: '1mm',
         }}
@@ -152,19 +205,26 @@ export const ProductLabelPrint = ({ products, onClose }: ProductLabelPrintProps)
     documentTitle: 'Etiquetas de Productos',
     pageStyle: `
       @page {
-        size: 50mm 25mm;
+        size: 50mm 30mm;
         margin: 0;
       }
       @media print {
         html, body {
           margin: 0;
           padding: 0;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
         }
         .label-container {
           page-break-after: always;
+          break-after: page;
         }
         .label-container:last-child {
           page-break-after: avoid;
+          break-after: avoid;
+        }
+        canvas {
+          max-width: 100% !important;
         }
       }
     `,
@@ -179,19 +239,24 @@ export const ProductLabelPrint = ({ products, onClose }: ProductLabelPrintProps)
   return (
     <div className="space-y-4">
       {/* Vista previa */}
-      <div className="bg-gray-50 p-4 rounded-lg max-h-96 overflow-auto">
+      <div className="bg-gray-100 p-4 rounded-lg max-h-[500px] overflow-auto">
         <p className="text-sm text-gray-600 mb-3">
           Vista previa ({expandedProducts.length} etiqueta{expandedProducts.length !== 1 ? 's' : ''})
         </p>
         <div
           ref={printRef}
-          className="flex flex-wrap gap-2"
-          style={{ backgroundColor: 'white', padding: '10px' }}
+          className="flex flex-wrap gap-3 justify-center"
+          style={{ backgroundColor: 'white', padding: '15px' }}
         >
           {expandedProducts.map((product, index) => (
             <ProductLabel key={index} product={product} />
           ))}
         </div>
+      </div>
+
+      {/* Instrucciones */}
+      <div className="text-xs text-gray-500 bg-blue-50 p-3 rounded">
+        <strong>Tip:</strong> Para mejores resultados, configura tu impresora con tamaño de papel 50mm x 30mm o usa papel de etiquetas estándar.
       </div>
 
       {/* Botones */}
