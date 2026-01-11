@@ -343,27 +343,27 @@ const SalesHistoryPage = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
       >
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <History className="text-primary-600" />
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-2 md:gap-3">
+            <History className="text-primary-600" size={24} />
             Historial de Ventas
           </h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-sm md:text-base text-gray-600 mt-1">
             Consulta, edita e imprime ventas anteriores
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={exportToExcel} leftIcon={<FileSpreadsheet size={18} />}>
+          <Button variant="outline" onClick={exportToExcel} leftIcon={<FileSpreadsheet size={16} />} className="text-sm">
             Excel
           </Button>
-          <Button variant="outline" onClick={exportToPDF} leftIcon={<FileText size={18} />}>
+          <Button variant="outline" onClick={exportToPDF} leftIcon={<FileText size={16} />} className="text-sm">
             PDF
           </Button>
         </div>
@@ -374,59 +374,59 @@ const SalesHistoryPage = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="grid grid-cols-2 md:grid-cols-4 gap-4"
+        className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4"
       >
         <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-          <Card.Body className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-500 rounded-lg">
-                <Check className="text-white" size={20} />
+          <Card.Body className="p-3 md:p-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="p-1.5 md:p-2 bg-green-500 rounded-lg">
+                <Check className="text-white" size={16} />
               </div>
               <div>
-                <p className="text-sm text-green-600">Completadas</p>
-                <p className="text-2xl font-bold text-green-800">{totalVentas}</p>
+                <p className="text-xs md:text-sm text-green-600">Completadas</p>
+                <p className="text-xl md:text-2xl font-bold text-green-800">{totalVentas}</p>
               </div>
             </div>
           </Card.Body>
         </Card>
 
         <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-          <Card.Body className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-500 rounded-lg">
-                <DollarSign className="text-white" size={20} />
+          <Card.Body className="p-3 md:p-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="p-1.5 md:p-2 bg-blue-500 rounded-lg">
+                <DollarSign className="text-white" size={16} />
               </div>
               <div>
-                <p className="text-sm text-blue-600">Total Ingresos</p>
-                <p className="text-2xl font-bold text-blue-800">${totalIngresos.toLocaleString()}</p>
+                <p className="text-xs md:text-sm text-blue-600">Ingresos</p>
+                <p className="text-lg md:text-2xl font-bold text-blue-800">${totalIngresos.toLocaleString()}</p>
               </div>
             </div>
           </Card.Body>
         </Card>
 
         <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-          <Card.Body className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-500 rounded-lg">
-                <Edit2 className="text-white" size={20} />
+          <Card.Body className="p-3 md:p-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="p-1.5 md:p-2 bg-orange-500 rounded-lg">
+                <Edit2 className="text-white" size={16} />
               </div>
               <div>
-                <p className="text-sm text-orange-600">Editadas</p>
-                <p className="text-2xl font-bold text-orange-800">{ventasEditadas}</p>
+                <p className="text-xs md:text-sm text-orange-600">Editadas</p>
+                <p className="text-xl md:text-2xl font-bold text-orange-800">{ventasEditadas}</p>
               </div>
             </div>
           </Card.Body>
         </Card>
 
         <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-          <Card.Body className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-red-500 rounded-lg">
-                <X className="text-white" size={20} />
+          <Card.Body className="p-3 md:p-4">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="p-1.5 md:p-2 bg-red-500 rounded-lg">
+                <X className="text-white" size={16} />
               </div>
               <div>
-                <p className="text-sm text-red-600">Canceladas</p>
-                <p className="text-2xl font-bold text-red-800">{ventasCanceladas}</p>
+                <p className="text-xs md:text-sm text-red-600">Canceladas</p>
+                <p className="text-xl md:text-2xl font-bold text-red-800">{ventasCanceladas}</p>
               </div>
             </div>
           </Card.Body>
@@ -440,25 +440,26 @@ const SalesHistoryPage = () => {
         transition={{ delay: 0.2 }}
       >
         <Card>
-          <Card.Body>
-            <div className="flex flex-col lg:flex-row gap-4">
-              {/* Búsqueda por código */}
-              <div className="flex-1">
-                <SearchBar
-                  placeholder="Buscar por código de venta (VTA-...)..."
-                  onSearch={setSearchQuery}
-                  defaultValue={searchQuery}
-                />
-              </div>
+          <Card.Body className="p-3 md:p-6">
+            {/* Búsqueda - siempre arriba */}
+            <div className="mb-3">
+              <SearchBar
+                placeholder="Buscar por código (VTA-...)..."
+                onSearch={setSearchQuery}
+                defaultValue={searchQuery}
+              />
+            </div>
 
+            {/* Filtros en grid responsive */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-3">
               {/* Filtro de tienda (solo admins) */}
               {isAdmin && (
                 <select
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                   value={filterStore}
                   onChange={(e) => setFilterStore(e.target.value)}
                 >
-                  <option value="">🏪 Todas las tiendas</option>
+                  <option value="">🏪 Tiendas</option>
                   {stores?.map((store: StoreType) => (
                     <option key={store._id} value={store._id}>
                       {store.name}
@@ -469,51 +470,51 @@ const SalesHistoryPage = () => {
 
               {/* Filtro de método de pago */}
               <select
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 value={filterPaymentMethod}
                 onChange={(e) => setFilterPaymentMethod(e.target.value)}
               >
-                <option value="">💳 Todos los pagos</option>
+                <option value="">💳 Pagos</option>
                 <option value="efectivo">💵 Efectivo</option>
                 <option value="nequi">🟣 Nequi</option>
                 <option value="daviplata">🟠 Daviplata</option>
-                <option value="llave_bancolombia">🔑 Llave Bancolombia</option>
+                <option value="llave_bancolombia">🔑 Llave</option>
                 <option value="tarjeta">💳 Tarjeta</option>
-                <option value="transferencia">🏦 Transferencia</option>
+                <option value="transferencia">🏦 Transf.</option>
               </select>
 
               {/* Filtro de estado */}
               <select
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
               >
-                <option value="">📊 Todos los estados</option>
-                <option value="completed">✅ Completadas</option>
+                <option value="">📊 Estado</option>
+                <option value="completed">✅ OK</option>
                 <option value="cancelled">❌ Canceladas</option>
                 <option value="refunded">↩️ Devueltas</option>
               </select>
 
-              {/* Fechas */}
-              <div className="flex gap-2">
-                <input
-                  type="date"
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  placeholder="Desde"
-                />
-                <input
-                  type="date"
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  placeholder="Hasta"
-                />
-              </div>
+              {/* Fecha desde */}
+              <input
+                type="date"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                title="Fecha desde"
+              />
+
+              {/* Fecha hasta */}
+              <input
+                type="date"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                title="Fecha hasta"
+              />
             </div>
 
-            <div className="mt-3 text-sm text-gray-500">
+            <div className="mt-3 text-xs md:text-sm text-gray-500">
               {sales.length} venta(s) encontrada(s)
             </div>
           </Card.Body>
@@ -538,164 +539,266 @@ const SalesHistoryPage = () => {
                 <p className="text-gray-500">No se encontraron ventas</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Código
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Fecha
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Tienda
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Vendedor
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Productos
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Total
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Pago
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Estado
-                      </th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Acciones
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {sales.map((sale) => (
-                      <tr
-                        key={sale._id}
-                        className={`hover:bg-gray-50 transition-colors ${
-                          sale.wasEdited
-                            ? 'bg-orange-50 hover:bg-orange-100'
-                            : sale.status === 'cancelled'
-                            ? 'bg-red-50 hover:bg-red-100'
-                            : ''
-                        }`}
-                      >
-                        {/* Código */}
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <code className="text-sm font-mono text-primary-600 bg-primary-50 px-2 py-1 rounded">
+              <>
+                {/* Vista Desktop - Tabla */}
+                <div className="hidden lg:block overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Código
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Fecha
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Tienda
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Vendedor
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Productos
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Total
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Pago
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Estado
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Acciones
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {sales.map((sale) => (
+                        <tr
+                          key={sale._id}
+                          className={`hover:bg-gray-50 transition-colors ${
+                            sale.wasEdited
+                              ? 'bg-orange-50 hover:bg-orange-100'
+                              : sale.status === 'cancelled'
+                              ? 'bg-red-50 hover:bg-red-100'
+                              : ''
+                          }`}
+                        >
+                          {/* Código */}
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              <code className="text-sm font-mono text-primary-600 bg-primary-50 px-2 py-1 rounded">
+                                {sale.saleCode || 'N/A'}
+                              </code>
+                              <button
+                                onClick={() => handleCopyCode(sale.saleCode || '')}
+                                className="text-gray-400 hover:text-gray-600"
+                                title="Copiar código"
+                              >
+                                <Copy size={14} />
+                              </button>
+                              {sale.wasEdited && (
+                                <span className="px-1.5 py-0.5 text-[10px] bg-orange-500 text-white rounded font-medium">
+                                  EDITADA
+                                </span>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* Fecha */}
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="flex items-center gap-2 text-sm text-gray-900">
+                              <Calendar size={14} className="text-gray-400" />
+                              {format(new Date(sale.createdAt), 'dd MMM yyyy', { locale: es })}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {format(new Date(sale.createdAt), 'HH:mm', { locale: es })}
+                            </div>
+                          </td>
+
+                          {/* Tienda */}
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="flex items-center gap-2 text-sm text-gray-900">
+                              <Store size={14} className="text-gray-400" />
+                              {sale.store?.name || 'N/A'}
+                            </div>
+                          </td>
+
+                          {/* Vendedor */}
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="flex items-center gap-2 text-sm text-gray-900">
+                              <User size={14} className="text-gray-400" />
+                              {sale.soldBy?.name || 'N/A'}
+                            </div>
+                          </td>
+
+                          {/* Productos */}
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="flex items-center gap-2 text-sm text-gray-900">
+                              <Package size={14} className="text-gray-400" />
+                              {sale.items?.length || 0} productos
+                            </div>
+                          </td>
+
+                          {/* Total */}
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="text-sm font-semibold text-gray-900">
+                              ${sale.finalTotal?.toLocaleString('es-MX', { minimumFractionDigits: 2 }) || '0.00'}
+                            </div>
+                            {sale.discount > 0 && (
+                              <div className="text-xs text-red-500">
+                                -${sale.discount.toLocaleString()}
+                              </div>
+                            )}
+                          </td>
+
+                          {/* Método de pago */}
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPaymentBadgeColor(sale.paymentMethod)}`}>
+                              {formatPaymentMethod(sale.paymentMethod)}
+                            </span>
+                          </td>
+
+                          {/* Estado */}
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {getStatusBadge(sale.status)}
+                          </td>
+
+                          {/* Acciones */}
+                          <td className="px-4 py-3 whitespace-nowrap text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() => handleViewDetail(sale)}
+                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                title="Ver detalle"
+                              >
+                                <Eye size={18} />
+                              </button>
+                              {isAdmin && sale.status === 'completed' && (
+                                <button
+                                  onClick={() => handleEditSale(sale)}
+                                  className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                                  title="Editar venta"
+                                >
+                                  <Edit2 size={18} />
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handlePrintTicket(sale)}
+                                className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                                title="Reimprimir ticket"
+                              >
+                                <Printer size={18} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Vista Móvil/Tablet - Cards */}
+                <div className="lg:hidden divide-y divide-gray-200">
+                  {sales.map((sale) => (
+                    <div
+                      key={sale._id}
+                      className={`p-4 ${
+                        sale.wasEdited
+                          ? 'bg-orange-50'
+                          : sale.status === 'cancelled'
+                          ? 'bg-red-50'
+                          : 'bg-white'
+                      }`}
+                    >
+                      {/* Header del card */}
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <code className="text-xs font-mono text-primary-600 bg-primary-50 px-2 py-1 rounded">
                               {sale.saleCode || 'N/A'}
                             </code>
                             <button
                               onClick={() => handleCopyCode(sale.saleCode || '')}
                               className="text-gray-400 hover:text-gray-600"
-                              title="Copiar código"
                             >
-                              <Copy size={14} />
+                              <Copy size={12} />
                             </button>
                             {sale.wasEdited && (
-                              <span className="px-1.5 py-0.5 text-[10px] bg-orange-500 text-white rounded font-medium">
+                              <span className="px-1.5 py-0.5 text-[9px] bg-orange-500 text-white rounded font-medium">
                                 EDITADA
                               </span>
                             )}
                           </div>
-                        </td>
-
-                        {/* Fecha */}
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="flex items-center gap-2 text-sm text-gray-900">
-                            <Calendar size={14} className="text-gray-400" />
-                            {format(new Date(sale.createdAt), 'dd MMM yyyy', { locale: es })}
+                          <div className="text-xs text-gray-500 mt-1">
+                            {format(new Date(sale.createdAt), "dd MMM yyyy 'a las' HH:mm", { locale: es })}
                           </div>
-                          <div className="text-xs text-gray-500">
-                            {format(new Date(sale.createdAt), 'HH:mm', { locale: es })}
-                          </div>
-                        </td>
-
-                        {/* Tienda */}
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="flex items-center gap-2 text-sm text-gray-900">
-                            <Store size={14} className="text-gray-400" />
-                            {sale.store?.name || 'N/A'}
-                          </div>
-                        </td>
-
-                        {/* Vendedor */}
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="flex items-center gap-2 text-sm text-gray-900">
-                            <User size={14} className="text-gray-400" />
-                            {sale.soldBy?.name || 'N/A'}
-                          </div>
-                        </td>
-
-                        {/* Productos */}
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="flex items-center gap-2 text-sm text-gray-900">
-                            <Package size={14} className="text-gray-400" />
-                            {sale.items?.length || 0} productos
-                          </div>
-                        </td>
-
-                        {/* Total */}
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="text-sm font-semibold text-gray-900">
-                            ${sale.finalTotal?.toLocaleString('es-MX', { minimumFractionDigits: 2 }) || '0.00'}
+                        </div>
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-gray-900">
+                            ${sale.finalTotal?.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                           </div>
                           {sale.discount > 0 && (
-                            <div className="text-xs text-red-500">
-                              -${sale.discount.toLocaleString()}
-                            </div>
+                            <div className="text-xs text-red-500">-${sale.discount.toLocaleString()}</div>
                           )}
-                        </td>
+                        </div>
+                      </div>
 
-                        {/* Método de pago */}
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPaymentBadgeColor(sale.paymentMethod)}`}>
-                            {formatPaymentMethod(sale.paymentMethod)}
-                          </span>
-                        </td>
-
-                        {/* Estado */}
-                        <td className="px-4 py-3 whitespace-nowrap">
+                      {/* Info del card */}
+                      <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                        <div className="flex items-center gap-1 text-gray-600">
+                          <Store size={12} className="text-gray-400" />
+                          <span className="truncate">{sale.store?.name || 'N/A'}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-gray-600">
+                          <User size={12} className="text-gray-400" />
+                          <span className="truncate">{sale.soldBy?.name || 'N/A'}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-gray-600">
+                          <Package size={12} className="text-gray-400" />
+                          <span>{sale.items?.length || 0} productos</span>
+                        </div>
+                        <div>
                           {getStatusBadge(sale.status)}
-                        </td>
+                        </div>
+                      </div>
 
-                        {/* Acciones */}
-                        <td className="px-4 py-3 whitespace-nowrap text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <button
-                              onClick={() => handleViewDetail(sale)}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="Ver detalle"
-                            >
-                              <Eye size={18} />
-                            </button>
-                            {isAdmin && sale.status === 'completed' && (
-                              <button
-                                onClick={() => handleEditSale(sale)}
-                                className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
-                                title="Editar venta"
-                              >
-                                <Edit2 size={18} />
-                              </button>
-                            )}
-                            <button
-                              onClick={() => handlePrintTicket(sale)}
-                              className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
-                              title="Reimprimir ticket"
-                            >
-                              <Printer size={18} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                      {/* Método de pago */}
+                      <div className="mb-3">
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPaymentBadgeColor(sale.paymentMethod)}`}>
+                          {formatPaymentMethod(sale.paymentMethod)}
+                        </span>
+                      </div>
+
+                      {/* Acciones */}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleViewDetail(sale)}
+                          className="flex-1 px-3 py-2 text-xs text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 flex items-center justify-center gap-1"
+                        >
+                          <Eye size={14} /> Ver
+                        </button>
+                        {isAdmin && sale.status === 'completed' && (
+                          <button
+                            onClick={() => handleEditSale(sale)}
+                            className="flex-1 px-3 py-2 text-xs text-orange-600 bg-orange-100 rounded-lg hover:bg-orange-200 flex items-center justify-center gap-1"
+                          >
+                            <Edit2 size={14} /> Editar
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handlePrintTicket(sale)}
+                          className="flex-1 px-3 py-2 text-xs text-purple-600 bg-purple-50 rounded-lg hover:bg-purple-100 flex items-center justify-center gap-1"
+                        >
+                          <Printer size={14} /> Ticket
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </Card.Body>
         </Card>

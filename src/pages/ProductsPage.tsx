@@ -274,35 +274,51 @@ const ProductsPage = () => {
         </div>
       ),
       mobileRender: (product) => (
-        <div className="flex gap-1 flex-wrap">
-          <button
-            onClick={() => navigate(`/productos/${product._id}`)}
-            className="flex-1 px-3 py-2 text-xs text-blue-600 bg-blue-50 rounded hover:bg-blue-100"
-          >
-            Ver
-          </button>
-          <button
-            onClick={() => navigate(`/productos/editar/${product._id}`)}
-            className="flex-1 px-3 py-2 text-xs text-amber-600 bg-amber-50 rounded hover:bg-amber-100"
-          >
-            Editar
-          </button>
-          <button
-            onClick={() => toggleStatusMutation.mutate(product._id)}
-            className={`flex-1 px-3 py-2 text-xs rounded ${
-              product.isActive 
-                ? 'text-orange-600 bg-orange-50 hover:bg-orange-100' 
-                : 'text-green-600 bg-green-50 hover:bg-green-100'
-            }`}
-          >
-            {product.isActive ? 'Desactivar' : 'Activar'}
-          </button>
-          <button
-            onClick={() => handleDelete(product)}
-            className="flex-1 px-3 py-2 text-xs text-red-600 bg-red-50 rounded hover:bg-red-100"
-          >
-            Eliminar
-          </button>
+        <div className="flex flex-col gap-2 w-full">
+          {/* Primera fila: Ver, Editar, Imprimir */}
+          <div className="flex gap-1">
+            <button
+              onClick={() => navigate(`/productos/${product._id}`)}
+              className="flex-1 px-2 py-2 text-xs text-blue-600 bg-blue-50 rounded hover:bg-blue-100 flex items-center justify-center gap-1"
+            >
+              <Eye size={14} /> Ver
+            </button>
+            <button
+              onClick={() => navigate(`/productos/editar/${product._id}`)}
+              className="flex-1 px-2 py-2 text-xs text-amber-600 bg-amber-50 rounded hover:bg-amber-100 flex items-center justify-center gap-1"
+            >
+              <Edit2 size={14} /> Editar
+            </button>
+            <button
+              onClick={() => {
+                setProductToPrint(product);
+                setPrintQuantity(1);
+                setPrintModalOpen(true);
+              }}
+              className="flex-1 px-2 py-2 text-xs text-purple-600 bg-purple-50 rounded hover:bg-purple-100 flex items-center justify-center gap-1"
+            >
+              <Printer size={14} /> Imprimir
+            </button>
+          </div>
+          {/* Segunda fila: Activar/Desactivar, Eliminar */}
+          <div className="flex gap-1">
+            <button
+              onClick={() => toggleStatusMutation.mutate(product._id)}
+              className={`flex-1 px-2 py-2 text-xs rounded flex items-center justify-center gap-1 ${
+                product.isActive 
+                  ? 'text-orange-600 bg-orange-50 hover:bg-orange-100' 
+                  : 'text-green-600 bg-green-50 hover:bg-green-100'
+              }`}
+            >
+              {product.isActive ? <><PowerOff size={14} /> Desactivar</> : <><Power size={14} /> Activar</>}
+            </button>
+            <button
+              onClick={() => handleDelete(product)}
+              className="flex-1 px-2 py-2 text-xs text-red-600 bg-red-50 rounded hover:bg-red-100 flex items-center justify-center gap-1"
+            >
+              <Trash2 size={14} /> Eliminar
+            </button>
+          </div>
         </div>
       ),
     },
