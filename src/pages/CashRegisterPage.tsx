@@ -6,7 +6,6 @@ import {
   DollarSign,
   TrendingUp,
   TrendingDown,
-  Clock,
   CheckCircle,
   XCircle,
   Plus,
@@ -37,11 +36,12 @@ interface CashMovement {
 }
 
 interface SalesByMethod {
-  cash: number;
-  card: number;
-  transfer: number;
-  credit: number;
-  total: number;
+  efectivo: number;
+  nequi: number;
+  daviplata: number;
+  llave_bancolombia: number;
+  tarjeta: number;
+  transferencia: number;
 }
 
 interface CashRegister {
@@ -124,7 +124,7 @@ export default function CashRegisterPage() {
     queryFn: async () => {
       const params = selectedStoreId ? { storeId: selectedStoreId } : {};
       const response = await api.get('/cash-register/current', { params });
-      return response.data;
+      return response.data?.data || null;
     },
     enabled: !!selectedStoreId || !isAdmin,
     refetchInterval: 30000, // Refrescar cada 30 segundos
@@ -229,7 +229,7 @@ export default function CashRegisterPage() {
     const movementsNet = currentRegister.movements.reduce((sum, m) => {
       return sum + (m.type === 'income' ? m.amount : -m.amount);
     }, 0);
-    return currentRegister.openingAmount + currentRegister.salesByMethod.cash + movementsNet;
+    return currentRegister.openingAmount + (currentRegister.salesByMethod?.efectivo || 0) + movementsNet;
   };
 
   const formatDate = (dateString: string) => {
@@ -405,7 +405,7 @@ export default function CashRegisterPage() {
                 <span className="text-sm text-gray-600">Ventas Efectivo</span>
               </div>
               <p className="text-2xl font-bold text-green-600">
-                +{formatCurrency(currentRegister.salesByMethod.cash)}
+                +{formatCurrency(currentRegister.salesByMethod?.efectivo || 0)}
               </p>
             </motion.div>
 
@@ -461,40 +461,47 @@ export default function CashRegisterPage() {
             className="bg-white rounded-xl border border-gray-200 p-6"
           >
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Ventas del Día</h3>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               <div className="text-center p-4 bg-green-50 rounded-lg">
                 <Banknote className="h-6 w-6 text-green-600 mx-auto mb-2" />
                 <p className="text-sm text-gray-600">Efectivo</p>
                 <p className="text-lg font-bold text-green-600">
-                  {formatCurrency(currentRegister.salesByMethod.cash)}
+                  {formatCurrency(currentRegister.salesByMethod?.efectivo || 0)}
+                </p>
+              </div>
+              <div className="text-center p-4 bg-purple-50 rounded-lg">
+                <Wallet className="h-6 w-6 text-purple-600 mx-auto mb-2" />
+                <p className="text-sm text-gray-600">Nequi</p>
+                <p className="text-lg font-bold text-purple-600">
+                  {formatCurrency(currentRegister.salesByMethod?.nequi || 0)}
+                </p>
+              </div>
+              <div className="text-center p-4 bg-orange-50 rounded-lg">
+                <Wallet className="h-6 w-6 text-orange-600 mx-auto mb-2" />
+                <p className="text-sm text-gray-600">Daviplata</p>
+                <p className="text-lg font-bold text-orange-600">
+                  {formatCurrency(currentRegister.salesByMethod?.daviplata || 0)}
+                </p>
+              </div>
+              <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                <CreditCard className="h-6 w-6 text-yellow-600 mx-auto mb-2" />
+                <p className="text-sm text-gray-600">Llave</p>
+                <p className="text-lg font-bold text-yellow-600">
+                  {formatCurrency(currentRegister.salesByMethod?.llave_bancolombia || 0)}
                 </p>
               </div>
               <div className="text-center p-4 bg-blue-50 rounded-lg">
                 <CreditCard className="h-6 w-6 text-blue-600 mx-auto mb-2" />
                 <p className="text-sm text-gray-600">Tarjeta</p>
                 <p className="text-lg font-bold text-blue-600">
-                  {formatCurrency(currentRegister.salesByMethod.card)}
-                </p>
-              </div>
-              <div className="text-center p-4 bg-purple-50 rounded-lg">
-                <ArrowUpDown className="h-6 w-6 text-purple-600 mx-auto mb-2" />
-                <p className="text-sm text-gray-600">Transferencia</p>
-                <p className="text-lg font-bold text-purple-600">
-                  {formatCurrency(currentRegister.salesByMethod.transfer)}
-                </p>
-              </div>
-              <div className="text-center p-4 bg-amber-50 rounded-lg">
-                <Clock className="h-6 w-6 text-amber-600 mx-auto mb-2" />
-                <p className="text-sm text-gray-600">Crédito</p>
-                <p className="text-lg font-bold text-amber-600">
-                  {formatCurrency(currentRegister.salesByMethod.credit)}
+                  {formatCurrency(currentRegister.salesByMethod?.tarjeta || 0)}
                 </p>
               </div>
               <div className="text-center p-4 bg-gray-100 rounded-lg">
-                <DollarSign className="h-6 w-6 text-gray-700 mx-auto mb-2" />
-                <p className="text-sm text-gray-600">Total</p>
-                <p className="text-lg font-bold text-gray-900">
-                  {formatCurrency(currentRegister.salesByMethod.total)}
+                <ArrowUpDown className="h-6 w-6 text-gray-600 mx-auto mb-2" />
+                <p className="text-sm text-gray-600">Transferencia</p>
+                <p className="text-lg font-bold text-gray-700">
+                  {formatCurrency(currentRegister.salesByMethod?.transferencia || 0)}
                 </p>
               </div>
             </div>
@@ -841,7 +848,7 @@ export default function CashRegisterPage() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Ventas en efectivo:</span>
-                  <span className="font-medium text-green-600">+{formatCurrency(currentRegister.salesByMethod.cash)}</span>
+                  <span className="font-medium text-green-600">+{formatCurrency(currentRegister.salesByMethod?.efectivo || 0)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Movimientos netos:</span>
@@ -1021,7 +1028,14 @@ export default function CashRegisterPage() {
                           <div>
                             <span className="text-gray-500">Ventas:</span>
                             <p className="font-medium text-green-600">
-                              {formatCurrency(register.salesByMethod?.total || 0)}
+                              {formatCurrency(
+                                (register.salesByMethod?.efectivo || 0) +
+                                (register.salesByMethod?.nequi || 0) +
+                                (register.salesByMethod?.daviplata || 0) +
+                                (register.salesByMethod?.llave_bancolombia || 0) +
+                                (register.salesByMethod?.tarjeta || 0) +
+                                (register.salesByMethod?.transferencia || 0)
+                              )}
                             </p>
                           </div>
                           <div>
@@ -1101,33 +1115,47 @@ export default function CashRegisterPage() {
                 {/* Ventas por método */}
                 <div>
                   <h4 className="font-medium text-gray-900 mb-3">Ventas por Método</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     <div className="bg-green-50 rounded-lg p-3 text-center">
                       <Banknote className="h-5 w-5 text-green-600 mx-auto mb-1" />
                       <span className="text-xs text-gray-500">Efectivo</span>
                       <p className="font-semibold text-green-600">
-                        {formatCurrency(selectedRegister.salesByMethod?.cash || 0)}
+                        {formatCurrency(selectedRegister.salesByMethod?.efectivo || 0)}
+                      </p>
+                    </div>
+                    <div className="bg-purple-50 rounded-lg p-3 text-center">
+                      <Wallet className="h-5 w-5 text-purple-600 mx-auto mb-1" />
+                      <span className="text-xs text-gray-500">Nequi</span>
+                      <p className="font-semibold text-purple-600">
+                        {formatCurrency(selectedRegister.salesByMethod?.nequi || 0)}
+                      </p>
+                    </div>
+                    <div className="bg-orange-50 rounded-lg p-3 text-center">
+                      <Wallet className="h-5 w-5 text-orange-600 mx-auto mb-1" />
+                      <span className="text-xs text-gray-500">Daviplata</span>
+                      <p className="font-semibold text-orange-600">
+                        {formatCurrency(selectedRegister.salesByMethod?.daviplata || 0)}
+                      </p>
+                    </div>
+                    <div className="bg-yellow-50 rounded-lg p-3 text-center">
+                      <CreditCard className="h-5 w-5 text-yellow-600 mx-auto mb-1" />
+                      <span className="text-xs text-gray-500">Llave</span>
+                      <p className="font-semibold text-yellow-600">
+                        {formatCurrency(selectedRegister.salesByMethod?.llave_bancolombia || 0)}
                       </p>
                     </div>
                     <div className="bg-blue-50 rounded-lg p-3 text-center">
                       <CreditCard className="h-5 w-5 text-blue-600 mx-auto mb-1" />
                       <span className="text-xs text-gray-500">Tarjeta</span>
                       <p className="font-semibold text-blue-600">
-                        {formatCurrency(selectedRegister.salesByMethod?.card || 0)}
+                        {formatCurrency(selectedRegister.salesByMethod?.tarjeta || 0)}
                       </p>
                     </div>
-                    <div className="bg-purple-50 rounded-lg p-3 text-center">
-                      <ArrowUpDown className="h-5 w-5 text-purple-600 mx-auto mb-1" />
-                      <span className="text-xs text-gray-500">Transfer</span>
-                      <p className="font-semibold text-purple-600">
-                        {formatCurrency(selectedRegister.salesByMethod?.transfer || 0)}
-                      </p>
-                    </div>
-                    <div className="bg-amber-50 rounded-lg p-3 text-center">
-                      <Clock className="h-5 w-5 text-amber-600 mx-auto mb-1" />
-                      <span className="text-xs text-gray-500">Crédito</span>
-                      <p className="font-semibold text-amber-600">
-                        {formatCurrency(selectedRegister.salesByMethod?.credit || 0)}
+                    <div className="bg-gray-50 rounded-lg p-3 text-center">
+                      <ArrowUpDown className="h-5 w-5 text-gray-600 mx-auto mb-1" />
+                      <span className="text-xs text-gray-500">Transferencia</span>
+                      <p className="font-semibold text-gray-700">
+                        {formatCurrency(selectedRegister.salesByMethod?.transferencia || 0)}
                       </p>
                     </div>
                   </div>
