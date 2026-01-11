@@ -24,6 +24,7 @@ import {
   Package,
   Percent,
   Clock,
+  Printer,
 } from 'lucide-react';
 import api from '../lib/axios';
 import { useAuthStore } from '../store/authStore';
@@ -135,6 +136,8 @@ export default function CashRegisterPage() {
     const saved = localStorage.getItem('pos_recent_products');
     return saved ? JSON.parse(saved) : [];
   });
+  const [showTicketModal, setShowTicketModal] = useState(false);
+  const [lastSale, setLastSale] = useState<any>(null);
   // Guardar tienda seleccionada
   useEffect(() => {
     if (isAdmin && selectedStoreId) {
@@ -255,12 +258,27 @@ export default function CashRegisterPage() {
       const response = await api.post('/sales', data);
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['cashRegister'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-pos'] });
+      
+      // Guardar datos de la venta para el ticket
+      setLastSale({
+        ...response.data,
+        items: cart,
+        subtotal: cartSubtotal,
+        discountAmount,
+        total: cartTotal,
+        paymentMethod,
+        amountReceived: parseFloat(amountReceived) || cartTotal,
+        change: change > 0 ? change : 0,
+        date: new Date(),
+      });
+      setShowTicketModal(true);
+      
       setCart([]);
       setAmountReceived('');
-      searchInputRef.current?.focus();
+      setDiscount('');
     },
     onError: (error: any) => {
       alert(error.response?.data?.message || 'Error al registrar venta');
@@ -389,6 +407,87 @@ export default function CashRegisterPage() {
 
   const totalSales = currentRegister?.calculatedTotals?.totalSalesAllMethods || 
     Object.values(currentRegister?.salesByMethod || {}).reduce((a, b) => a + b, 0);
+
+  // Colores por método de pago
+  const paymentColors: Record<string, { bg: string; border: string; text: string }> = {
+    efectivo: { bg: 'bg-green-50/80', border: 'border-green-200', text: 'text-green-700' },
+    nequi: { bg: 'bg-purple-50/80', border: 'border-purple-200', text: 'text-purple-700' },
+    daviplata: { bg: 'bg-red-50/80', border: 'border-red-200', text: 'text-red-700' },
+    tarjeta: { bg: 'bg-blue-900/10', border: 'border-blue-800', text: 'text-blue-900' },
+    transferencia: { bg: 'bg-blue-50/80', border: 'border-blue-200', text: 'text-blue-700' },
+    llave_bancolombia: { bg: 'bg-yellow-50/80', border: 'border-yellow-300', text: 'text-yellow-700' },
+  };
+  const currentPaymentColor = paymentColors[paymentMethod] || paymentColors.efectivo;
+
+  // Función para imprimir ticket
+  const printTicket = () => {
+    if (!lastSale) return;
+    
+    const saleCode = lastSale._id?.slice(-8).toUpperCase() || lastSale.saleNumber || 'N/A';
+    const storeName = currentRegister?.store?.name || 'Tienda';
+    
+    const ticketContent = `
+      <html>
+      <head>
+        <title>Ticket de Venta</title>
+        <style>
+          body { font-family: 'Courier New', monospace; font-size: 12px; width: 280px; margin: 0 auto; padding: 10px; }
+          .center { text-align: center; }
+          .bold { font-weight: bold; }
+          .line { border-top: 1px dashed #000; margin: 8px 0; }
+          .row { display: flex; justify-content: space-between; }
+          .item { margin: 4px 0; }
+          h2 { margin: 5px 0; font-size: 16px; }
+          .code { font-size: 14px; letter-spacing: 2px; }
+        </style>
+      </head>
+      <body>
+        <div class="center">
+          <h2>${storeName}</h2>
+          <p>================================</p>
+          <p class="bold code">Código: ${saleCode}</p>
+          <p>${new Date(lastSale.date).toLocaleString('es-CO')}</p>
+        </div>
+        <div class="line"></div>
+        ${lastSale.items.map((item: CartItem) => `
+          <div class="item">
+            <div>${item.product.name}</div>
+            <div class="row">
+              <span>${item.quantity} x ${formatCurrency(item.unitPrice)}</span>
+              <span>${formatCurrency(item.subtotal)}</span>
+            </div>
+          </div>
+        `).join('')}
+        <div class="line"></div>
+        <div class="row"><span>Subtotal:</span><span>${formatCurrency(lastSale.subtotal)}</span></div>
+        ${lastSale.discountAmount > 0 ? `<div class="row"><span>Descuento:</span><span>-${formatCurrency(lastSale.discountAmount)}</span></div>` : ''}
+        <div class="row bold"><span>TOTAL:</span><span>${formatCurrency(lastSale.total)}</span></div>
+        <div class="line"></div>
+        <div class="row"><span>Método:</span><span>${lastSale.paymentMethod.toUpperCase()}</span></div>
+        ${lastSale.paymentMethod === 'efectivo' ? `
+          <div class="row"><span>Recibido:</span><span>${formatCurrency(lastSale.amountReceived)}</span></div>
+          <div class="row bold"><span>Cambio:</span><span>${formatCurrency(lastSale.change)}</span></div>
+        ` : ''}
+        <div class="line"></div>
+        <div class="center">
+          <p>¡Gracias por su compra!</p>
+          <p>Vuelva pronto</p>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    const printWindow = window.open('', '_blank', 'width=320,height=600');
+    if (printWindow) {
+      printWindow.document.write(ticketContent);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 250);
+    }
+  };
 
   // ==================== RENDER ====================
   if (!isAdmin && !user?.store) {
@@ -737,7 +836,7 @@ export default function CashRegisterPage() {
           </div>
 
           {/* Panel de pago */}
-          <div className="bg-white border-t p-4">
+          <div className={`border-t p-4 transition-colors duration-300 ${cart.length > 0 ? currentPaymentColor.bg : 'bg-white'}`}>
             <div className="flex gap-4">
               {/* Método de pago y descuento */}
               <div className="flex-1 space-y-3">
@@ -752,7 +851,7 @@ export default function CashRegisterPage() {
                         value={discount}
                         onChange={(e) => setDiscount(e.target.value)}
                         placeholder={discountType === 'fixed' ? 'Descuento en pesos' : 'Descuento %'}
-                        className="w-full pl-9 pr-4 py-2 border rounded-lg text-sm"
+                        className="w-full pl-9 pr-4 py-2 border rounded-lg text-sm bg-white/80"
                       />
                     </div>
                     <div className="flex border rounded-lg overflow-hidden">
@@ -1214,6 +1313,89 @@ export default function CashRegisterPage() {
         onScan={handleBarcodeScanned}
         title="Escanear Código de Producto"
       />
+
+      {/* Modal Ticket de Venta */}
+      <AnimatePresence>
+        {showTicketModal && lastSale && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            onClick={() => { setShowTicketModal(false); searchInputRef.current?.focus(); }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="bg-white rounded-xl shadow-xl max-w-sm w-full overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header con check */}
+              <div className="bg-green-500 text-white p-6 text-center">
+                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-3">
+                  <CheckCircle className="h-10 w-10 text-green-500" />
+                </div>
+                <h2 className="text-xl font-bold">¡Venta Exitosa!</h2>
+                <p className="text-green-100 text-sm mt-1">
+                  Código: <span className="font-mono font-bold">{lastSale._id?.slice(-8).toUpperCase() || 'N/A'}</span>
+                </p>
+              </div>
+
+              {/* Resumen */}
+              <div className="p-4 space-y-3">
+                <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                  {lastSale.items.slice(0, 3).map((item: CartItem, idx: number) => (
+                    <div key={idx} className="flex justify-between text-sm">
+                      <span className="text-gray-600">{item.quantity}x {item.product.name}</span>
+                      <span>{formatCurrency(item.subtotal)}</span>
+                    </div>
+                  ))}
+                  {lastSale.items.length > 3 && (
+                    <p className="text-xs text-gray-500">...y {lastSale.items.length - 3} productos más</p>
+                  )}
+                </div>
+
+                {lastSale.discountAmount > 0 && (
+                  <div className="flex justify-between text-sm text-red-600">
+                    <span>Descuento:</span>
+                    <span>-{formatCurrency(lastSale.discountAmount)}</span>
+                  </div>
+                )}
+
+                <div className="flex justify-between text-lg font-bold border-t pt-2">
+                  <span>Total:</span>
+                  <span>{formatCurrency(lastSale.total)}</span>
+                </div>
+
+                {lastSale.paymentMethod === 'efectivo' && lastSale.change > 0 && (
+                  <div className="flex justify-between text-green-600 font-medium bg-green-50 p-2 rounded">
+                    <span>Cambio:</span>
+                    <span>{formatCurrency(lastSale.change)}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Acciones */}
+              <div className="p-4 border-t flex gap-2">
+                <button
+                  onClick={() => { setShowTicketModal(false); searchInputRef.current?.focus(); }}
+                  className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium"
+                >
+                  Cerrar
+                </button>
+                <button
+                  onClick={printTicket}
+                  className="flex-1 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium flex items-center justify-center gap-2"
+                >
+                  <Printer className="h-5 w-5" />
+                  Imprimir
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
