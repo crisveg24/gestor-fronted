@@ -142,7 +142,8 @@ const DashboardPage = () => {
   // Si no es admin, usar la tienda del usuario
   useEffect(() => {
     if (!isAdmin && user?.store) {
-      setSelectedStoreId(user.store as string);
+      const storeId = typeof user.store === 'string' ? user.store : user.store._id;
+      setSelectedStoreId(storeId);
     }
   }, [isAdmin, user?.store]);
   
