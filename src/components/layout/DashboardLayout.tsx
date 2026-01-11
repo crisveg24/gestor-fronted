@@ -19,6 +19,7 @@ import {
   ArrowLeftRight,
   Banknote,
   RotateCcw,
+  History,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { toast } from '../ui';
@@ -36,6 +37,7 @@ const menuItems: MenuItem[] = [
   { icon: <Box size={20} />, label: 'Inventario', path: '/inventario' },
   { icon: <ArrowLeftRight size={20} />, label: 'Transferencias', path: '/transferencias' },
   { icon: <ShoppingCart size={20} />, label: 'Ventas', path: '/ventas' },
+  { icon: <History size={20} />, label: 'Historial de Ventas', path: '/historial-ventas' },
   { icon: <CreditCard size={20} />, label: 'Fiados y Apartados', path: '/fiados' },
   { icon: <Banknote size={20} />, label: 'Caja Registradora', path: '/caja' },
   { icon: <RotateCcw size={20} />, label: 'Devoluciones', path: '/devoluciones' },

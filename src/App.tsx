@@ -25,6 +25,7 @@ const CreditsPage = lazy(() => import('./pages/CreditsPage'));
 const TransfersPage = lazy(() => import('./pages/TransfersPage'));
 const CashRegisterPage = lazy(() => import('./pages/CashRegisterPage'));
 const ReturnsPage = lazy(() => import('./pages/ReturnsPage'));
+const SalesHistoryPage = lazy(() => import('./pages/SalesHistoryPage'));
 
 // ==================== LOADING FALLBACK ====================
 const PageLoader = () => (
@@ -173,6 +174,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <SalesPage />
+                </ProtectedRoute>
+              }
+            />
+            
+            <Route
+              path="/historial-ventas"
+              element={
+                <ProtectedRoute>
+                  <SalesHistoryPage />
                 </ProtectedRoute>
               }
             />
