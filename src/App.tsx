@@ -21,6 +21,10 @@ const ReportsPage = lazy(() => import('./pages/ReportsPage'));
 const SuppliersPage = lazy(() => import('./pages/SuppliersPage'));
 const PurchaseOrdersPage = lazy(() => import('./pages/PurchaseOrdersPage'));
 const PurchaseOrderFormPage = lazy(() => import('./pages/PurchaseOrderFormPage'));
+const CreditsPage = lazy(() => import('./pages/CreditsPage'));
+const TransfersPage = lazy(() => import('./pages/TransfersPage'));
+const CashRegisterPage = lazy(() => import('./pages/CashRegisterPage'));
+const ReturnsPage = lazy(() => import('./pages/ReturnsPage'));
 
 // ==================== LOADING FALLBACK ====================
 const PageLoader = () => (
@@ -223,6 +227,42 @@ function App() {
               element={
                 <ProtectedRoute>
                   <PurchaseOrderFormPage />
+                </ProtectedRoute>
+              }
+            />
+            
+            <Route
+              path="/fiados"
+              element={
+                <ProtectedRoute>
+                  <CreditsPage />
+                </ProtectedRoute>
+              }
+            />
+            
+            <Route
+              path="/transferencias"
+              element={
+                <ProtectedRoute>
+                  <TransfersPage />
+                </ProtectedRoute>
+              }
+            />
+            
+            <Route
+              path="/caja"
+              element={
+                <ProtectedRoute>
+                  <CashRegisterPage />
+                </ProtectedRoute>
+              }
+            />
+            
+            <Route
+              path="/devoluciones"
+              element={
+                <ProtectedRoute>
+                  <ReturnsPage />
                 </ProtectedRoute>
               }
             />

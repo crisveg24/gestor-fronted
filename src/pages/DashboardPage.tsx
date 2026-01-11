@@ -1,6 +1,7 @@
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   TrendingUp,
   Package,
@@ -10,6 +11,10 @@ import {
   Store,
   ArrowUpRight,
   ArrowDownRight,
+  Bell,
+  X,
+  ChevronDown,
+  Filter,
 } from 'lucide-react';
 import {
   LineChart,
@@ -27,6 +32,13 @@ import { Card, Loading } from '../components/ui';
 import api from '../lib/axios';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useAuthStore } from '../store/authStore';
+
+// Tipos para tiendas
+interface StoreOption {
+  _id: string;
+  name: string;
+}
 
 // Tipos
 interface DashboardStats {
@@ -92,13 +104,69 @@ interface PaymentMethodStats {
   percentage: number;
 }
 
+// Constante para localStorage
+const DASHBOARD_STORE_KEY = 'gestor_dashboard_store';
+
 const DashboardPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'admin';
   
-  // Queries
-  const { data: stats, isLoading: statsLoading, error: statsError } = useQuery<DashboardStats>({
-    queryKey: ['dashboard-stats'],
+  // Estado para tienda seleccionada (admins pueden cambiar, usuarios ven solo su tienda)
+  const [selectedStoreId, setSelectedStoreId] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(DASHBOARD_STORE_KEY) || '';
+    }
+    return '';
+  });
+  const [showStockAlerts, setShowStockAlerts] = useState(true);
+
+  // Query para obtener tiendas (solo para admins)
+  const { data: stores } = useQuery<StoreOption[]>({
+    queryKey: ['stores-list'],
     queryFn: async () => {
+      const response = await api.get('/stores');
+      return response.data.data || [];
+    },
+    enabled: isAdmin,
+    staleTime: 10 * 60 * 1000,
+  });
+
+  // Guardar tienda seleccionada en localStorage
+  useEffect(() => {
+    if (selectedStoreId) {
+      localStorage.setItem(DASHBOARD_STORE_KEY, selectedStoreId);
+    }
+  }, [selectedStoreId]);
+
+  // Si no es admin, usar la tienda del usuario
+  useEffect(() => {
+    if (!isAdmin && user?.store) {
+      setSelectedStoreId(user.store as string);
+    }
+  }, [isAdmin, user?.store]);
+  
+  // Queries - Se adaptan según si hay tienda seleccionada
+  const { data: stats, isLoading: statsLoading, error: statsError } = useQuery<DashboardStats>({
+    queryKey: ['dashboard-stats', selectedStoreId],
+    queryFn: async () => {
+      // Si hay tienda seleccionada, usar endpoint de tienda específica
+      if (selectedStoreId) {
+        const response = await api.get(`/dashboard/store/${selectedStoreId}`);
+        const data = response.data.data;
+        return {
+          totalSales: data.overview?.totalSales || 0,
+          totalRevenue: data.overview?.totalRevenue || 0,
+          totalProducts: data.inventory?.totalProducts || 0,
+          totalStores: 1,
+          salesGrowth: data.growth?.sales || 0,
+          revenueGrowth: data.growth?.revenue || 0,
+          lowStockProducts: data.inventory?.lowStockCount || 0,
+          activeUsers: 0,
+        };
+      }
+      
+      // Sin tienda seleccionada, usar global (solo admin)
       const response = await api.get('/dashboard/global');
       const data = response.data.data;
       
@@ -119,10 +187,10 @@ const DashboardPage = () => {
   });
 
   const { data: salesData, isLoading: salesLoading } = useQuery<SalesData[]>({
-    queryKey: ['dashboard-sales'],
+    queryKey: ['dashboard-sales', selectedStoreId],
     queryFn: async () => {
       const response = await api.get('/dashboard/sales-trend', {
-        params: { days: 30 }
+        params: { days: 30, storeId: selectedStoreId || undefined }
       });
       // Mapear: { date, sales, revenue } -> { date, ventas, ingresos }
       return (response.data.data || []).map((item: SalesTrendApiItem) => ({
@@ -136,10 +204,10 @@ const DashboardPage = () => {
   });
 
   const { data: topProducts, isLoading: productsLoading } = useQuery<TopProduct[]>({
-    queryKey: ['dashboard-top-products'],
+    queryKey: ['dashboard-top-products', selectedStoreId],
     queryFn: async () => {
       const response = await api.get('/dashboard/top-products', {
-        params: { limit: 10 }
+        params: { limit: 10, storeId: selectedStoreId || undefined }
       });
       // Mapear: { name, totalQuantity, totalRevenue } -> { name, sales, revenue }
       return (response.data.data || []).map((item: TopProductApiItem) => ({
@@ -165,27 +233,43 @@ const DashboardPage = () => {
     },
     staleTime: 5 * 60 * 1000,
     retry: 2,
+    enabled: isAdmin && !selectedStoreId, // Solo mostrar comparación si es admin y no hay tienda seleccionada
   });
 
   const { data: lowStockItems, isLoading: lowStockLoading } = useQuery<LowStockItem[]>({
-    queryKey: ['dashboard-low-stock'],
+    queryKey: ['dashboard-low-stock', selectedStoreId],
     queryFn: async () => {
-      const response = await api.get('/inventory/alerts/low-stock');
-      return response.data.data || [];
+      const params = selectedStoreId ? { storeId: selectedStoreId } : {};
+      const response = await api.get('/inventory/alerts/low-stock', { params });
+      // Filtrar por tienda si está seleccionada (por si el backend no lo hace)
+      const items = response.data.data || [];
+      if (selectedStoreId && stores) {
+        const selectedStore = stores.find(s => s._id === selectedStoreId);
+        if (selectedStore) {
+          return items.filter((item: LowStockItem) => item.storeName === selectedStore.name);
+        }
+      }
+      return items;
     },
     staleTime: 5 * 60 * 1000,
     retry: 2,
   });
 
   const { data: paymentMethodStats, isLoading: paymentStatsLoading } = useQuery<PaymentMethodStats[]>({
-    queryKey: ['dashboard-payment-methods'],
+    queryKey: ['dashboard-payment-methods', selectedStoreId],
     queryFn: async () => {
-      const response = await api.get('/dashboard/payment-methods');
+      const params = selectedStoreId ? { storeId: selectedStoreId } : {};
+      const response = await api.get('/dashboard/payment-methods', { params });
       return response.data.data;
     },
     staleTime: 5 * 60 * 1000,
     retry: 2,
   });
+
+  // Nombre de la tienda seleccionada
+  const selectedStoreName = selectedStoreId && stores 
+    ? stores.find(s => s._id === selectedStoreId)?.name 
+    : 'Todas las tiendas';
 
   // Mostrar errores de carga
   if (statsError) {
@@ -195,6 +279,10 @@ const DashboardPage = () => {
   if (statsLoading) {
     return <Loading fullScreen text="Cargando dashboard..." />;
   }
+
+  // Cantidad de productos con stock bajo para alerta
+  const lowStockCount = lowStockItems?.length || 0;
+  const criticalStock = lowStockItems?.filter(item => item.currentStock === 0).length || 0;
 
   // Tarjetas de estadísticas
   const statCards = [
@@ -238,16 +326,98 @@ const DashboardPage = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Alerta de Stock Bajo Prominente */}
+      <AnimatePresence>
+        {showStockAlerts && lowStockCount > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: 'auto' }}
+            exit={{ opacity: 0, y: -20, height: 0 }}
+            className={`rounded-lg p-4 ${criticalStock > 0 ? 'bg-red-50 border-2 border-red-300' : 'bg-orange-50 border-2 border-orange-300'}`}
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex items-start gap-3">
+                <div className={`p-2 rounded-full ${criticalStock > 0 ? 'bg-red-100' : 'bg-orange-100'}`}>
+                  <Bell className={criticalStock > 0 ? 'text-red-600' : 'text-orange-600'} size={24} />
+                </div>
+                <div>
+                  <h3 className={`font-semibold ${criticalStock > 0 ? 'text-red-800' : 'text-orange-800'}`}>
+                    ⚠️ {lowStockCount} productos con stock bajo
+                    {criticalStock > 0 && ` (${criticalStock} agotados)`}
+                  </h3>
+                  <p className={`text-sm mt-1 ${criticalStock > 0 ? 'text-red-700' : 'text-orange-700'}`}>
+                    {criticalStock > 0 
+                      ? 'Hay productos sin stock disponible. Considera hacer un pedido urgente.'
+                      : 'Algunos productos están por debajo del stock mínimo.'}
+                  </p>
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      onClick={() => navigate('/inventario?lowStock=true')}
+                      className={`text-sm font-medium px-3 py-1.5 rounded-lg ${
+                        criticalStock > 0 
+                          ? 'bg-red-600 text-white hover:bg-red-700' 
+                          : 'bg-orange-600 text-white hover:bg-orange-700'
+                      } transition-colors`}
+                    >
+                      Ver productos
+                    </button>
+                    <button
+                      onClick={() => navigate('/ordenes-compra/nueva')}
+                      className="text-sm font-medium px-3 py-1.5 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
+                    >
+                      Crear orden de compra
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowStockAlerts(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={20} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Header con Selector de Tienda */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
       >
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600 mt-1">
-          Bienvenido de vuelta, resumen de tu negocio
-        </p>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-600 mt-1">
+            {selectedStoreId 
+              ? `Estadísticas de ${selectedStoreName}`
+              : 'Resumen general de tu negocio'}
+          </p>
+        </div>
+        
+        {/* Selector de tienda para admins */}
+        {isAdmin && stores && stores.length > 0 && (
+          <div className="flex items-center gap-2">
+            <Filter size={18} className="text-gray-500" />
+            <div className="relative">
+              <select
+                value={selectedStoreId}
+                onChange={(e) => setSelectedStoreId(e.target.value)}
+                className="appearance-none bg-white border border-gray-300 rounded-lg pl-4 pr-10 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 cursor-pointer"
+              >
+                <option value="">Todas las tiendas</option>
+                {stores.map((store) => (
+                  <option key={store._id} value={store._id}>
+                    {store.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            </div>
+          </div>
+        )}
       </motion.div>
 
       {/* Stats Cards */}

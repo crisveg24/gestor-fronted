@@ -15,6 +15,10 @@ import {
   Box,
   Truck,
   FileText,
+  CreditCard,
+  ArrowLeftRight,
+  Banknote,
+  RotateCcw,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { toast } from '../ui';
@@ -30,7 +34,11 @@ const menuItems: MenuItem[] = [
   { icon: <LayoutDashboard size={20} />, label: 'Dashboard', path: '/dashboard' },
   { icon: <Package size={20} />, label: 'Productos', path: '/productos' },
   { icon: <Box size={20} />, label: 'Inventario', path: '/inventario' },
+  { icon: <ArrowLeftRight size={20} />, label: 'Transferencias', path: '/transferencias' },
   { icon: <ShoppingCart size={20} />, label: 'Ventas', path: '/ventas' },
+  { icon: <CreditCard size={20} />, label: 'Fiados y Apartados', path: '/fiados' },
+  { icon: <Banknote size={20} />, label: 'Caja Registradora', path: '/caja' },
+  { icon: <RotateCcw size={20} />, label: 'Devoluciones', path: '/devoluciones' },
   { icon: <Truck size={20} />, label: 'Proveedores', path: '/proveedores' },
   { icon: <FileText size={20} />, label: 'Órdenes de Compra', path: '/ordenes-compra' },
   { icon: <Store size={20} />, label: 'Tiendas', path: '/tiendas', adminOnly: true },
