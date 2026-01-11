@@ -168,16 +168,21 @@ export default function CashRegisterPage() {
     enabled: !!selectedStoreId || !isAdmin,
   });
 
-  const { data: searchResults = [] } = useQuery<Product[]>({
-    queryKey: ['products-pos', searchProduct, selectedStoreId],
+  const { data: searchResults = [], isLoading: loadingSearch } = useQuery<Product[]>({
+    queryKey: ['products-pos', searchProduct],
     queryFn: async () => {
       if (searchProduct.length < 2) return [];
+      console.log('🔍 [POS] Buscando productos:', searchProduct);
       const response = await api.get('/products', {
-        params: { search: searchProduct, limit: 8, isActive: true }
+        params: { search: searchProduct, limit: 10, isActive: true }
       });
-      return response.data?.data?.products || [];
+      console.log('✅ [POS] Respuesta:', response.data);
+      const products = response.data?.data?.products || response.data?.products || [];
+      console.log('📦 [POS] Productos:', products.length);
+      return products;
     },
     enabled: searchProduct.length >= 2,
+    staleTime: 60 * 1000,
   });
 
   const { data: inventory = [] } = useQuery<InventoryItem[]>({
@@ -566,31 +571,42 @@ export default function CashRegisterPage() {
                 />
                 
                 {/* Dropdown de resultados */}
-                {searchResults.length > 0 && searchProduct && (
+                {searchProduct.length >= 2 && (
                   <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg z-10 max-h-64 overflow-auto">
-                    {searchResults.map(product => {
-                      const stock = getStock(product._id);
-                      return (
-                        <div
-                          key={product._id}
-                          onClick={() => stock > 0 && addToCart(product)}
-                          className={`p-3 flex justify-between items-center border-b last:border-0 ${
-                            stock > 0 ? 'hover:bg-gray-50 cursor-pointer' : 'opacity-50 cursor-not-allowed'
-                          }`}
-                        >
-                          <div>
-                            <p className="font-medium">{product.name}</p>
-                            <p className="text-xs text-gray-500">SKU: {product.sku}</p>
+                    {loadingSearch ? (
+                      <div className="p-4 text-center text-gray-500">
+                        <div className="animate-spin h-5 w-5 border-2 border-primary-600 border-t-transparent rounded-full mx-auto mb-2" />
+                        Buscando...
+                      </div>
+                    ) : searchResults.length > 0 ? (
+                      searchResults.map(product => {
+                        const stock = getStock(product._id);
+                        return (
+                          <div
+                            key={product._id}
+                            onClick={() => stock > 0 && addToCart(product)}
+                            className={`p-3 flex justify-between items-center border-b last:border-0 ${
+                              stock > 0 ? 'hover:bg-gray-50 cursor-pointer' : 'opacity-50 cursor-not-allowed'
+                            }`}
+                          >
+                            <div>
+                              <p className="font-medium">{product.name}</p>
+                              <p className="text-xs text-gray-500">SKU: {product.sku}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold">{formatCurrency(product.price)}</p>
+                              <p className={`text-xs ${stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                Stock: {stock}
+                              </p>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <p className="font-bold">{formatCurrency(product.price)}</p>
-                            <p className={`text-xs ${stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              Stock: {stock}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })
+                    ) : (
+                      <div className="p-4 text-center text-gray-500">
+                        No se encontraron productos
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
