@@ -390,7 +390,7 @@ export default function CashRegisterPage() {
 
   const handleBarcodeScanned = async (barcode: string) => {
     try {
-      const response = await api.get('/products/barcode/' + barcode, {
+      const response = await api.get('/products/by-barcode/' + barcode, {
         params: { storeId: selectedStoreId }
       });
       if (response.data?.data) {
