@@ -151,7 +151,7 @@ export default function ReturnsPage() {
     queryKey: ['stores'],
     queryFn: async () => {
       const response = await api.get('/stores');
-      return response.data;
+      return response.data?.data || response.data || [];
     },
     enabled: isAdmin,
   });
