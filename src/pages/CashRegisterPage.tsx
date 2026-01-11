@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -15,24 +15,26 @@ import {
   Wallet,
   ArrowUpDown,
   AlertCircle,
-  Calendar,
-  Store,
   Lock,
   Unlock,
+  ShoppingCart,
+  Search,
+  Trash2,
+  Receipt,
+  Package,
 } from 'lucide-react';
 import api from '../lib/axios';
 import { useAuthStore } from '../store/authStore';
 import { formatCurrency } from '../utils/formatCurrency';
+import { BarcodeScanner } from '../components/BarcodeScanner';
 
+// ==================== INTERFACES ====================
 interface CashMovement {
   type: 'income' | 'expense';
   amount: number;
   description: string;
   createdAt: string;
-  createdBy?: {
-    _id: string;
-    name: string;
-  };
+  createdBy?: { _id: string; name: string };
 }
 
 interface SalesByMethod {
@@ -46,10 +48,7 @@ interface SalesByMethod {
 
 interface CashRegister {
   _id: string;
-  store: {
-    _id: string;
-    name: string;
-  };
+  store: { _id: string; name: string };
   openingAmount: number;
   closingAmount?: number;
   expectedAmount?: number;
@@ -57,49 +56,77 @@ interface CashRegister {
   status: 'open' | 'closed';
   movements: CashMovement[];
   salesByMethod: SalesByMethod;
+  calculatedTotals?: {
+    openingAmount: number;
+    salesEfectivo: number;
+    otherIncome: number;
+    expenses: number;
+    expectedAmount: number;
+    totalSalesAllMethods: number;
+  };
   notes?: string;
-  openedBy: {
-    _id: string;
-    name: string;
-  };
-  closedBy?: {
-    _id: string;
-    name: string;
-  };
+  openedBy: { _id: string; name: string };
+  closedBy?: { _id: string; name: string };
   openedAt: string;
   closedAt?: string;
 }
 
-interface Store {
+interface StoreOption {
   _id: string;
   name: string;
 }
 
+interface Product {
+  _id: string;
+  name: string;
+  sku: string;
+  price: number;
+  barcode?: string;
+}
+
+interface CartItem {
+  product: Product;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
+}
+
+interface InventoryItem {
+  product: Product;
+  quantity: number;
+}
+
+// ==================== COMPONENTE PRINCIPAL ====================
 export default function CashRegisterPage() {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
   const isAdmin = user?.role === 'admin';
+  const searchInputRef = useRef<HTMLInputElement>(null);
   
+  // Estado de tienda
   const [selectedStoreId, setSelectedStoreId] = useState<string>(() => {
-    if (isAdmin) {
-      return localStorage.getItem('cashRegister_selectedStore') || '';
-    }
+    if (isAdmin) return localStorage.getItem('cashRegister_selectedStore') || '';
     return user?.store?._id || '';
   });
-  
+
+  // Estados de caja
   const [showOpenModal, setShowOpenModal] = useState(false);
-  const [showMovementModal, setShowMovementModal] = useState(false);
   const [showCloseModal, setShowCloseModal] = useState(false);
+  const [showMovementModal, setShowMovementModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
-  const [showDetailModal, setShowDetailModal] = useState(false);
-  const [selectedRegister, setSelectedRegister] = useState<CashRegister | null>(null);
-  
   const [openingAmount, setOpeningAmount] = useState('');
+  const [closingAmount, setClosingAmount] = useState('');
+  const [closingNotes, setClosingNotes] = useState('');
   const [movementType, setMovementType] = useState<'income' | 'expense'>('income');
   const [movementAmount, setMovementAmount] = useState('');
   const [movementDescription, setMovementDescription] = useState('');
-  const [closingAmount, setClosingAmount] = useState('');
-  const [closingNotes, setClosingNotes] = useState('');
+
+  // Estados de POS (punto de venta)
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [searchProduct, setSearchProduct] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('efectivo');
+  const [showScanner, setShowScanner] = useState(false);
+  const [amountReceived, setAmountReceived] = useState('');
 
   // Guardar tienda seleccionada
   useEffect(() => {
@@ -108,8 +135,8 @@ export default function CashRegisterPage() {
     }
   }, [selectedStoreId, isAdmin]);
 
-  // Query tiendas (solo admin)
-  const { data: stores = [] } = useQuery<Store[]>({
+  // ==================== QUERIES ====================
+  const { data: stores = [] } = useQuery<StoreOption[]>({
     queryKey: ['stores'],
     queryFn: async () => {
       const response = await api.get('/stores');
@@ -118,7 +145,6 @@ export default function CashRegisterPage() {
     enabled: isAdmin,
   });
 
-  // Query caja actual
   const { data: currentRegister, isLoading: loadingCurrent } = useQuery<CashRegister | null>({
     queryKey: ['cashRegister', 'current', selectedStoreId],
     queryFn: async () => {
@@ -127,23 +153,44 @@ export default function CashRegisterPage() {
       return response.data?.data || null;
     },
     enabled: !!selectedStoreId || !isAdmin,
-    refetchInterval: 30000, // Refrescar cada 30 segundos
+    refetchInterval: 30000,
   });
 
-  // Query historial
-  const { data: historyData } = useQuery<{ registers: CashRegister[]; pagination: unknown }>({
+  const { data: historyData } = useQuery<{ registers: CashRegister[] }>({
     queryKey: ['cashRegister', 'history', selectedStoreId],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (selectedStoreId) params.append('storeId', selectedStoreId);
       params.append('limit', '10');
       const response = await api.get(`/cash-register/history?${params.toString()}`);
-      return response.data;
+      return response.data?.data || { registers: [] };
     },
     enabled: !!selectedStoreId || !isAdmin,
   });
 
-  // Mutación abrir caja
+  const { data: searchResults = [] } = useQuery<Product[]>({
+    queryKey: ['products-pos', searchProduct, selectedStoreId],
+    queryFn: async () => {
+      if (searchProduct.length < 2) return [];
+      const response = await api.get('/products', {
+        params: { search: searchProduct, limit: 8, isActive: true }
+      });
+      return response.data?.data?.products || [];
+    },
+    enabled: searchProduct.length >= 2,
+  });
+
+  const { data: inventory = [] } = useQuery<InventoryItem[]>({
+    queryKey: ['inventory-pos', selectedStoreId],
+    queryFn: async () => {
+      if (!selectedStoreId) return [];
+      const response = await api.get(`/inventory/${selectedStoreId}`);
+      return response.data?.data || [];
+    },
+    enabled: !!selectedStoreId,
+  });
+
+  // ==================== MUTATIONS ====================
   const openMutation = useMutation({
     mutationFn: async (data: { openingAmount: number; storeId?: string }) => {
       const response = await api.post('/cash-register/open', data);
@@ -154,23 +201,11 @@ export default function CashRegisterPage() {
       setShowOpenModal(false);
       setOpeningAmount('');
     },
+    onError: (error: any) => {
+      alert(error.response?.data?.message || 'Error al abrir caja');
+    }
   });
 
-  // Mutación agregar movimiento
-  const movementMutation = useMutation({
-    mutationFn: async (data: { type: string; amount: number; description: string }) => {
-      const response = await api.post('/cash-register/movement', data);
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['cashRegister'] });
-      setShowMovementModal(false);
-      setMovementAmount('');
-      setMovementDescription('');
-    },
-  });
-
-  // Mutación cerrar caja
   const closeMutation = useMutation({
     mutationFn: async (data: { closingAmount: number; notes?: string }) => {
       const response = await api.post('/cash-register/close', data);
@@ -182,443 +217,530 @@ export default function CashRegisterPage() {
       setClosingAmount('');
       setClosingNotes('');
     },
+    onError: (error: any) => {
+      alert(error.response?.data?.message || 'Error al cerrar caja');
+    }
   });
 
-  const handleOpenCashRegister = (e: React.FormEvent) => {
-    e.preventDefault();
-    const amount = parseFloat(openingAmount);
-    if (isNaN(amount) || amount < 0) return;
+  const movementMutation = useMutation({
+    mutationFn: async (data: { type: string; amount: number; description: string }) => {
+      const response = await api.post('/cash-register/movement', data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cashRegister'] });
+      setShowMovementModal(false);
+      setMovementAmount('');
+      setMovementDescription('');
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.message || 'Error al registrar movimiento');
+    }
+  });
+
+  const saleMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await api.post('/sales', data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cashRegister'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory-pos'] });
+      setCart([]);
+      setAmountReceived('');
+      searchInputRef.current?.focus();
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.message || 'Error al registrar venta');
+    }
+  });
+
+  // ==================== HELPERS ====================
+  const getStock = (productId: string): number => {
+    const item = inventory.find(i => i.product._id === productId);
+    return item?.quantity || 0;
+  };
+
+  const addToCart = (product: Product) => {
+    const stock = getStock(product._id);
+    const existing = cart.find(item => item.product._id === product._id);
+    const currentQty = existing?.quantity || 0;
     
-    openMutation.mutate({
-      openingAmount: amount,
-      ...(isAdmin && selectedStoreId ? { storeId: selectedStoreId } : {}),
+    if (currentQty >= stock) {
+      alert(`Stock insuficiente (disponible: ${stock})`);
+      return;
+    }
+
+    if (existing) {
+      setCart(cart.map(item =>
+        item.product._id === product._id
+          ? { ...item, quantity: item.quantity + 1, subtotal: (item.quantity + 1) * item.unitPrice }
+          : item
+      ));
+    } else {
+      setCart([...cart, {
+        product,
+        quantity: 1,
+        unitPrice: product.price,
+        subtotal: product.price
+      }]);
+    }
+    setSearchProduct('');
+    searchInputRef.current?.focus();
+  };
+
+  const updateQuantity = (productId: string, delta: number) => {
+    setCart(cart.map(item => {
+      if (item.product._id !== productId) return item;
+      const newQty = item.quantity + delta;
+      if (newQty < 1) return item;
+      const stock = getStock(productId);
+      if (newQty > stock) {
+        alert(`Stock máximo: ${stock}`);
+        return item;
+      }
+      return { ...item, quantity: newQty, subtotal: newQty * item.unitPrice };
+    }));
+  };
+
+  const removeFromCart = (productId: string) => {
+    setCart(cart.filter(item => item.product._id !== productId));
+  };
+
+  const cartTotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
+  const change = paymentMethod === 'efectivo' && amountReceived 
+    ? parseFloat(amountReceived) - cartTotal 
+    : 0;
+
+  const handleSale = () => {
+    if (!currentRegister || currentRegister.status !== 'open') {
+      alert('Debes abrir la caja primero');
+      return;
+    }
+    if (cart.length === 0) {
+      alert('El carrito está vacío');
+      return;
+    }
+    if (paymentMethod === 'efectivo' && parseFloat(amountReceived || '0') < cartTotal) {
+      alert('Monto recibido insuficiente');
+      return;
+    }
+
+    saleMutation.mutate({
+      store: selectedStoreId,
+      items: cart.map(item => ({
+        product: item.product._id,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice
+      })),
+      discount: 0,
+      tax: 0,
+      paymentMethod,
+      notes: ''
     });
   };
 
-  const handleAddMovement = (e: React.FormEvent) => {
-    e.preventDefault();
-    const amount = parseFloat(movementAmount);
-    if (isNaN(amount) || amount <= 0 || !movementDescription.trim()) return;
-    
-    movementMutation.mutate({
-      type: movementType,
-      amount,
-      description: movementDescription.trim(),
-    });
+  const handleBarcodeScanned = async (barcode: string) => {
+    try {
+      const response = await api.get('/products/barcode/' + barcode, {
+        params: { storeId: selectedStoreId }
+      });
+      if (response.data?.data) {
+        addToCart(response.data.data);
+        setShowScanner(false);
+      }
+    } catch {
+      alert('Producto no encontrado');
+    }
   };
 
-  const handleCloseCashRegister = (e: React.FormEvent) => {
-    e.preventDefault();
-    const amount = parseFloat(closingAmount);
-    if (isNaN(amount) || amount < 0) return;
-    
-    closeMutation.mutate({
-      closingAmount: amount,
-      notes: closingNotes.trim() || undefined,
-    });
-  };
+  const formatTime = (date: string) => new Date(date).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+  const formatDate = (date: string) => new Date(date).toLocaleDateString('es-CO');
 
-  const viewRegisterDetail = (register: CashRegister) => {
-    setSelectedRegister(register);
-    setShowDetailModal(true);
-  };
+  const totalSales = currentRegister?.calculatedTotals?.totalSalesAllMethods || 
+    Object.values(currentRegister?.salesByMethod || {}).reduce((a, b) => a + b, 0);
 
-  // Calcular totales en tiempo real
-  const calculateExpected = () => {
-    if (!currentRegister) return 0;
-    const movementsNet = currentRegister.movements.reduce((sum, m) => {
-      return sum + (m.type === 'income' ? m.amount : -m.amount);
-    }, 0);
-    return currentRegister.openingAmount + (currentRegister.salesByMethod?.efectivo || 0) + movementsNet;
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('es-CO', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
+  // ==================== RENDER ====================
   if (!isAdmin && !user?.store) {
     return (
       <div className="p-6">
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center">
           <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-3" />
           <h3 className="text-lg font-semibold text-yellow-800">Sin tienda asignada</h3>
-          <p className="text-yellow-600 mt-2">
-            Necesitas tener una tienda asignada para gestionar la caja registradora.
-          </p>
+          <p className="text-yellow-600">Contacta al administrador para asignarte una tienda.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Caja Registradora</h1>
-          <p className="text-gray-600 mt-1">
-            Gestión de apertura, movimientos y cierre de caja
-          </p>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          {/* Selector de tienda (solo admin) */}
-          {isAdmin && (
-            <div className="relative">
-              <Store className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+      <div className="bg-white border-b px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="p-2 bg-primary-100 rounded-lg">
+              <Banknote className="h-6 w-6 text-primary-600" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Punto de Venta</h1>
+              <p className="text-sm text-gray-500">
+                {currentRegister?.store?.name || stores.find(s => s._id === selectedStoreId)?.name || 'Selecciona tienda'}
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            {isAdmin && (
               <select
                 value={selectedStoreId}
                 onChange={(e) => setSelectedStoreId(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white min-w-[200px]"
+                className="px-3 py-2 border rounded-lg text-sm"
               >
                 <option value="">Seleccionar tienda</option>
-                {stores.map((store) => (
-                  <option key={store._id} value={store._id}>
-                    {store.name}
-                  </option>
+                {stores.map(store => (
+                  <option key={store._id} value={store._id}>{store.name}</option>
                 ))}
               </select>
-            </div>
-          )}
-          
-          {/* Botón historial */}
-          <button
-            onClick={() => setShowHistoryModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-          >
-            <History className="h-4 w-4" />
-            Historial
-          </button>
+            )}
+            
+            <button
+              onClick={() => setShowHistoryModal(true)}
+              className="p-2 hover:bg-gray-100 rounded-lg"
+              title="Historial"
+            >
+              <History className="h-5 w-5 text-gray-600" />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Loading */}
-      {loadingCurrent && (
-        <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-      )}
-
-      {/* Sin tienda seleccionada (admin) */}
-      {isAdmin && !selectedStoreId && !loadingCurrent && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-8 text-center">
-          <Store className="h-12 w-12 text-blue-500 mx-auto mb-3" />
-          <h3 className="text-lg font-semibold text-blue-800">Selecciona una tienda</h3>
-          <p className="text-blue-600 mt-2">
-            Elige una tienda para ver o gestionar su caja registradora
-          </p>
-        </div>
-      )}
-
-      {/* Caja cerrada - Mostrar opción de abrir */}
-      {!loadingCurrent && (selectedStoreId || !isAdmin) && !currentRegister && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-xl p-8 text-center"
-        >
-          <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Lock className="h-10 w-10 text-gray-500" />
-          </div>
-          <h3 className="text-xl font-semibold text-gray-800">Caja Cerrada</h3>
-          <p className="text-gray-600 mt-2 mb-6">
-            No hay una caja abierta actualmente. Abre la caja para comenzar a registrar ventas.
-          </p>
-          <button
-            onClick={() => setShowOpenModal(true)}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-medium"
-          >
-            <Unlock className="h-5 w-5" />
-            Abrir Caja
-          </button>
-        </motion.div>
-      )}
-
-      {/* Caja abierta */}
-      {currentRegister && (
-        <div className="space-y-6">
-          {/* Estado de la caja */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
-                  <Unlock className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-green-800">Caja Abierta</h3>
-                  <p className="text-sm text-green-600">
-                    Abierta por {currentRegister.openedBy?.name} • {formatDate(currentRegister.openedAt)}
-                  </p>
-                </div>
+      <div className="flex h-[calc(100vh-73px)]">
+        {/* Panel Izquierdo - Estado de Caja */}
+        <div className="w-80 bg-white border-r flex flex-col">
+          {loadingCurrent ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="animate-spin h-8 w-8 border-2 border-primary-600 border-t-transparent rounded-full" />
+            </div>
+          ) : !currentRegister ? (
+            // Caja cerrada - Botón para abrir
+            <div className="flex-1 flex flex-col items-center justify-center p-6">
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <Lock className="h-10 w-10 text-gray-400" />
               </div>
-              <button
-                onClick={() => setShowCloseModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">Caja Cerrada</h3>
+              <p className="text-sm text-gray-500 text-center mb-6">
+                Abre la caja para comenzar a registrar ventas
+              </p>
+              <button 
+                onClick={() => setShowOpenModal(true)} 
+                className="w-full px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium flex items-center justify-center gap-2"
               >
-                <Lock className="h-4 w-4" />
-                Cerrar Caja
+                <Unlock className="h-4 w-4" />
+                Abrir Caja
               </button>
             </div>
-          </motion.div>
-
-          {/* Resumen financiero */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Monto inicial */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="bg-white rounded-xl border border-gray-200 p-5"
-            >
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <Wallet className="h-5 w-5 text-blue-600" />
+          ) : (
+            // Caja abierta - Mostrar estado
+            <>
+              <div className="p-4 border-b bg-green-50">
+                <div className="flex items-center gap-2 text-green-700">
+                  <CheckCircle className="h-5 w-5" />
+                  <span className="font-medium">Caja Abierta</span>
                 </div>
-                <span className="text-sm text-gray-600">Monto Inicial</span>
+                <p className="text-xs text-green-600 mt-1">
+                  Desde {formatTime(currentRegister.openedAt)} por {currentRegister.openedBy?.name}
+                </p>
               </div>
-              <p className="text-2xl font-bold text-gray-900">
-                {formatCurrency(currentRegister.openingAmount)}
-              </p>
-            </motion.div>
 
-            {/* Ventas en efectivo */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="bg-white rounded-xl border border-gray-200 p-5"
-            >
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                  <Banknote className="h-5 w-5 text-green-600" />
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {/* Resumen */}
+                <div className="space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Apertura:</span>
+                    <span className="font-medium">{formatCurrency(currentRegister.openingAmount)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Ventas efectivo:</span>
+                    <span className="font-medium text-green-600">+{formatCurrency(currentRegister.salesByMethod?.efectivo || 0)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Total ventas:</span>
+                    <span className="font-medium">{formatCurrency(totalSales)}</span>
+                  </div>
+                  <div className="border-t pt-3 flex justify-between">
+                    <span className="font-medium text-gray-700">Esperado en caja:</span>
+                    <span className="font-bold text-lg">
+                      {formatCurrency(currentRegister.calculatedTotals?.expectedAmount || currentRegister.openingAmount + (currentRegister.salesByMethod?.efectivo || 0))}
+                    </span>
+                  </div>
                 </div>
-                <span className="text-sm text-gray-600">Ventas Efectivo</span>
-              </div>
-              <p className="text-2xl font-bold text-green-600">
-                +{formatCurrency(currentRegister.salesByMethod?.efectivo || 0)}
-              </p>
-            </motion.div>
 
-            {/* Movimientos netos */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="bg-white rounded-xl border border-gray-200 p-5"
-            >
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <ArrowUpDown className="h-5 w-5 text-purple-600" />
+                {/* Ventas por método */}
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <h4 className="text-xs font-medium text-gray-500 mb-2">VENTAS POR MÉTODO</h4>
+                  <div className="space-y-2">
+                    {[
+                      { key: 'efectivo', label: 'Efectivo', icon: Banknote, color: 'text-green-600' },
+                      { key: 'nequi', label: 'Nequi', icon: Wallet, color: 'text-purple-600' },
+                      { key: 'daviplata', label: 'Daviplata', icon: Wallet, color: 'text-orange-600' },
+                      { key: 'tarjeta', label: 'Tarjeta', icon: CreditCard, color: 'text-blue-600' },
+                      { key: 'transferencia', label: 'Transferencia', icon: ArrowUpDown, color: 'text-gray-600' },
+                    ].map(({ key, label, icon: Icon, color }) => {
+                      const value = currentRegister.salesByMethod?.[key as keyof SalesByMethod] || 0;
+                      if (value === 0) return null;
+                      return (
+                        <div key={key} className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <Icon className={`h-4 w-4 ${color}`} />
+                            <span>{label}</span>
+                          </div>
+                          <span className="font-medium">{formatCurrency(value)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-                <span className="text-sm text-gray-600">Movimientos</span>
-              </div>
-              {(() => {
-                const net = currentRegister.movements.reduce((sum, m) => 
-                  sum + (m.type === 'income' ? m.amount : -m.amount), 0
-                );
-                return (
-                  <p className={`text-2xl font-bold ${net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {net >= 0 ? '+' : ''}{formatCurrency(net)}
-                  </p>
-                );
-              })()}
-            </motion.div>
 
-            {/* Total esperado */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-5 text-white"
-            >
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                  <DollarSign className="h-5 w-5 text-white" />
-                </div>
-                <span className="text-sm text-blue-100">Total Esperado</span>
+                {/* Movimientos recientes */}
+                {currentRegister.movements?.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-medium text-gray-500 mb-2">MOVIMIENTOS</h4>
+                    <div className="space-y-2">
+                      {currentRegister.movements.slice(-5).reverse().map((mov, idx) => (
+                        <div key={idx} className="flex items-center justify-between text-sm bg-gray-50 rounded p-2">
+                          <div className="flex items-center gap-2">
+                            {mov.type === 'income' ? (
+                              <TrendingUp className="h-4 w-4 text-green-500" />
+                            ) : (
+                              <TrendingDown className="h-4 w-4 text-red-500" />
+                            )}
+                            <span className="text-gray-600 truncate max-w-[120px]">{mov.description}</span>
+                          </div>
+                          <span className={mov.type === 'income' ? 'text-green-600' : 'text-red-600'}>
+                            {mov.type === 'income' ? '+' : '-'}{formatCurrency(mov.amount)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-              <p className="text-2xl font-bold">
-                {formatCurrency(calculateExpected())}
-              </p>
-            </motion.div>
-          </div>
 
-          {/* Ventas por método */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="bg-white rounded-xl border border-gray-200 p-6"
-          >
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Ventas del Día</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              <div className="text-center p-4 bg-green-50 rounded-lg">
-                <Banknote className="h-6 w-6 text-green-600 mx-auto mb-2" />
-                <p className="text-sm text-gray-600">Efectivo</p>
-                <p className="text-lg font-bold text-green-600">
-                  {formatCurrency(currentRegister.salesByMethod?.efectivo || 0)}
-                </p>
-              </div>
-              <div className="text-center p-4 bg-purple-50 rounded-lg">
-                <Wallet className="h-6 w-6 text-purple-600 mx-auto mb-2" />
-                <p className="text-sm text-gray-600">Nequi</p>
-                <p className="text-lg font-bold text-purple-600">
-                  {formatCurrency(currentRegister.salesByMethod?.nequi || 0)}
-                </p>
-              </div>
-              <div className="text-center p-4 bg-orange-50 rounded-lg">
-                <Wallet className="h-6 w-6 text-orange-600 mx-auto mb-2" />
-                <p className="text-sm text-gray-600">Daviplata</p>
-                <p className="text-lg font-bold text-orange-600">
-                  {formatCurrency(currentRegister.salesByMethod?.daviplata || 0)}
-                </p>
-              </div>
-              <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                <CreditCard className="h-6 w-6 text-yellow-600 mx-auto mb-2" />
-                <p className="text-sm text-gray-600">Llave</p>
-                <p className="text-lg font-bold text-yellow-600">
-                  {formatCurrency(currentRegister.salesByMethod?.llave_bancolombia || 0)}
-                </p>
-              </div>
-              <div className="text-center p-4 bg-blue-50 rounded-lg">
-                <CreditCard className="h-6 w-6 text-blue-600 mx-auto mb-2" />
-                <p className="text-sm text-gray-600">Tarjeta</p>
-                <p className="text-lg font-bold text-blue-600">
-                  {formatCurrency(currentRegister.salesByMethod?.tarjeta || 0)}
-                </p>
-              </div>
-              <div className="text-center p-4 bg-gray-100 rounded-lg">
-                <ArrowUpDown className="h-6 w-6 text-gray-600 mx-auto mb-2" />
-                <p className="text-sm text-gray-600">Transferencia</p>
-                <p className="text-lg font-bold text-gray-700">
-                  {formatCurrency(currentRegister.salesByMethod?.transferencia || 0)}
-                </p>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Movimientos y acciones */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Lista de movimientos */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-              className="bg-white rounded-xl border border-gray-200 p-6"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Movimientos</h3>
+              {/* Acciones de caja */}
+              <div className="p-4 border-t space-y-2">
                 <button
                   onClick={() => setShowMovementModal(true)}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium"
                 >
-                  <Plus className="h-4 w-4" />
-                  Agregar
+                  <ArrowUpDown className="h-4 w-4" />
+                  Registrar Movimiento
+                </button>
+                <button
+                  onClick={() => setShowCloseModal(true)}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-sm font-medium"
+                >
+                  <Lock className="h-4 w-4" />
+                  Cerrar Caja
                 </button>
               </div>
+            </>
+          )}
+        </div>
+
+        {/* Panel Central - POS */}
+        <div className="flex-1 flex flex-col">
+          {/* Barra de búsqueda */}
+          <div className="p-4 bg-white border-b">
+            <div className="flex gap-2">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchProduct}
+                  onChange={(e) => setSearchProduct(e.target.value)}
+                  placeholder="Buscar producto por nombre o SKU..."
+                  className="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  disabled={!currentRegister || currentRegister.status !== 'open'}
+                />
+                
+                {/* Dropdown de resultados */}
+                {searchResults.length > 0 && searchProduct && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg z-10 max-h-64 overflow-auto">
+                    {searchResults.map(product => {
+                      const stock = getStock(product._id);
+                      return (
+                        <div
+                          key={product._id}
+                          onClick={() => stock > 0 && addToCart(product)}
+                          className={`p-3 flex justify-between items-center border-b last:border-0 ${
+                            stock > 0 ? 'hover:bg-gray-50 cursor-pointer' : 'opacity-50 cursor-not-allowed'
+                          }`}
+                        >
+                          <div>
+                            <p className="font-medium">{product.name}</p>
+                            <p className="text-xs text-gray-500">SKU: {product.sku}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold">{formatCurrency(product.price)}</p>
+                            <p className={`text-xs ${stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              Stock: {stock}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
               
-              {currentRegister.movements.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <ArrowUpDown className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>No hay movimientos registrados</p>
-                </div>
-              ) : (
-                <div className="space-y-3 max-h-[300px] overflow-y-auto">
-                  {currentRegister.movements.map((movement, index) => (
-                    <div
-                      key={index}
-                      className={`flex items-center justify-between p-3 rounded-lg ${
-                        movement.type === 'income' ? 'bg-green-50' : 'bg-red-50'
+              <button
+                onClick={() => setShowScanner(true)}
+                disabled={!currentRegister || currentRegister.status !== 'open'}
+                className="px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg disabled:opacity-50"
+                title="Escanear código"
+              >
+                <Package className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Carrito */}
+          <div className="flex-1 overflow-auto p-4">
+            {cart.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-gray-400">
+                <ShoppingCart className="h-16 w-16 mb-4" />
+                <p className="text-lg">Carrito vacío</p>
+                <p className="text-sm">Busca productos para agregarlos</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {cart.map(item => (
+                  <motion.div
+                    key={item.product._id}
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-white rounded-lg border p-3 flex items-center gap-4"
+                  >
+                    <div className="flex-1">
+                      <p className="font-medium">{item.product.name}</p>
+                      <p className="text-sm text-gray-500">{formatCurrency(item.unitPrice)} c/u</p>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => updateQuantity(item.product._id, -1)}
+                        className="w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded"
+                      >
+                        <Minus className="h-4 w-4" />
+                      </button>
+                      <span className="w-8 text-center font-medium">{item.quantity}</span>
+                      <button
+                        onClick={() => updateQuantity(item.product._id, 1)}
+                        className="w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    </div>
+                    
+                    <div className="w-24 text-right">
+                      <p className="font-bold">{formatCurrency(item.subtotal)}</p>
+                    </div>
+                    
+                    <button
+                      onClick={() => removeFromCart(item.product._id)}
+                      className="p-2 text-red-500 hover:bg-red-50 rounded"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Panel de pago */}
+          <div className="bg-white border-t p-4">
+            <div className="flex gap-4">
+              {/* Método de pago */}
+              <div className="flex-1">
+                <p className="text-xs font-medium text-gray-500 mb-2">MÉTODO DE PAGO</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { value: 'efectivo', label: 'Efectivo', icon: Banknote },
+                    { value: 'nequi', label: 'Nequi', icon: Wallet },
+                    { value: 'daviplata', label: 'Daviplata', icon: Wallet },
+                    { value: 'tarjeta', label: 'Tarjeta', icon: CreditCard },
+                    { value: 'transferencia', label: 'Transfer.', icon: ArrowUpDown },
+                    { value: 'llave_bancolombia', label: 'Llave', icon: CreditCard },
+                  ].map(({ value, label, icon: Icon }) => (
+                    <button
+                      key={value}
+                      onClick={() => setPaymentMethod(value)}
+                      className={`flex flex-col items-center gap-1 p-2 rounded-lg border-2 transition-colors ${
+                        paymentMethod === value
+                          ? 'border-primary-500 bg-primary-50 text-primary-700'
+                          : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                          movement.type === 'income' ? 'bg-green-100' : 'bg-red-100'
-                        }`}>
-                          {movement.type === 'income' ? (
-                            <TrendingUp className="h-4 w-4 text-green-600" />
-                          ) : (
-                            <TrendingDown className="h-4 w-4 text-red-600" />
-                          )}
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">{movement.description}</p>
-                          <p className="text-xs text-gray-500">
-                            {movement.createdBy?.name} • {formatDate(movement.createdAt)}
-                          </p>
-                        </div>
-                      </div>
-                      <span className={`font-semibold ${
-                        movement.type === 'income' ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {movement.type === 'income' ? '+' : '-'}{formatCurrency(movement.amount)}
-                      </span>
-                    </div>
+                      <Icon className="h-5 w-5" />
+                      <span className="text-xs font-medium">{label}</span>
+                    </button>
                   ))}
                 </div>
-              )}
-            </motion.div>
-
-            {/* Acciones rápidas */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7 }}
-              className="bg-white rounded-xl border border-gray-200 p-6"
-            >
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Acciones Rápidas</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  onClick={() => {
-                    setMovementType('income');
-                    setShowMovementModal(true);
-                  }}
-                  className="flex flex-col items-center gap-2 p-4 bg-green-50 rounded-xl hover:bg-green-100 transition-colors border border-green-200"
-                >
-                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                    <Plus className="h-6 w-6 text-green-600" />
+                
+                {paymentMethod === 'efectivo' && cart.length > 0 && (
+                  <div className="mt-3 flex items-center gap-3">
+                    <div className="flex-1">
+                      <input
+                        type="number"
+                        value={amountReceived}
+                        onChange={(e) => setAmountReceived(e.target.value)}
+                        placeholder="Monto recibido"
+                        className="w-full px-3 py-2 border rounded-lg"
+                      />
+                    </div>
+                    {change > 0 && (
+                      <div className="text-right">
+                        <p className="text-xs text-gray-500">Cambio:</p>
+                        <p className="font-bold text-green-600">{formatCurrency(change)}</p>
+                      </div>
+                    )}
                   </div>
-                  <span className="text-sm font-medium text-green-700">Ingreso Extra</span>
-                </button>
+                )}
+              </div>
+
+              {/* Total y botón */}
+              <div className="w-64 flex flex-col justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-500">TOTAL A PAGAR</p>
+                  <p className="text-4xl font-bold text-gray-900">{formatCurrency(cartTotal)}</p>
+                  <p className="text-sm text-gray-500">{cart.length} producto(s)</p>
+                </div>
                 
                 <button
-                  onClick={() => {
-                    setMovementType('expense');
-                    setShowMovementModal(true);
-                  }}
-                  className="flex flex-col items-center gap-2 p-4 bg-red-50 rounded-xl hover:bg-red-100 transition-colors border border-red-200"
+                  onClick={handleSale}
+                  disabled={cart.length === 0 || saleMutation.isPending || !currentRegister}
+                  className="w-full py-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white rounded-xl font-bold text-lg flex items-center justify-center gap-2"
                 >
-                  <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                    <Minus className="h-6 w-6 text-red-600" />
-                  </div>
-                  <span className="text-sm font-medium text-red-700">Retiro/Gasto</span>
+                  {saleMutation.isPending ? (
+                    <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
+                  ) : (
+                    <>
+                      <Receipt className="h-6 w-6" />
+                      Cobrar
+                    </>
+                  )}
                 </button>
               </div>
-              
-              <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm text-amber-700">
-                    <p className="font-medium">Recuerda</p>
-                    <p>Registra todos los movimientos de efectivo para mantener el arqueo preciso.</p>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
+            </div>
           </div>
         </div>
-      )}
+      </div>
 
+      {/* ==================== MODALES ==================== */}
+      
       {/* Modal Abrir Caja */}
       <AnimatePresence>
         {showOpenModal && (
@@ -626,30 +748,21 @@ export default function CashRegisterPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
             onClick={() => setShowOpenModal(false)}
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
               className="bg-white rounded-xl shadow-xl max-w-md w-full p-6"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                  <Unlock className="h-6 w-6 text-green-600" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Abrir Caja</h3>
-                  <p className="text-sm text-gray-600">Ingresa el monto inicial en efectivo</p>
-                </div>
-              </div>
-              
-              <form onSubmit={handleOpenCashRegister}>
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Monto de Apertura
+              <h2 className="text-xl font-bold mb-4">Abrir Caja</h2>
+              <form onSubmit={(e) => { e.preventDefault(); openMutation.mutate({ openingAmount: parseFloat(openingAmount) || 0, storeId: selectedStoreId }); }}>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Monto inicial en caja
                   </label>
                   <div className="relative">
                     <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -657,154 +770,31 @@ export default function CashRegisterPage() {
                       type="number"
                       value={openingAmount}
                       onChange={(e) => setOpeningAmount(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-lg"
+                      className="w-full pl-10 pr-4 py-3 border rounded-lg text-lg"
                       placeholder="0"
-                      min="0"
-                      step="100"
-                      required
                       autoFocus
                     />
                   </div>
                 </div>
-                
-                <div className="flex gap-3">
+                <div className="flex gap-3 justify-end">
                   <button
                     type="button"
                     onClick={() => setShowOpenModal(false)}
-                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={openMutation.isPending}
-                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg flex items-center gap-2 disabled:opacity-50"
                   >
-                    {openMutation.isPending ? 'Abriendo...' : 'Abrir Caja'}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Modal Agregar Movimiento */}
-      <AnimatePresence>
-        {showMovementModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-            onClick={() => setShowMovementModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-xl shadow-xl max-w-md w-full p-6"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center gap-3 mb-6">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                  movementType === 'income' ? 'bg-green-100' : 'bg-red-100'
-                }`}>
-                  {movementType === 'income' ? (
-                    <TrendingUp className="h-6 w-6 text-green-600" />
-                  ) : (
-                    <TrendingDown className="h-6 w-6 text-red-600" />
-                  )}
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    {movementType === 'income' ? 'Registrar Ingreso' : 'Registrar Egreso'}
-                  </h3>
-                  <p className="text-sm text-gray-600">Agrega un movimiento de caja</p>
-                </div>
-              </div>
-              
-              <form onSubmit={handleAddMovement}>
-                {/* Tipo de movimiento */}
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setMovementType('income')}
-                      className={`flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-colors ${
-                        movementType === 'income'
-                          ? 'border-green-500 bg-green-50 text-green-700'
-                          : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-                      }`}
-                    >
-                      <TrendingUp className="h-4 w-4" />
-                      Ingreso
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setMovementType('expense')}
-                      className={`flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-colors ${
-                        movementType === 'expense'
-                          ? 'border-red-500 bg-red-50 text-red-700'
-                          : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-                      }`}
-                    >
-                      <TrendingDown className="h-4 w-4" />
-                      Egreso
-                    </button>
-                  </div>
-                </div>
-
-                {/* Monto */}
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Monto</label>
-                  <div className="relative">
-                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                    <input
-                      type="number"
-                      value={movementAmount}
-                      onChange={(e) => setMovementAmount(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="0"
-                      min="1"
-                      step="100"
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* Descripción */}
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
-                  <input
-                    type="text"
-                    value={movementDescription}
-                    onChange={(e) => setMovementDescription(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder={movementType === 'income' ? 'Ej: Cobro de factura pendiente' : 'Ej: Compra de suministros'}
-                    required
-                  />
-                </div>
-                
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setShowMovementModal(false)}
-                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={movementMutation.isPending}
-                    className={`flex-1 px-4 py-2 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                      movementType === 'income'
-                        ? 'bg-green-600 hover:bg-green-700'
-                        : 'bg-red-600 hover:bg-red-700'
-                    }`}
-                  >
-                    {movementMutation.isPending ? 'Guardando...' : 'Guardar'}
+                    {openMutation.isPending ? (
+                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                    ) : (
+                      <Unlock className="h-4 w-4" />
+                    )}
+                    Abrir Caja
                   </button>
                 </div>
               </form>
@@ -815,142 +805,202 @@ export default function CashRegisterPage() {
 
       {/* Modal Cerrar Caja */}
       <AnimatePresence>
-        {showCloseModal && currentRegister && (
+        {showCloseModal && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
             onClick={() => setShowCloseModal(false)}
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
               className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                  <Lock className="h-6 w-6 text-red-600" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Cerrar Caja</h3>
-                  <p className="text-sm text-gray-600">Realiza el arqueo final del día</p>
-                </div>
-              </div>
-
-              {/* Resumen antes de cerrar */}
-              <div className="bg-gray-50 rounded-lg p-4 mb-6 space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Monto inicial:</span>
-                  <span className="font-medium">{formatCurrency(currentRegister.openingAmount)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Ventas en efectivo:</span>
-                  <span className="font-medium text-green-600">+{formatCurrency(currentRegister.salesByMethod?.efectivo || 0)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Movimientos netos:</span>
-                  {(() => {
-                    const net = currentRegister.movements.reduce((sum, m) => 
-                      sum + (m.type === 'income' ? m.amount : -m.amount), 0
-                    );
-                    return (
-                      <span className={`font-medium ${net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {net >= 0 ? '+' : ''}{formatCurrency(net)}
-                      </span>
-                    );
-                  })()}
-                </div>
-                <div className="border-t pt-2 flex justify-between">
-                  <span className="font-medium text-gray-700">Total esperado:</span>
-                  <span className="font-bold text-blue-600">{formatCurrency(calculateExpected())}</span>
-                </div>
-              </div>
-              
-              <form onSubmit={handleCloseCashRegister}>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Monto Real en Caja
-                  </label>
-                  <div className="relative">
-                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                    <input
-                      type="number"
-                      value={closingAmount}
-                      onChange={(e) => setClosingAmount(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-lg"
-                      placeholder="Cuenta el efectivo real"
-                      min="0"
-                      step="100"
-                      required
-                      autoFocus
-                    />
-                  </div>
-                  
-                  {/* Mostrar diferencia en tiempo real */}
-                  {closingAmount && (
-                    <div className={`mt-2 p-3 rounded-lg ${
-                      parseFloat(closingAmount) === calculateExpected()
-                        ? 'bg-green-50 text-green-700'
-                        : parseFloat(closingAmount) > calculateExpected()
-                        ? 'bg-blue-50 text-blue-700'
-                        : 'bg-red-50 text-red-700'
-                    }`}>
-                      <div className="flex items-center gap-2">
-                        {parseFloat(closingAmount) === calculateExpected() ? (
-                          <>
-                            <CheckCircle className="h-5 w-5" />
-                            <span className="font-medium">Cuadre perfecto</span>
-                          </>
-                        ) : parseFloat(closingAmount) > calculateExpected() ? (
-                          <>
-                            <TrendingUp className="h-5 w-5" />
-                            <span className="font-medium">
-                              Sobrante: {formatCurrency(parseFloat(closingAmount) - calculateExpected())}
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <XCircle className="h-5 w-5" />
-                            <span className="font-medium">
-                              Faltante: {formatCurrency(calculateExpected() - parseFloat(closingAmount))}
-                            </span>
-                          </>
-                        )}
+              <h2 className="text-xl font-bold mb-4">Cerrar Caja</h2>
+              <form onSubmit={(e) => { e.preventDefault(); closeMutation.mutate({ closingAmount: parseFloat(closingAmount) || 0, notes: closingNotes }); }}>
+                <div className="space-y-4">
+                  {currentRegister && (
+                    <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Monto inicial:</span>
+                        <span className="font-medium">{formatCurrency(currentRegister.openingAmount)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Ventas efectivo:</span>
+                        <span className="font-medium text-green-600">+{formatCurrency(currentRegister.salesByMethod?.efectivo || 0)}</span>
+                      </div>
+                      <div className="border-t pt-2 flex justify-between font-medium">
+                        <span>Esperado en caja:</span>
+                        <span className="text-lg">{formatCurrency(currentRegister.calculatedTotals?.expectedAmount || 0)}</span>
                       </div>
                     </div>
                   )}
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Monto contado en caja
+                    </label>
+                    <div className="relative">
+                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                      <input
+                        type="number"
+                        value={closingAmount}
+                        onChange={(e) => setClosingAmount(e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 border rounded-lg text-lg"
+                        placeholder="0"
+                        autoFocus
+                      />
+                    </div>
+                    
+                    {closingAmount && currentRegister && (
+                      <div className={`mt-2 p-3 rounded-lg ${
+                        parseFloat(closingAmount) === (currentRegister.calculatedTotals?.expectedAmount || 0)
+                          ? 'bg-green-50 text-green-700'
+                          : parseFloat(closingAmount) > (currentRegister.calculatedTotals?.expectedAmount || 0)
+                          ? 'bg-blue-50 text-blue-700'
+                          : 'bg-red-50 text-red-700'
+                      }`}>
+                        <div className="flex items-center gap-2">
+                          {parseFloat(closingAmount) === (currentRegister.calculatedTotals?.expectedAmount || 0) ? (
+                            <><CheckCircle className="h-5 w-5" /> Cuadre perfecto</>
+                          ) : (
+                            <>
+                              <AlertCircle className="h-5 w-5" />
+                              Diferencia: {formatCurrency(parseFloat(closingAmount) - (currentRegister.calculatedTotals?.expectedAmount || 0))}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Observaciones (opcional)
+                    </label>
+                    <textarea
+                      value={closingNotes}
+                      onChange={(e) => setClosingNotes(e.target.value)}
+                      className="w-full px-4 py-2 border rounded-lg"
+                      rows={2}
+                      placeholder="Notas sobre el cierre..."
+                    />
+                  </div>
                 </div>
-
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Notas (opcional)
-                  </label>
-                  <textarea
-                    value={closingNotes}
-                    onChange={(e) => setClosingNotes(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                    placeholder="Observaciones del cierre..."
-                    rows={2}
-                  />
-                </div>
-                
-                <div className="flex gap-3">
+                <div className="flex gap-3 justify-end mt-6">
                   <button
                     type="button"
                     onClick={() => setShowCloseModal(false)}
-                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={closeMutation.isPending}
-                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center gap-2 disabled:opacity-50"
                   >
-                    {closeMutation.isPending ? 'Cerrando...' : 'Cerrar Caja'}
+                    {closeMutation.isPending ? (
+                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                    ) : (
+                      <Lock className="h-4 w-4" />
+                    )}
+                    Cerrar Caja
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal Movimiento */}
+      <AnimatePresence>
+        {showMovementModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            onClick={() => setShowMovementModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              className="bg-white rounded-xl shadow-xl max-w-md w-full p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="text-xl font-bold mb-4">Registrar Movimiento</h2>
+              <form onSubmit={(e) => { e.preventDefault(); movementMutation.mutate({ type: movementType, amount: parseFloat(movementAmount) || 0, description: movementDescription }); }}>
+                <div className="space-y-4">
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setMovementType('income')}
+                      className={`flex-1 py-3 rounded-lg font-medium flex items-center justify-center gap-2 ${
+                        movementType === 'income' ? 'bg-green-100 text-green-700 ring-2 ring-green-500' : 'bg-gray-100'
+                      }`}
+                    >
+                      <TrendingUp className="h-5 w-5" />
+                      Ingreso
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMovementType('expense')}
+                      className={`flex-1 py-3 rounded-lg font-medium flex items-center justify-center gap-2 ${
+                        movementType === 'expense' ? 'bg-red-100 text-red-700 ring-2 ring-red-500' : 'bg-gray-100'
+                      }`}
+                    >
+                      <TrendingDown className="h-5 w-5" />
+                      Egreso
+                    </button>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Monto</label>
+                    <input
+                      type="number"
+                      value={movementAmount}
+                      onChange={(e) => setMovementAmount(e.target.value)}
+                      className="w-full px-4 py-3 border rounded-lg"
+                      placeholder="0"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+                    <input
+                      type="text"
+                      value={movementDescription}
+                      onChange={(e) => setMovementDescription(e.target.value)}
+                      className="w-full px-4 py-2 border rounded-lg"
+                      placeholder="Ej: Pago a proveedor, cambio de billetes..."
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3 justify-end mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setShowMovementModal(false)}
+                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={movementMutation.isPending}
+                    className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg disabled:opacity-50"
+                  >
+                    {movementMutation.isPending ? (
+                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                    ) : (
+                      'Registrar'
+                    )}
                   </button>
                 </div>
               </form>
@@ -966,309 +1016,74 @@ export default function CashRegisterPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
             onClick={() => setShowHistoryModal(false)}
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col"
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              className="bg-white rounded-xl shadow-xl max-w-2xl w-full p-6"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="p-6 border-b flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                    <History className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900">Historial de Cierres</h3>
-                </div>
-                <button
-                  onClick={() => setShowHistoryModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <XCircle className="h-6 w-6" />
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Historial de Cajas</h2>
+                <button onClick={() => setShowHistoryModal(false)} className="p-1 hover:bg-gray-100 rounded">
+                  <XCircle className="h-5 w-5" />
                 </button>
               </div>
-              
-              <div className="flex-1 overflow-y-auto p-6">
-                {!historyData?.registers || historyData.registers.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
-                    <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                    <p>No hay registros anteriores</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {historyData.registers.map((register) => (
-                      <div
-                        key={register._id}
-                        onClick={() => viewRegisterDetail(register)}
-                        className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 cursor-pointer transition-colors"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-gray-400" />
-                            <span className="font-medium text-gray-900">
-                              {formatDate(register.openedAt)}
-                            </span>
-                          </div>
-                          <span className={`px-2 py-1 text-xs rounded-full ${
-                            register.status === 'open'
-                              ? 'bg-green-100 text-green-700'
-                              : 'bg-gray-200 text-gray-600'
-                          }`}>
-                            {register.status === 'open' ? 'Abierta' : 'Cerrada'}
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-3 gap-4 text-sm">
-                          <div>
-                            <span className="text-gray-500">Apertura:</span>
-                            <p className="font-medium">{formatCurrency(register.openingAmount)}</p>
-                          </div>
-                          <div>
-                            <span className="text-gray-500">Ventas:</span>
-                            <p className="font-medium text-green-600">
-                              {formatCurrency(
-                                (register.salesByMethod?.efectivo || 0) +
-                                (register.salesByMethod?.nequi || 0) +
-                                (register.salesByMethod?.daviplata || 0) +
-                                (register.salesByMethod?.llave_bancolombia || 0) +
-                                (register.salesByMethod?.tarjeta || 0) +
-                                (register.salesByMethod?.transferencia || 0)
-                              )}
-                            </p>
-                          </div>
-                          <div>
-                            <span className="text-gray-500">Diferencia:</span>
-                            <p className={`font-medium ${
-                              register.difference === 0
-                                ? 'text-green-600'
-                                : register.difference && register.difference > 0
-                                ? 'text-blue-600'
-                                : 'text-red-600'
-                            }`}>
-                              {register.difference !== undefined
-                                ? (register.difference > 0 ? '+' : '') + formatCurrency(register.difference)
-                                : '-'}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Modal Detalle de Registro */}
-      <AnimatePresence>
-        {showDetailModal && selectedRegister && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-            onClick={() => setShowDetailModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-6 border-b flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Detalle del Arqueo</h3>
-                  <p className="text-sm text-gray-500">{formatDate(selectedRegister.openedAt)}</p>
-                </div>
-                <button
-                  onClick={() => setShowDetailModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <XCircle className="h-6 w-6" />
-                </button>
-              </div>
-              
-              <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                {/* Información general */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <span className="text-sm text-gray-500">Monto Apertura</span>
-                    <p className="text-xl font-bold text-gray-900">
-                      {formatCurrency(selectedRegister.openingAmount)}
-                    </p>
-                  </div>
-                  {selectedRegister.closingAmount !== undefined && (
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <span className="text-sm text-gray-500">Monto Cierre</span>
-                      <p className="text-xl font-bold text-gray-900">
-                        {formatCurrency(selectedRegister.closingAmount)}
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Ventas por método */}
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-3">Ventas por Método</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    <div className="bg-green-50 rounded-lg p-3 text-center">
-                      <Banknote className="h-5 w-5 text-green-600 mx-auto mb-1" />
-                      <span className="text-xs text-gray-500">Efectivo</span>
-                      <p className="font-semibold text-green-600">
-                        {formatCurrency(selectedRegister.salesByMethod?.efectivo || 0)}
-                      </p>
-                    </div>
-                    <div className="bg-purple-50 rounded-lg p-3 text-center">
-                      <Wallet className="h-5 w-5 text-purple-600 mx-auto mb-1" />
-                      <span className="text-xs text-gray-500">Nequi</span>
-                      <p className="font-semibold text-purple-600">
-                        {formatCurrency(selectedRegister.salesByMethod?.nequi || 0)}
-                      </p>
-                    </div>
-                    <div className="bg-orange-50 rounded-lg p-3 text-center">
-                      <Wallet className="h-5 w-5 text-orange-600 mx-auto mb-1" />
-                      <span className="text-xs text-gray-500">Daviplata</span>
-                      <p className="font-semibold text-orange-600">
-                        {formatCurrency(selectedRegister.salesByMethod?.daviplata || 0)}
-                      </p>
-                    </div>
-                    <div className="bg-yellow-50 rounded-lg p-3 text-center">
-                      <CreditCard className="h-5 w-5 text-yellow-600 mx-auto mb-1" />
-                      <span className="text-xs text-gray-500">Llave</span>
-                      <p className="font-semibold text-yellow-600">
-                        {formatCurrency(selectedRegister.salesByMethod?.llave_bancolombia || 0)}
-                      </p>
-                    </div>
-                    <div className="bg-blue-50 rounded-lg p-3 text-center">
-                      <CreditCard className="h-5 w-5 text-blue-600 mx-auto mb-1" />
-                      <span className="text-xs text-gray-500">Tarjeta</span>
-                      <p className="font-semibold text-blue-600">
-                        {formatCurrency(selectedRegister.salesByMethod?.tarjeta || 0)}
-                      </p>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-3 text-center">
-                      <ArrowUpDown className="h-5 w-5 text-gray-600 mx-auto mb-1" />
-                      <span className="text-xs text-gray-500">Transferencia</span>
-                      <p className="font-semibold text-gray-700">
-                        {formatCurrency(selectedRegister.salesByMethod?.transferencia || 0)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Resultado */}
-                {selectedRegister.status === 'closed' && (
-                  <div className={`p-4 rounded-lg ${
-                    selectedRegister.difference === 0
-                      ? 'bg-green-50 border border-green-200'
-                      : selectedRegister.difference && selectedRegister.difference > 0
-                      ? 'bg-blue-50 border border-blue-200'
-                      : 'bg-red-50 border border-red-200'
-                  }`}>
-                    <div className="flex items-center justify-between">
+              <div className="space-y-3 max-h-[60vh] overflow-auto">
+                {historyData?.registers?.map((register) => (
+                  <div key={register._id} className="p-4 bg-gray-50 rounded-lg">
+                    <div className="flex justify-between items-start mb-2">
                       <div>
-                        <span className="text-sm text-gray-600">Resultado del Arqueo</span>
-                        <div className="flex items-center gap-2 mt-1">
-                          {selectedRegister.difference === 0 ? (
-                            <>
-                              <CheckCircle className="h-5 w-5 text-green-600" />
-                              <span className="font-semibold text-green-700">Cuadre Perfecto</span>
-                            </>
-                          ) : selectedRegister.difference && selectedRegister.difference > 0 ? (
-                            <>
-                              <TrendingUp className="h-5 w-5 text-blue-600" />
-                              <span className="font-semibold text-blue-700">
-                                Sobrante: {formatCurrency(selectedRegister.difference)}
-                              </span>
-                            </>
-                          ) : (
-                            <>
-                              <XCircle className="h-5 w-5 text-red-600" />
-                              <span className="font-semibold text-red-700">
-                                Faltante: {formatCurrency(Math.abs(selectedRegister.difference || 0))}
-                              </span>
-                            </>
-                          )}
-                        </div>
+                        <p className="font-medium">{formatDate(register.openedAt)}</p>
+                        <p className="text-sm text-gray-500">{register.store?.name}</p>
                       </div>
-                      <div className="text-right">
-                        <span className="text-xs text-gray-500">Esperado vs Real</span>
-                        <p className="text-sm">
-                          {formatCurrency(selectedRegister.expectedAmount || 0)} vs {formatCurrency(selectedRegister.closingAmount || 0)}
-                        </p>
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${
+                        register.status === 'open' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700'
+                      }`}>
+                        {register.status === 'open' ? 'Abierta' : 'Cerrada'}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-500">Apertura:</span>
+                        <p className="font-medium">{formatCurrency(register.openingAmount)}</p>
                       </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Movimientos */}
-                {selectedRegister.movements.length > 0 && (
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-3">
-                      Movimientos ({selectedRegister.movements.length})
-                    </h4>
-                    <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                      {selectedRegister.movements.map((movement, index) => (
-                        <div
-                          key={index}
-                          className={`flex items-center justify-between p-3 rounded-lg ${
-                            movement.type === 'income' ? 'bg-green-50' : 'bg-red-50'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            {movement.type === 'income' ? (
-                              <TrendingUp className="h-4 w-4 text-green-600" />
-                            ) : (
-                              <TrendingDown className="h-4 w-4 text-red-600" />
-                            )}
-                            <span className="text-sm">{movement.description}</span>
-                          </div>
-                          <span className={`font-medium ${
-                            movement.type === 'income' ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                            {movement.type === 'income' ? '+' : '-'}{formatCurrency(movement.amount)}
-                          </span>
+                      {register.closingAmount !== undefined && (
+                        <div>
+                          <span className="text-gray-500">Cierre:</span>
+                          <p className="font-medium">{formatCurrency(register.closingAmount)}</p>
                         </div>
-                      ))}
+                      )}
+                      {register.difference !== undefined && (
+                        <div>
+                          <span className="text-gray-500">Diferencia:</span>
+                          <p className={`font-medium ${register.difference === 0 ? 'text-green-600' : register.difference > 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                            {formatCurrency(register.difference)}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
+                ))}
+                {(!historyData?.registers || historyData.registers.length === 0) && (
+                  <p className="text-center text-gray-500 py-8">No hay historial</p>
                 )}
-
-                {/* Notas */}
-                {selectedRegister.notes && (
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Notas</h4>
-                    <p className="text-gray-600 bg-gray-50 rounded-lg p-3">
-                      {selectedRegister.notes}
-                    </p>
-                  </div>
-                )}
-
-                {/* Información de usuarios */}
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-500">Abierta por:</span>
-                    <p className="font-medium">{selectedRegister.openedBy?.name}</p>
-                    <p className="text-xs text-gray-400">{formatDate(selectedRegister.openedAt)}</p>
-                  </div>
-                  {selectedRegister.closedBy && (
-                    <div>
-                      <span className="text-gray-500">Cerrada por:</span>
-                      <p className="font-medium">{selectedRegister.closedBy?.name}</p>
-                      <p className="text-xs text-gray-400">{selectedRegister.closedAt && formatDate(selectedRegister.closedAt)}</p>
-                    </div>
-                  )}
-                </div>
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Scanner Modal */}
+      <BarcodeScanner
+        isOpen={showScanner}
+        onClose={() => setShowScanner(false)}
+        onScan={handleBarcodeScanned}
+        title="Escanear Código de Producto"
+      />
     </div>
   );
 }
