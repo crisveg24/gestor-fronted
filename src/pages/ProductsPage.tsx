@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Plus, Edit2, Trash2, Eye, AlertCircle, Printer } from 'lucide-react';
+import { Plus, Edit2, Trash2, Eye, AlertCircle, Printer, Power, PowerOff } from 'lucide-react';
 import { Card, SearchBar, ResponsiveTable, Pagination, Button, Modal, toast, EmptyStateNoStore } from '../components/ui';
 import type { Column } from '../components/ui';
 import api from '../lib/axios';
@@ -44,6 +44,7 @@ const ProductsPage = () => {
   const [sortKey, setSortKey] = useState('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [printModalOpen, setPrintModalOpen] = useState(false);
@@ -52,7 +53,7 @@ const ProductsPage = () => {
 
   // Query para obtener productos - DEBE estar antes del return condicional
   const { data, isLoading, error } = useQuery<ProductsResponse>({
-    queryKey: ['products', currentPage, itemsPerPage, searchQuery, sortKey, sortDirection, categoryFilter],
+    queryKey: ['products', currentPage, itemsPerPage, searchQuery, sortKey, sortDirection, categoryFilter, statusFilter],
     queryFn: async () => {
       const response = await api.get('/products', {
         params: {
@@ -62,26 +63,42 @@ const ProductsPage = () => {
           sortBy: sortKey,
           sortOrder: sortDirection,
           category: categoryFilter || undefined,
+          isActive: statusFilter === 'all' ? undefined : statusFilter === 'active',
         },
       });
-      return response.data; // La respuesta ya tiene la estructura correcta
+      return response.data;
     },
     staleTime: 2 * 60 * 1000,
   });
 
-  // Mutation para eliminar producto - DEBE estar antes del return condicional
+  // Mutation para eliminar producto permanentemente
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       await api.delete(`/products/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
-      toast.success('Producto eliminado exitosamente');
+      toast.success('Producto eliminado permanentemente');
       setDeleteModalOpen(false);
       setProductToDelete(null);
     },
     onError: () => {
       toast.error('Error al eliminar el producto');
+    },
+  });
+
+  // Mutation para activar/desactivar producto
+  const toggleStatusMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await api.patch(`/products/${id}/toggle-status`);
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      toast.success(data.message || 'Estado actualizado');
+    },
+    onError: () => {
+      toast.error('Error al cambiar estado del producto');
     },
   });
 
@@ -210,7 +227,7 @@ const ProductsPage = () => {
       key: 'actions',
       header: 'Acciones',
       render: (product) => (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <button
             onClick={() => navigate(`/productos/${product._id}`)}
             className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
@@ -220,7 +237,7 @@ const ProductsPage = () => {
           </button>
           <button
             onClick={() => navigate(`/productos/editar/${product._id}`)}
-            className="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors"
+            className="p-1.5 text-amber-600 hover:bg-amber-50 rounded transition-colors"
             title="Editar"
           >
             <Edit2 size={18} />
@@ -237,9 +254,20 @@ const ProductsPage = () => {
             <Printer size={18} />
           </button>
           <button
+            onClick={() => toggleStatusMutation.mutate(product._id)}
+            className={`p-1.5 rounded transition-colors ${
+              product.isActive 
+                ? 'text-orange-600 hover:bg-orange-50' 
+                : 'text-green-600 hover:bg-green-50'
+            }`}
+            title={product.isActive ? 'Desactivar' : 'Activar'}
+          >
+            {product.isActive ? <PowerOff size={18} /> : <Power size={18} />}
+          </button>
+          <button
             onClick={() => handleDelete(product)}
             className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
-            title="Eliminar"
+            title="Eliminar permanentemente"
           >
             <Trash2 size={18} />
           </button>
@@ -255,19 +283,19 @@ const ProductsPage = () => {
           </button>
           <button
             onClick={() => navigate(`/productos/editar/${product._id}`)}
-            className="flex-1 px-3 py-2 text-xs text-green-600 bg-green-50 rounded hover:bg-green-100"
+            className="flex-1 px-3 py-2 text-xs text-amber-600 bg-amber-50 rounded hover:bg-amber-100"
           >
             Editar
           </button>
           <button
-            onClick={() => {
-              setProductToPrint(product);
-              setPrintQuantity(1);
-              setPrintModalOpen(true);
-            }}
-            className="flex-1 px-3 py-2 text-xs text-purple-600 bg-purple-50 rounded hover:bg-purple-100"
+            onClick={() => toggleStatusMutation.mutate(product._id)}
+            className={`flex-1 px-3 py-2 text-xs rounded ${
+              product.isActive 
+                ? 'text-orange-600 bg-orange-50 hover:bg-orange-100' 
+                : 'text-green-600 bg-green-50 hover:bg-green-100'
+            }`}
           >
-            Imprimir
+            {product.isActive ? 'Desactivar' : 'Activar'}
           </button>
           <button
             onClick={() => handleDelete(product)}
@@ -357,6 +385,19 @@ const ProductsPage = () => {
                 <option value="Audio">Audio</option>
                 <option value="Accesorios">Accesorios</option>
               </select>
+              {/* ✅ Filtro de estado */}
+              <select
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value as 'all' | 'active' | 'inactive');
+                  setCurrentPage(1);
+                }}
+              >
+                <option value="all">Todos los estados</option>
+                <option value="active">✅ Activos</option>
+                <option value="inactive">❌ Inactivos</option>
+              </select>
               <div className="flex gap-2">
                 <select
                   className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -416,7 +457,7 @@ const ProductsPage = () => {
       <Modal
         isOpen={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
-        title="Confirmar Eliminación"
+        title="⚠️ Eliminar Permanentemente"
         size="sm"
       >
         <div className="space-y-4">
@@ -426,13 +467,24 @@ const ProductsPage = () => {
             </div>
             <div>
               <p className="text-gray-900 font-medium">
-                ¿Estás seguro de que deseas eliminar este producto?
+                ¿Estás seguro de que deseas ELIMINAR PERMANENTEMENTE este producto?
               </p>
               <p className="text-sm text-gray-600 mt-1">
                 <strong>{productToDelete?.name}</strong>
               </p>
-              <p className="text-sm text-gray-500 mt-1">
-                Esta acción no se puede deshacer.
+              <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-700 font-medium">⚠️ Esta acción eliminará:</p>
+                <ul className="text-sm text-red-600 mt-1 list-disc list-inside">
+                  <li>El producto de la base de datos</li>
+                  <li>Todo su inventario asociado</li>
+                  <li>Su historial de precios</li>
+                </ul>
+                <p className="text-sm text-red-700 font-bold mt-2">
+                  Esta acción NO se puede deshacer.
+                </p>
+              </div>
+              <p className="text-sm text-gray-500 mt-3">
+                💡 Si solo deseas ocultar el producto, usa el botón "Desactivar" en su lugar.
               </p>
             </div>
           </div>
@@ -450,7 +502,7 @@ const ProductsPage = () => {
             onClick={confirmDelete}
             isLoading={deleteMutation.isPending}
           >
-            Eliminar Producto
+            🗑️ Eliminar Permanentemente
           </Button>
         </Modal.Footer>
       </Modal>
