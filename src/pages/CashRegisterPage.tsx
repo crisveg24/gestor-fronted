@@ -22,6 +22,8 @@ import {
   Trash2,
   Receipt,
   Package,
+  Percent,
+  Clock,
 } from 'lucide-react';
 import api from '../lib/axios';
 import { useAuthStore } from '../store/authStore';
@@ -127,7 +129,12 @@ export default function CashRegisterPage() {
   const [paymentMethod, setPaymentMethod] = useState('efectivo');
   const [showScanner, setShowScanner] = useState(false);
   const [amountReceived, setAmountReceived] = useState('');
-
+  const [discount, setDiscount] = useState('');
+  const [discountType, setDiscountType] = useState<'fixed' | 'percentage'>('fixed');
+  const [recentProducts, setRecentProducts] = useState<Product[]>(() => {
+    const saved = localStorage.getItem('pos_recent_products');
+    return saved ? JSON.parse(saved) : [];
+  });
   // Guardar tienda seleccionada
   useEffect(() => {
     if (isAdmin && selectedStoreId) {
@@ -289,6 +296,13 @@ export default function CashRegisterPage() {
         unitPrice: product.price,
         subtotal: product.price
       }]);
+      // Guardar en productos recientes
+      setRecentProducts(prev => {
+        const filtered = prev.filter(p => p._id !== product._id);
+        const updated = [product, ...filtered].slice(0, 8);
+        localStorage.setItem('pos_recent_products', JSON.stringify(updated));
+        return updated;
+      });
     }
     setSearchProduct('');
     searchInputRef.current?.focus();
@@ -312,7 +326,15 @@ export default function CashRegisterPage() {
     setCart(cart.filter(item => item.product._id !== productId));
   };
 
-  const cartTotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
+  const cartSubtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
+  
+  // Calcular descuento
+  const discountValue = parseFloat(discount) || 0;
+  const discountAmount = discountType === 'percentage' 
+    ? (cartSubtotal * discountValue / 100) 
+    : discountValue;
+  const cartTotal = Math.max(0, cartSubtotal - discountAmount);
+  
   const change = paymentMethod === 'efectivo' && amountReceived 
     ? parseFloat(amountReceived) - cartTotal 
     : 0;
@@ -338,11 +360,14 @@ export default function CashRegisterPage() {
         quantity: item.quantity,
         unitPrice: item.unitPrice
       })),
-      discount: 0,
+      discount: discountAmount,
       tax: 0,
       paymentMethod,
-      notes: ''
+      notes: discount ? `Descuento: ${discountType === 'percentage' ? discountValue + '%' : formatCurrency(discountValue)}` : ''
     });
+    
+    // Limpiar descuento después de venta
+    setDiscount('');
   };
 
   const handleBarcodeScanned = async (barcode: string) => {
@@ -625,10 +650,45 @@ export default function CashRegisterPage() {
           {/* Carrito */}
           <div className="flex-1 overflow-auto p-4">
             {cart.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-gray-400">
-                <ShoppingCart className="h-16 w-16 mb-4" />
-                <p className="text-lg">Carrito vacío</p>
-                <p className="text-sm">Busca productos para agregarlos</p>
+              <div className="h-full flex flex-col">
+                {/* Productos recientes */}
+                {recentProducts.length > 0 && currentRegister?.status === 'open' && (
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 text-gray-500 mb-2">
+                      <Clock className="h-4 w-4" />
+                      <span className="text-sm font-medium">Productos recientes</span>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      {recentProducts.map(product => {
+                        const stock = getStock(product._id);
+                        return (
+                          <button
+                            key={product._id}
+                            onClick={() => stock > 0 && addToCart(product)}
+                            disabled={stock === 0}
+                            className={`p-3 rounded-lg border text-left transition-colors ${
+                              stock > 0 
+                                ? 'hover:bg-primary-50 hover:border-primary-300' 
+                                : 'opacity-50 cursor-not-allowed'
+                            }`}
+                          >
+                            <p className="font-medium text-sm truncate">{product.name}</p>
+                            <p className="text-primary-600 font-bold">{formatCurrency(product.price)}</p>
+                            <p className={`text-xs ${stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              Stock: {stock}
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                
+                <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
+                  <ShoppingCart className="h-16 w-16 mb-4" />
+                  <p className="text-lg">Carrito vacío</p>
+                  <p className="text-sm">Busca productos para agregarlos</p>
+                </div>
               </div>
             ) : (
               <div className="space-y-2">
@@ -679,35 +739,77 @@ export default function CashRegisterPage() {
           {/* Panel de pago */}
           <div className="bg-white border-t p-4">
             <div className="flex gap-4">
-              {/* Método de pago */}
-              <div className="flex-1">
-                <p className="text-xs font-medium text-gray-500 mb-2">MÉTODO DE PAGO</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { value: 'efectivo', label: 'Efectivo', icon: Banknote },
-                    { value: 'nequi', label: 'Nequi', icon: Wallet },
-                    { value: 'daviplata', label: 'Daviplata', icon: Wallet },
-                    { value: 'tarjeta', label: 'Tarjeta', icon: CreditCard },
-                    { value: 'transferencia', label: 'Transfer.', icon: ArrowUpDown },
-                    { value: 'llave_bancolombia', label: 'Llave', icon: CreditCard },
-                  ].map(({ value, label, icon: Icon }) => (
-                    <button
-                      key={value}
-                      onClick={() => setPaymentMethod(value)}
-                      className={`flex flex-col items-center gap-1 p-2 rounded-lg border-2 transition-colors ${
-                        paymentMethod === value
-                          ? 'border-primary-500 bg-primary-50 text-primary-700'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <Icon className="h-5 w-5" />
-                      <span className="text-xs font-medium">{label}</span>
-                    </button>
-                  ))}
+              {/* Método de pago y descuento */}
+              <div className="flex-1 space-y-3">
+                {/* Descuento */}
+                {cart.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 relative">
+                      <DollarSign className={`absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 ${discountType === 'percentage' ? 'hidden' : ''}`} />
+                      <Percent className={`absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 ${discountType === 'fixed' ? 'hidden' : ''}`} />
+                      <input
+                        type="number"
+                        value={discount}
+                        onChange={(e) => setDiscount(e.target.value)}
+                        placeholder={discountType === 'fixed' ? 'Descuento en pesos' : 'Descuento %'}
+                        className="w-full pl-9 pr-4 py-2 border rounded-lg text-sm"
+                      />
+                    </div>
+                    <div className="flex border rounded-lg overflow-hidden">
+                      <button
+                        onClick={() => setDiscountType('fixed')}
+                        className={`px-3 py-2 text-sm font-medium ${
+                          discountType === 'fixed' ? 'bg-primary-600 text-white' : 'bg-gray-100 hover:bg-gray-200'
+                        }`}
+                      >
+                        <DollarSign className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => setDiscountType('percentage')}
+                        className={`px-3 py-2 text-sm font-medium ${
+                          discountType === 'percentage' ? 'bg-primary-600 text-white' : 'bg-gray-100 hover:bg-gray-200'
+                        }`}
+                      >
+                        <Percent className="h-4 w-4" />
+                      </button>
+                    </div>
+                    {discountAmount > 0 && (
+                      <span className="text-sm text-red-600 font-medium">
+                        -{formatCurrency(discountAmount)}
+                      </span>
+                    )}
+                  </div>
+                )}
+                
+                <div>
+                  <p className="text-xs font-medium text-gray-500 mb-2">MÉTODO DE PAGO</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { value: 'efectivo', label: 'Efectivo', icon: Banknote },
+                      { value: 'nequi', label: 'Nequi', icon: Wallet },
+                      { value: 'daviplata', label: 'Daviplata', icon: Wallet },
+                      { value: 'tarjeta', label: 'Tarjeta', icon: CreditCard },
+                      { value: 'transferencia', label: 'Transfer.', icon: ArrowUpDown },
+                      { value: 'llave_bancolombia', label: 'Llave', icon: CreditCard },
+                    ].map(({ value, label, icon: Icon }) => (
+                      <button
+                        key={value}
+                        onClick={() => setPaymentMethod(value)}
+                        className={`flex flex-col items-center gap-1 p-2 rounded-lg border-2 transition-colors ${
+                          paymentMethod === value
+                            ? 'border-primary-500 bg-primary-50 text-primary-700'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <Icon className="h-5 w-5" />
+                        <span className="text-xs font-medium">{label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 
                 {paymentMethod === 'efectivo' && cart.length > 0 && (
-                  <div className="mt-3 flex items-center gap-3">
+                  <div className="flex items-center gap-3">
                     <div className="flex-1">
                       <input
                         type="number"
@@ -718,9 +820,9 @@ export default function CashRegisterPage() {
                       />
                     </div>
                     {change > 0 && (
-                      <div className="text-right">
-                        <p className="text-xs text-gray-500">Cambio:</p>
-                        <p className="font-bold text-green-600">{formatCurrency(change)}</p>
+                      <div className="text-right bg-green-50 px-3 py-2 rounded-lg">
+                        <p className="text-xs text-green-600">Cambio:</p>
+                        <p className="font-bold text-green-700 text-lg">{formatCurrency(change)}</p>
                       </div>
                     )}
                   </div>
@@ -730,6 +832,18 @@ export default function CashRegisterPage() {
               {/* Total y botón */}
               <div className="w-64 flex flex-col justify-between">
                 <div>
+                  {discountAmount > 0 && (
+                    <div className="flex justify-between text-sm text-gray-500 mb-1">
+                      <span>Subtotal:</span>
+                      <span>{formatCurrency(cartSubtotal)}</span>
+                    </div>
+                  )}
+                  {discountAmount > 0 && (
+                    <div className="flex justify-between text-sm text-red-600 mb-1">
+                      <span>Descuento:</span>
+                      <span>-{formatCurrency(discountAmount)}</span>
+                    </div>
+                  )}
                   <p className="text-xs font-medium text-gray-500">TOTAL A PAGAR</p>
                   <p className="text-4xl font-bold text-gray-900">{formatCurrency(cartTotal)}</p>
                   <p className="text-sm text-gray-500">{cart.length} producto(s)</p>
