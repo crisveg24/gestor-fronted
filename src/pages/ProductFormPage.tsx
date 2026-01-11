@@ -645,26 +645,33 @@ const ProductFormPage = () => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   <option value="">Selecciona una categoría</option>
-                  {categories.length > 0 ? (
-                    categories.map((cat) => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))
-                  ) : (
-                    <>
-                      <option value="Electrónica">Electrónica</option>
-                      <option value="Ropa">Ropa</option>
-                      <option value="Alimentos">Alimentos</option>
-                      <option value="Hogar">Hogar</option>
-                      <option value="Deportes">Deportes</option>
-                      <option value="Juguetes">Juguetes</option>
-                      <option value="Libros">Libros</option>
-                      <option value="Accesorios">Accesorios</option>
-                      <option value="Audio">Audio</option>
-                      <option value="Almacenamiento">Almacenamiento</option>
-                      <option value="Redes">Redes</option>
-                      <option value="Otros">Otros</option>
-                    </>
-                  )}
+                  {/* Categorías predefinidas + dinámicas de la BD */}
+                  {[
+                    // Ropa y Calzado
+                    'Ropa', 'Calzado', 'Accesorios de Moda', 'Ropa Interior',
+                    // Electrónica
+                    'Electrónica', 'Audio', 'Cables y Conectores', 'Cargadores',
+                    // Hogar y Cacharrería
+                    'Hogar', 'Cacharrería', 'Herramientas', 'Extensiones Eléctricas', 
+                    'Bombillos', 'Enchufes', 'Decoración',
+                    // Papelería y Oficina
+                    'Papelería', 'Útiles Escolares', 'Lapiceros', 'Cuadernos',
+                    // Otros
+                    'Juguetes', 'Deportes', 'Mascotas', 'Aseo Personal', 
+                    'Aseo Hogar', 'Alimentos', 'Bebidas', 'Otros',
+                    // Agregar categorías de la BD que no estén en la lista
+                    ...categories.filter(cat => ![
+                      'Ropa', 'Calzado', 'Accesorios de Moda', 'Ropa Interior',
+                      'Electrónica', 'Audio', 'Cables y Conectores', 'Cargadores',
+                      'Hogar', 'Cacharrería', 'Herramientas', 'Extensiones Eléctricas',
+                      'Bombillos', 'Enchufes', 'Decoración',
+                      'Papelería', 'Útiles Escolares', 'Lapiceros', 'Cuadernos',
+                      'Juguetes', 'Deportes', 'Mascotas', 'Aseo Personal',
+                      'Aseo Hogar', 'Alimentos', 'Bebidas', 'Otros'
+                    ].includes(cat))
+                  ].map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
                 </select>
                 {errors.category && (
                   <p className="mt-1 text-sm text-red-600">{errors.category.message}</p>
@@ -688,15 +695,15 @@ const ProductFormPage = () => {
                       className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
                     />
                     <label htmlFor="useSizes" className="text-sm font-medium text-gray-700">
-                      👟 Crear productos con múltiples tallas (Curva de Tallas)
+                      🏷️ Crear productos con múltiples variantes (Tallas, Colores, Medidas, etc.)
                     </label>
                   </div>
 
                   {useSizes && (
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-4">
                       <p className="text-sm text-blue-700">
-                        <strong>📋 Generador de Curvas:</strong> El nombre será la base (ej: "Zapato Nike Air"), 
-                        el SKU será el prefijo (ej: "ZAP-001"), y se creará un producto por cada talla seleccionada.
+                        <strong>📋 Generador de Variantes:</strong> El nombre será la base (ej: "Extensión Eléctrica"), 
+                        el SKU será el prefijo (ej: "EXT-001"), y se creará un producto por cada variante seleccionada (talla, color, metros, etc.).
                       </p>
 
                       {/* Tipo de Talla */}

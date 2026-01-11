@@ -1,4 +1,4 @@
-// Presets de tallas para el generador de curvas
+// Presets de tallas y variantes para el generador de curvas
 
 export const SIZE_TYPES = {
   zapatos: 'Zapatos',
@@ -6,6 +6,12 @@ export const SIZE_TYPES = {
   nino: 'Ropa Niño',
   adulto: 'Ropa Adulto',
   unica: 'Talla Única',
+  // Nuevas variantes para cacharrería
+  metros: 'Por Metros/Longitud',
+  colores: 'Por Colores',
+  voltaje: 'Por Voltaje/Watts',
+  capacidad: 'Por Capacidad',
+  medidas: 'Por Medidas',
 } as const;
 
 export type SizeType = keyof typeof SIZE_TYPES;
@@ -46,6 +52,43 @@ export const SIZE_PRESETS = {
     'Única': ['U'],
     'Talla Libre': ['TL'],
     'One Size': ['OS'],
+  },
+  // === NUEVAS VARIANTES PARA CACHARRERÍA ===
+  metros: {
+    'Extensiones Eléctricas': ['1M', '1.5M', '2M', '3M', '5M', '10M', '15M', '20M'],
+    'Cables USB': ['0.5M', '1M', '1.5M', '2M', '3M', '5M'],
+    'Mangueras': ['5M', '10M', '15M', '20M', '25M', '30M', '50M'],
+    'Cuerdas/Sogas': ['1M', '2M', '5M', '10M', '20M', '50M', '100M'],
+    'Cintas Métricas': ['3M', '5M', '7.5M', '10M'],
+  },
+  colores: {
+    'Básicos': ['Negro', 'Blanco', 'Gris', 'Azul', 'Rojo'],
+    'Completos': ['Negro', 'Blanco', 'Gris', 'Azul', 'Rojo', 'Verde', 'Amarillo', 'Naranja', 'Morado', 'Rosado', 'Café'],
+    'Lapiceros/Esferos': ['Negro', 'Azul', 'Rojo', 'Verde'],
+    'Marcadores': ['Negro', 'Azul', 'Rojo', 'Verde', 'Amarillo', 'Naranja', 'Morado', 'Rosado', 'Café', 'Gris'],
+    'Neón': ['Verde Neón', 'Amarillo Neón', 'Naranja Neón', 'Rosado Neón', 'Azul Neón'],
+    'Metálicos': ['Dorado', 'Plateado', 'Bronce', 'Cobre'],
+  },
+  voltaje: {
+    'Bombillos LED': ['5W', '7W', '9W', '12W', '15W', '18W', '20W'],
+    'Bombillos Tradicionales': ['40W', '60W', '75W', '100W'],
+    'Reguladores': ['110V', '220V', '110V-220V'],
+    'Transformadores': ['12V', '24V', '110V', '220V'],
+    'Cargadores': ['5V-1A', '5V-2A', '9V-2A', '12V-2A', '20W', '30W', '45W', '65W', '100W'],
+  },
+  capacidad: {
+    'USB/Memorias': ['8GB', '16GB', '32GB', '64GB', '128GB', '256GB', '512GB', '1TB'],
+    'Termos/Recipientes': ['250ml', '350ml', '500ml', '750ml', '1L', '1.5L', '2L'],
+    'Galones/Tanques': ['1 Galón', '2.5 Galones', '5 Galones', '10 Galones', '20 Galones'],
+    'Pilas/Baterías': ['AA', 'AAA', 'C', 'D', '9V', 'CR2032'],
+    'Power Banks': ['5000mAh', '10000mAh', '20000mAh', '30000mAh'],
+  },
+  medidas: {
+    'Tornillos/Pernos': ['1/4"', '3/8"', '1/2"', '5/8"', '3/4"', '1"', '1.5"', '2"'],
+    'Brocas': ['1mm', '2mm', '3mm', '4mm', '5mm', '6mm', '8mm', '10mm', '12mm'],
+    'Tubos PVC': ['1/2"', '3/4"', '1"', '1.5"', '2"', '3"', '4"'],
+    'Papel': ['Carta', 'Oficio', 'A4', 'A3', 'Tabloide'],
+    'Cuadernos': ['50 Hojas', '80 Hojas', '100 Hojas', '200 Hojas'],
   },
 };
 

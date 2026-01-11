@@ -108,9 +108,25 @@ const SalesPage = () => {
   const [ivaPercentage, setIvaPercentage] = useState(16);
   
   // Estado para tienda seleccionada (solo admins)
+  // Recordar última tienda usada
+  const getLastUsedStore = (): string => {
+    try {
+      return localStorage.getItem('lastUsedStore') || '';
+    } catch {
+      return '';
+    }
+  };
+  
   const [selectedStore, setSelectedStore] = useState<string>(
-    isAdmin ? '' : (typeof user?.store === 'string' ? user.store : user?.store?._id || '')
+    isAdmin ? getLastUsedStore() : (typeof user?.store === 'string' ? user.store : user?.store?._id || '')
   );
+  
+  // Guardar última tienda cuando cambie
+  useEffect(() => {
+    if (selectedStore && isAdmin) {
+      localStorage.setItem('lastUsedStore', selectedStore);
+    }
+  }, [selectedStore, isAdmin]);
   
   // Estados de ñapa (regalos)
   const [freebies, setFreebies] = useState<CartItem[]>([]);
@@ -276,19 +292,19 @@ const SalesPage = () => {
     enabled: showHistory,
   });
 
-  // Query para datos de corte de caja
+  // Query para datos de corte de caja (por tienda seleccionada)
+  const currentStoreForCut = isAdmin ? selectedStore : user?.store?._id;
   const { data: dailyCutData, isLoading: loadingDailyCut, refetch: refetchDailyCut } = useQuery({
-    queryKey: ['daily-cut', user?.store?._id],
+    queryKey: ['daily-cut', currentStoreForCut],
     queryFn: async () => {
-      const storeId = isAdmin ? selectedStore : user?.store?._id;
-      if (!storeId) return null;
+      if (!currentStoreForCut) return null;
       
       const response = await api.get('/sales/daily-cut', {
-        params: { storeId }
+        params: { storeId: currentStoreForCut }
       });
       return response.data.data;
     },
-    enabled: !!(isAdmin ? selectedStore : user?.store?._id), // ✅ Ejecutar cuando haya tienda
+    enabled: !!currentStoreForCut,
     staleTime: 1 * 60 * 1000, // 1 minuto de caché
   });
 
