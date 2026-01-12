@@ -173,7 +173,9 @@ export default function CashRegisterPage() {
       if (selectedStoreId) params.append('storeId', selectedStoreId);
       params.append('limit', '10');
       const response = await api.get(`/cash-register/history?${params.toString()}`);
-      return response.data?.data || { registers: [] };
+      // El backend devuelve { data: [...] }, convertimos a { registers: [...] }
+      const registers = response.data?.data || [];
+      return { registers };
     },
     enabled: !!selectedStoreId || !isAdmin,
   });

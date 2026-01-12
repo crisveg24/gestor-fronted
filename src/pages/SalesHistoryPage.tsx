@@ -17,6 +17,10 @@ import {
   X,
   FileSpreadsheet,
   FileText,
+  Wallet,
+  TrendingUp,
+  TrendingDown,
+  Clock,
 } from 'lucide-react';
 import { Card, Button, Modal, toast, SearchBar, EmptyStateNoStore } from '../components/ui';
 import api from '../lib/axios';
@@ -27,6 +31,38 @@ import { printTicket } from '../utils/printTicket';
 import type { AxiosApiError, Store as StoreType } from '../types';
 
 // Tipos
+interface CashRegister {
+  _id: string;
+  store: { _id: string; name: string };
+  openedBy: { _id: string; name: string };
+  closedBy?: { _id: string; name: string };
+  openingAmount: number;
+  closingAmount?: number;
+  expectedAmount?: number;
+  actualClosingAmount?: number;
+  difference?: number;
+  status: 'open' | 'closed';
+  openedAt: string;
+  closedAt?: string;
+  closingNotes?: string;
+  salesCount?: number;
+  totalSales?: number;
+  movements?: Array<{
+    type: 'entrada' | 'salida';
+    amount: number;
+    reason: string;
+    createdAt: string;
+  }>;
+}
+
+interface CashRegisterStats {
+  totalDays: number;
+  totalDifference: number;
+  avgDifference: number;
+  daysWithShortage: number;
+  daysWithSurplus: number;
+}
+
 interface SaleItem {
   product: {
     _id: string;
@@ -116,6 +152,9 @@ const SalesHistoryPage = () => {
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'admin';
 
+  // Tab activo: 'ventas' o 'cajas'
+  const [activeTab, setActiveTab] = useState<'ventas' | 'cajas'>('ventas');
+
   // Estados de filtros
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStore, setFilterStore] = useState('');
@@ -123,6 +162,13 @@ const SalesHistoryPage = () => {
   const [filterStatus, setFilterStatus] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+
+  // Estados para historial de cajas
+  const [cashRegisterDateFrom, setCashRegisterDateFrom] = useState('');
+  const [cashRegisterDateTo, setCashRegisterDateTo] = useState('');
+  const [cashRegisterStore, setCashRegisterStore] = useState('');
+  const [selectedCashRegister, setSelectedCashRegister] = useState<CashRegister | null>(null);
+  const [cashRegisterDetailOpen, setCashRegisterDetailOpen] = useState(false);
 
   // Estados de modales
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
@@ -161,7 +207,34 @@ const SalesHistoryPage = () => {
       });
       return response.data.data;
     },
+    enabled: activeTab === 'ventas',
   });
+
+  // Query para historial de cajas
+  const { data: cashRegisterData, isLoading: isLoadingCashRegisters } = useQuery<{
+    registers: CashRegister[];
+    stats: CashRegisterStats;
+  }>({
+    queryKey: ['cash-register-history', cashRegisterStore, cashRegisterDateFrom, cashRegisterDateTo],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      const storeId = cashRegisterStore || (user?.role !== 'admin' ? user?.store?._id : undefined);
+      if (storeId) params.append('storeId', storeId);
+      if (cashRegisterDateFrom) params.append('startDate', cashRegisterDateFrom);
+      if (cashRegisterDateTo) params.append('endDate', cashRegisterDateTo);
+      params.append('limit', '100');
+      
+      const response = await api.get(`/cash-register/history?${params.toString()}`);
+      return {
+        registers: response.data?.data || [],
+        stats: response.data?.stats || { totalDays: 0, totalDifference: 0 }
+      };
+    },
+    enabled: activeTab === 'cajas',
+  });
+
+  const cashRegisters = cashRegisterData?.registers || [];
+  const cashStats = cashRegisterData?.stats;
 
   const sales: Sale[] = salesData?.sales || [];
 
@@ -231,6 +304,55 @@ const SalesHistoryPage = () => {
 
     printTicket(ticketData);
     toast.success('Imprimiendo ticket...');
+  };
+
+  const handleViewCashRegisterDetail = (register: CashRegister) => {
+    setSelectedCashRegister(register);
+    setCashRegisterDetailOpen(true);
+  };
+
+  const formatCurrency = (amount: number | undefined) => {
+    if (amount === undefined || amount === null) return '$0';
+    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
+  };
+
+  // Exportar historial de cajas a Excel
+  const exportCashRegistersToExcel = async () => {
+    if (!cashRegisters || cashRegisters.length === 0) {
+      toast.error('No hay registros de caja para exportar');
+      return;
+    }
+
+    try {
+      const XLSX = await import('xlsx');
+
+      const excelData = cashRegisters.map((register) => ({
+        'Fecha Apertura': format(new Date(register.openedAt), 'dd/MM/yyyy HH:mm', { locale: es }),
+        'Fecha Cierre': register.closedAt ? format(new Date(register.closedAt), 'dd/MM/yyyy HH:mm', { locale: es }) : 'Abierta',
+        'Tienda': register.store?.name || 'N/A',
+        'Abierta por': register.openedBy?.name || 'N/A',
+        'Cerrada por': register.closedBy?.name || 'N/A',
+        'Monto Apertura': register.openingAmount,
+        'Ventas Totales': register.totalSales || 0,
+        '# Ventas': register.salesCount || 0,
+        'Esperado': register.expectedAmount || 0,
+        'Monto Cierre': register.actualClosingAmount || register.closingAmount || 0,
+        'Diferencia': register.difference || 0,
+        'Estado': register.status === 'open' ? 'Abierta' : 'Cerrada',
+        'Notas': register.closingNotes || '',
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Historial de Cajas');
+
+      const fileName = `historial_cajas_${format(new Date(), 'yyyy-MM-dd_HHmmss')}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+      toast.success(`Reporte exportado: ${fileName}`);
+    } catch (error) {
+      console.error('Error al exportar:', error);
+      toast.error('Error al exportar');
+    }
   };
 
   const confirmEdit = () => {
@@ -353,49 +475,91 @@ const SalesHistoryPage = () => {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-2 md:gap-3">
             <History className="text-primary-600" size={24} />
-            Historial de Ventas
+            Historial
           </h1>
           <p className="text-sm md:text-base text-gray-600 mt-1">
-            Consulta, edita e imprime ventas anteriores
+            Consulta ventas y registros de caja anteriores
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={exportToExcel} leftIcon={<FileSpreadsheet size={16} />} className="text-sm">
-            Excel
-          </Button>
-          <Button variant="outline" onClick={exportToPDF} leftIcon={<FileText size={16} />} className="text-sm">
-            PDF
-          </Button>
+          {activeTab === 'ventas' ? (
+            <>
+              <Button variant="outline" onClick={exportToExcel} leftIcon={<FileSpreadsheet size={16} />} className="text-sm">
+                Excel
+              </Button>
+              <Button variant="outline" onClick={exportToPDF} leftIcon={<FileText size={16} />} className="text-sm">
+                PDF
+              </Button>
+            </>
+          ) : (
+            <Button variant="outline" onClick={exportCashRegistersToExcel} leftIcon={<FileSpreadsheet size={16} />} className="text-sm">
+              Excel
+            </Button>
+          )}
         </div>
       </motion.div>
 
-      {/* Resumen rápido */}
+      {/* Tabs */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4"
+        transition={{ delay: 0.05 }}
+        className="flex gap-2 border-b border-gray-200"
       >
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-          <Card.Body className="p-3 md:p-4">
-            <div className="flex items-center gap-2 md:gap-3">
-              <div className="p-1.5 md:p-2 bg-green-500 rounded-lg">
-                <Check className="text-white" size={16} />
-              </div>
-              <div>
-                <p className="text-xs md:text-sm text-green-600">Completadas</p>
-                <p className="text-xl md:text-2xl font-bold text-green-800">{totalVentas}</p>
-              </div>
-            </div>
-          </Card.Body>
-        </Card>
+        <button
+          onClick={() => setActiveTab('ventas')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+            activeTab === 'ventas'
+              ? 'border-primary-500 text-primary-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+          }`}
+        >
+          <DollarSign size={16} />
+          Ventas
+        </button>
+        <button
+          onClick={() => setActiveTab('cajas')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+            activeTab === 'cajas'
+              ? 'border-primary-500 text-primary-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+          }`}
+        >
+          <Wallet size={16} />
+          Cajas Registradoras
+        </button>
+      </motion.div>
 
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-          <Card.Body className="p-3 md:p-4">
-            <div className="flex items-center gap-2 md:gap-3">
-              <div className="p-1.5 md:p-2 bg-blue-500 rounded-lg">
-                <DollarSign className="text-white" size={16} />
-              </div>
+      {/* Contenido según tab activo */}
+      {activeTab === 'ventas' ? (
+        <>
+          {/* Resumen rápido */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4"
+          >
+            <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+              <Card.Body className="p-3 md:p-4">
+                <div className="flex items-center gap-2 md:gap-3">
+                  <div className="p-1.5 md:p-2 bg-green-500 rounded-lg">
+                    <Check className="text-white" size={16} />
+                  </div>
+                  <div>
+                    <p className="text-xs md:text-sm text-green-600">Completadas</p>
+                    <p className="text-xl md:text-2xl font-bold text-green-800">{totalVentas}</p>
+                  </div>
+                </div>
+              </Card.Body>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+              <Card.Body className="p-3 md:p-4">
+                <div className="flex items-center gap-2 md:gap-3">
+                  <div className="p-1.5 md:p-2 bg-blue-500 rounded-lg">
+                    <DollarSign className="text-white" size={16} />
+                  </div>
               <div>
                 <p className="text-xs md:text-sm text-blue-600">Ingresos</p>
                 <p className="text-lg md:text-2xl font-bold text-blue-800">${totalIngresos.toLocaleString()}</p>
@@ -990,6 +1154,460 @@ const SalesHistoryPage = () => {
           </Button>
         </Modal.Footer>
       </Modal>
+        </>
+      ) : (
+        /* =============== TAB CAJAS REGISTRADORAS =============== */
+        <>
+          {/* Resumen de cajas */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4"
+          >
+            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+              <Card.Body className="p-3 md:p-4">
+                <div className="flex items-center gap-2 md:gap-3">
+                  <div className="p-1.5 md:p-2 bg-purple-500 rounded-lg">
+                    <Wallet className="text-white" size={16} />
+                  </div>
+                  <div>
+                    <p className="text-xs md:text-sm text-purple-600">Total Arqueos</p>
+                    <p className="text-xl md:text-2xl font-bold text-purple-800">{cashStats?.totalDays || 0}</p>
+                  </div>
+                </div>
+              </Card.Body>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+              <Card.Body className="p-3 md:p-4">
+                <div className="flex items-center gap-2 md:gap-3">
+                  <div className="p-1.5 md:p-2 bg-blue-500 rounded-lg">
+                    <DollarSign className="text-white" size={16} />
+                  </div>
+                  <div>
+                    <p className="text-xs md:text-sm text-blue-600">Diferencia Total</p>
+                    <p className={`text-xl md:text-2xl font-bold ${(cashStats?.totalDifference || 0) >= 0 ? 'text-blue-800' : 'text-red-600'}`}>
+                      {formatCurrency(cashStats?.totalDifference || 0)}
+                    </p>
+                  </div>
+                </div>
+              </Card.Body>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+              <Card.Body className="p-3 md:p-4">
+                <div className="flex items-center gap-2 md:gap-3">
+                  <div className="p-1.5 md:p-2 bg-green-500 rounded-lg">
+                    <TrendingUp className="text-white" size={16} />
+                  </div>
+                  <div>
+                    <p className="text-xs md:text-sm text-green-600">Días con Sobrante</p>
+                    <p className="text-xl md:text-2xl font-bold text-green-800">{cashStats?.daysWithSurplus || 0}</p>
+                  </div>
+                </div>
+              </Card.Body>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
+              <Card.Body className="p-3 md:p-4">
+                <div className="flex items-center gap-2 md:gap-3">
+                  <div className="p-1.5 md:p-2 bg-red-500 rounded-lg">
+                    <TrendingDown className="text-white" size={16} />
+                  </div>
+                  <div>
+                    <p className="text-xs md:text-sm text-red-600">Días con Faltante</p>
+                    <p className="text-xl md:text-2xl font-bold text-red-800">{cashStats?.daysWithShortage || 0}</p>
+                  </div>
+                </div>
+              </Card.Body>
+            </Card>
+          </motion.div>
+
+          {/* Filtros de cajas */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Card>
+              <Card.Body className="p-3 md:p-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3">
+                  {/* Filtro de tienda (solo admins) */}
+                  {isAdmin && (
+                    <select
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      value={cashRegisterStore}
+                      onChange={(e) => setCashRegisterStore(e.target.value)}
+                    >
+                      <option value="">🏪 Todas las tiendas</option>
+                      {stores?.map((store: StoreType) => (
+                        <option key={store._id} value={store._id}>
+                          {store.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+
+                  {/* Fecha desde */}
+                  <input
+                    type="date"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    value={cashRegisterDateFrom}
+                    onChange={(e) => setCashRegisterDateFrom(e.target.value)}
+                    title="Fecha desde"
+                  />
+
+                  {/* Fecha hasta */}
+                  <input
+                    type="date"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    value={cashRegisterDateTo}
+                    onChange={(e) => setCashRegisterDateTo(e.target.value)}
+                    title="Fecha hasta"
+                  />
+                </div>
+
+                <div className="mt-3 text-xs md:text-sm text-gray-500">
+                  {cashRegisters.length} registro(s) encontrado(s)
+                </div>
+              </Card.Body>
+            </Card>
+          </motion.div>
+
+          {/* Lista de registros de caja */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Card>
+              <Card.Body className="p-0">
+                {isLoadingCashRegisters ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                  </div>
+                ) : cashRegisters.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Wallet className="mx-auto text-gray-400 mb-4" size={48} />
+                    <p className="text-gray-500">No se encontraron registros de caja</p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Vista Desktop - Tabla */}
+                    <div className="hidden lg:block overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Fecha
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Tienda
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Apertura
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Ventas
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Esperado
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Cierre Real
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Diferencia
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Responsable
+                            </th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Acciones
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {cashRegisters.map((register) => (
+                            <tr
+                              key={register._id}
+                              className={`hover:bg-gray-50 transition-colors ${
+                                (register.difference || 0) < 0
+                                  ? 'bg-red-50 hover:bg-red-100'
+                                  : (register.difference || 0) > 0
+                                  ? 'bg-blue-50 hover:bg-blue-100'
+                                  : ''
+                              }`}
+                            >
+                              {/* Fecha */}
+                              <td className="px-4 py-3 whitespace-nowrap">
+                                <div className="flex items-center gap-2 text-sm text-gray-900">
+                                  <Calendar size={14} className="text-gray-400" />
+                                  {format(new Date(register.openedAt), 'dd MMM yyyy', { locale: es })}
+                                </div>
+                                <div className="text-xs text-gray-500 flex items-center gap-1">
+                                  <Clock size={10} />
+                                  {format(new Date(register.openedAt), 'HH:mm', { locale: es })}
+                                  {register.closedAt && ` - ${format(new Date(register.closedAt), 'HH:mm', { locale: es })}`}
+                                </div>
+                              </td>
+
+                              {/* Tienda */}
+                              <td className="px-4 py-3 whitespace-nowrap">
+                                <div className="flex items-center gap-2 text-sm text-gray-900">
+                                  <Store size={14} className="text-gray-400" />
+                                  {register.store?.name || 'N/A'}
+                                </div>
+                              </td>
+
+                              {/* Monto Apertura */}
+                              <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                {formatCurrency(register.openingAmount)}
+                              </td>
+
+                              {/* Ventas */}
+                              <td className="px-4 py-3 whitespace-nowrap">
+                                <div className="text-sm font-medium text-green-600">
+                                  {formatCurrency(register.totalSales || 0)}
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  {register.salesCount || 0} ventas
+                                </div>
+                              </td>
+
+                              {/* Esperado */}
+                              <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
+                                {formatCurrency(register.expectedAmount || 0)}
+                              </td>
+
+                              {/* Cierre Real */}
+                              <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
+                                {formatCurrency(register.actualClosingAmount || register.closingAmount || 0)}
+                              </td>
+
+                              {/* Diferencia */}
+                              <td className="px-4 py-3 whitespace-nowrap">
+                                <span className={`px-2 py-1 text-xs font-bold rounded-full ${
+                                  (register.difference || 0) === 0
+                                    ? 'bg-green-100 text-green-800'
+                                    : (register.difference || 0) > 0
+                                    ? 'bg-blue-100 text-blue-800'
+                                    : 'bg-red-100 text-red-800'
+                                }`}>
+                                  {(register.difference || 0) > 0 ? '+' : ''}{formatCurrency(register.difference || 0)}
+                                </span>
+                              </td>
+
+                              {/* Responsable */}
+                              <td className="px-4 py-3 whitespace-nowrap">
+                                <div className="text-sm text-gray-900">{register.openedBy?.name || 'N/A'}</div>
+                                {register.closedBy && (
+                                  <div className="text-xs text-gray-500">Cerró: {register.closedBy.name}</div>
+                                )}
+                              </td>
+
+                              {/* Acciones */}
+                              <td className="px-4 py-3 whitespace-nowrap text-right">
+                                <button
+                                  onClick={() => handleViewCashRegisterDetail(register)}
+                                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                  title="Ver detalle"
+                                >
+                                  <Eye size={18} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Vista Móvil - Cards */}
+                    <div className="lg:hidden divide-y divide-gray-200">
+                      {cashRegisters.map((register) => (
+                        <div
+                          key={register._id}
+                          className={`p-4 ${
+                            (register.difference || 0) < 0
+                              ? 'bg-red-50'
+                              : (register.difference || 0) > 0
+                              ? 'bg-blue-50'
+                              : 'bg-white'
+                          }`}
+                        >
+                          {/* Header del card */}
+                          <div className="flex items-start justify-between mb-3">
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">
+                                {format(new Date(register.openedAt), "dd MMM yyyy", { locale: es })}
+                              </div>
+                              <div className="text-xs text-gray-500 flex items-center gap-1">
+                                <Clock size={10} />
+                                {format(new Date(register.openedAt), 'HH:mm', { locale: es })}
+                                {register.closedAt && ` - ${format(new Date(register.closedAt), 'HH:mm', { locale: es })}`}
+                              </div>
+                            </div>
+                            <span className={`px-2 py-1 text-xs font-bold rounded-full ${
+                              (register.difference || 0) === 0
+                                ? 'bg-green-100 text-green-800'
+                                : (register.difference || 0) > 0
+                                ? 'bg-blue-100 text-blue-800'
+                                : 'bg-red-100 text-red-800'
+                            }`}>
+                              {(register.difference || 0) > 0 ? '+' : ''}{formatCurrency(register.difference || 0)}
+                            </span>
+                          </div>
+
+                          {/* Info del card */}
+                          <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                            <div>
+                              <span className="text-gray-500">Tienda:</span>
+                              <span className="ml-1 font-medium">{register.store?.name}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Ventas:</span>
+                              <span className="ml-1 font-medium text-green-600">{formatCurrency(register.totalSales || 0)}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Esperado:</span>
+                              <span className="ml-1 font-medium">{formatCurrency(register.expectedAmount || 0)}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Real:</span>
+                              <span className="ml-1 font-medium">{formatCurrency(register.actualClosingAmount || register.closingAmount || 0)}</span>
+                            </div>
+                          </div>
+
+                          {/* Acciones */}
+                          <button
+                            onClick={() => handleViewCashRegisterDetail(register)}
+                            className="w-full px-3 py-2 text-xs text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 flex items-center justify-center gap-1"
+                          >
+                            <Eye size={14} /> Ver Detalle
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </Card.Body>
+            </Card>
+          </motion.div>
+
+          {/* Modal de Detalle de Caja */}
+          <Modal
+            isOpen={cashRegisterDetailOpen}
+            onClose={() => setCashRegisterDetailOpen(false)}
+            title={`Detalle de Caja - ${selectedCashRegister ? format(new Date(selectedCashRegister.openedAt), "dd 'de' MMMM yyyy", { locale: es }) : ''}`}
+            size="lg"
+          >
+            {selectedCashRegister && (
+              <div className="space-y-4">
+                {/* Info general */}
+                <div className={`p-4 rounded-lg ${
+                  (selectedCashRegister.difference || 0) < 0
+                    ? 'bg-red-50 border border-red-200'
+                    : (selectedCashRegister.difference || 0) > 0
+                    ? 'bg-blue-50 border border-blue-200'
+                    : 'bg-green-50 border border-green-200'
+                }`}>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-500">Tienda</p>
+                      <p className="font-medium">{selectedCashRegister.store?.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Horario</p>
+                      <p className="font-medium">
+                        {format(new Date(selectedCashRegister.openedAt), 'HH:mm', { locale: es })}
+                        {selectedCashRegister.closedAt && ` - ${format(new Date(selectedCashRegister.closedAt), 'HH:mm', { locale: es })}`}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Abierta por</p>
+                      <p className="font-medium">{selectedCashRegister.openedBy?.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Cerrada por</p>
+                      <p className="font-medium">{selectedCashRegister.closedBy?.name || 'N/A'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Resumen financiero */}
+                <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                  <h4 className="font-medium text-gray-900">Resumen Financiero</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Monto de apertura</span>
+                      <span className="font-medium">{formatCurrency(selectedCashRegister.openingAmount)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Ventas del día ({selectedCashRegister.salesCount || 0} ventas)</span>
+                      <span className="font-medium text-green-600">+{formatCurrency(selectedCashRegister.totalSales || 0)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm border-t pt-2">
+                      <span className="text-gray-700 font-medium">Monto esperado</span>
+                      <span className="font-bold">{formatCurrency(selectedCashRegister.expectedAmount || 0)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Monto real de cierre</span>
+                      <span className="font-medium">{formatCurrency(selectedCashRegister.actualClosingAmount || selectedCashRegister.closingAmount || 0)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm border-t pt-2">
+                      <span className="text-gray-700 font-medium">Diferencia</span>
+                      <span className={`font-bold ${
+                        (selectedCashRegister.difference || 0) === 0
+                          ? 'text-green-600'
+                          : (selectedCashRegister.difference || 0) > 0
+                          ? 'text-blue-600'
+                          : 'text-red-600'
+                      }`}>
+                        {(selectedCashRegister.difference || 0) > 0 ? '+' : ''}{formatCurrency(selectedCashRegister.difference || 0)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Movimientos */}
+                {selectedCashRegister.movements && selectedCashRegister.movements.length > 0 && (
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-2">Movimientos de Caja</h4>
+                    <div className="border rounded-lg divide-y max-h-48 overflow-auto">
+                      {selectedCashRegister.movements.map((mov, index) => (
+                        <div key={index} className="p-3 flex justify-between items-center">
+                          <div>
+                            <p className="font-medium text-sm">{mov.reason}</p>
+                            <p className="text-xs text-gray-500">
+                              {format(new Date(mov.createdAt), 'HH:mm', { locale: es })}
+                            </p>
+                          </div>
+                          <span className={`font-medium ${mov.type === 'entrada' ? 'text-green-600' : 'text-red-600'}`}>
+                            {mov.type === 'entrada' ? '+' : '-'}{formatCurrency(mov.amount)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Notas */}
+                {selectedCashRegister.closingNotes && (
+                  <div className="bg-yellow-50 p-3 rounded-lg">
+                    <p className="text-sm text-gray-600">📝 {selectedCashRegister.closingNotes}</p>
+                  </div>
+                )}
+              </div>
+            )}
+            <Modal.Footer>
+              <Button variant="ghost" onClick={() => setCashRegisterDetailOpen(false)}>
+                Cerrar
+              </Button>
+            </Modal.Footer>
+          </Modal>
+        </>
+      )}
     </div>
   );
 };
