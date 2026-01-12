@@ -32,17 +32,22 @@ interface MenuItem {
 }
 
 const menuItems: MenuItem[] = [
+  // Más usados primero
   { icon: <LayoutDashboard size={20} />, label: 'Dashboard', path: '/dashboard' },
+  { icon: <Banknote size={20} />, label: 'Caja Registradora', path: '/caja' },
+  { icon: <ShoppingCart size={20} />, label: 'Ventas', path: '/ventas' },
+  { icon: <History size={20} />, label: 'Historial de Ventas', path: '/historial-ventas' },
+  // Gestión de productos e inventario
   { icon: <Package size={20} />, label: 'Productos', path: '/productos' },
   { icon: <Box size={20} />, label: 'Inventario', path: '/inventario' },
   { icon: <ArrowLeftRight size={20} />, label: 'Transferencias', path: '/transferencias' },
-  { icon: <ShoppingCart size={20} />, label: 'Ventas', path: '/ventas' },
-  { icon: <History size={20} />, label: 'Historial de Ventas', path: '/historial-ventas' },
+  // Créditos y devoluciones
   { icon: <CreditCard size={20} />, label: 'Fiados y Apartados', path: '/fiados' },
-  { icon: <Banknote size={20} />, label: 'Caja Registradora', path: '/caja' },
   { icon: <RotateCcw size={20} />, label: 'Devoluciones', path: '/devoluciones' },
+  // Proveedores y compras
   { icon: <Truck size={20} />, label: 'Proveedores', path: '/proveedores' },
   { icon: <FileText size={20} />, label: 'Órdenes de Compra', path: '/ordenes-compra' },
+  // Administración (al final)
   { icon: <Store size={20} />, label: 'Tiendas', path: '/tiendas', adminOnly: true },
   { icon: <Users size={20} />, label: 'Usuarios', path: '/usuarios', adminOnly: true },
   { icon: <BarChart3 size={20} />, label: 'Reportes', path: '/reportes' },

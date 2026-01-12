@@ -222,7 +222,7 @@ export default function CashRegisterPage() {
   });
 
   const closeMutation = useMutation({
-    mutationFn: async (data: { closingAmount: number; notes?: string }) => {
+    mutationFn: async (data: { actualClosingAmount: number; closingNotes?: string; storeId?: string }) => {
       const response = await api.post('/cash-register/close', data);
       return response.data;
     },
@@ -1050,7 +1050,7 @@ export default function CashRegisterPage() {
               onClick={(e) => e.stopPropagation()}
             >
               <h2 className="text-xl font-bold mb-4">Cerrar Caja</h2>
-              <form onSubmit={(e) => { e.preventDefault(); closeMutation.mutate({ closingAmount: parseFloat(closingAmount) || 0, notes: closingNotes }); }}>
+              <form onSubmit={(e) => { e.preventDefault(); closeMutation.mutate({ actualClosingAmount: parseFloat(closingAmount) || 0, closingNotes: closingNotes, storeId: selectedStore || undefined }); }}>
                 <div className="space-y-4">
                   {currentRegister && (
                     <div className="bg-gray-50 rounded-lg p-4 space-y-2">
