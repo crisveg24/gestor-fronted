@@ -21,6 +21,8 @@ const ReportsPage = lazy(() => import('./pages/ReportsPage'));
 const SuppliersPage = lazy(() => import('./pages/SuppliersPage'));
 const PurchaseOrdersPage = lazy(() => import('./pages/PurchaseOrdersPage'));
 const PurchaseOrderFormPage = lazy(() => import('./pages/PurchaseOrderFormPage'));
+const PurchaseOrderDetailPage = lazy(() => import('./pages/PurchaseOrderDetailPage'));
+const PurchaseOrderReceivePage = lazy(() => import('./pages/PurchaseOrderReceivePage'));
 const CreditsPage = lazy(() => import('./pages/CreditsPage'));
 const TransfersPage = lazy(() => import('./pages/TransfersPage'));
 const CashRegisterPage = lazy(() => import('./pages/CashRegisterPage'));
@@ -237,6 +239,24 @@ function App() {
               element={
                 <ProtectedRoute>
                   <PurchaseOrderFormPage />
+                </ProtectedRoute>
+              }
+            />
+            
+            <Route
+              path="/purchase-orders/:id"
+              element={
+                <ProtectedRoute>
+                  <PurchaseOrderDetailPage />
+                </ProtectedRoute>
+              }
+            />
+            
+            <Route
+              path="/purchase-orders/:id/receive"
+              element={
+                <ProtectedRoute>
+                  <PurchaseOrderReceivePage />
                 </ProtectedRoute>
               }
             />

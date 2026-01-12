@@ -71,6 +71,18 @@ const ProductsPage = () => {
     staleTime: 2 * 60 * 1000,
   });
 
+  // Query para obtener categorías dinámicamente
+  const { data: categoriesData } = useQuery<{ success: boolean; data: string[] }>({
+    queryKey: ['product-categories'],
+    queryFn: async () => {
+      const response = await api.get('/products/categories/list');
+      return response.data;
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutos
+  });
+
+  const categories = categoriesData?.data || [];
+
   // Mutation para eliminar producto permanentemente
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -386,7 +398,7 @@ const ProductsPage = () => {
                   defaultValue={searchQuery}
                 />
               </div>
-              {/* ✅ Filtro de categoría */}
+              {/* ✅ Filtro de categoría - dinámico */}
               <select
                 className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                 value={categoryFilter}
@@ -396,10 +408,9 @@ const ProductsPage = () => {
                 }}
               >
                 <option value="">Todas las categorías</option>
-                <option value="Zapatos">Zapatos</option>
-                <option value="Electrónica">Electrónica</option>
-                <option value="Audio">Audio</option>
-                <option value="Accesorios">Accesorios</option>
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
               </select>
               {/* ✅ Filtro de estado */}
               <select
