@@ -39,6 +39,7 @@ interface CashRegister {
   openingAmount: number;
   closingAmount?: number;
   expectedAmount?: number;
+  expectedClosingAmount?: number;
   actualClosingAmount?: number;
   difference?: number;
   status: 'open' | 'closed';
@@ -48,11 +49,20 @@ interface CashRegister {
   salesCount?: number;
   totalSales?: number;
   movements?: Array<{
-    type: 'entrada' | 'salida';
+    type: 'entrada' | 'salida' | 'income' | 'expense';
     amount: number;
-    reason: string;
+    reason?: string;
+    description?: string;
     createdAt: string;
   }>;
+  salesByMethodDetail?: {
+    efectivo: { total: number; count: number };
+    nequi: { total: number; count: number };
+    daviplata: { total: number; count: number };
+    llave_bancolombia: { total: number; count: number };
+    tarjeta: { total: number; count: number };
+    transferencia: { total: number; count: number };
+  };
 }
 
 interface CashRegisterStats {
@@ -1518,10 +1528,23 @@ const SalesHistoryPage = () => {
                       <p className="font-medium">{selectedCashRegister.store?.name}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-500">Horario</p>
+                      <p className="text-sm text-gray-500">Fecha</p>
                       <p className="font-medium">
-                        {format(new Date(selectedCashRegister.openedAt), 'HH:mm', { locale: es })}
-                        {selectedCashRegister.closedAt && ` - ${format(new Date(selectedCashRegister.closedAt), 'HH:mm', { locale: es })}`}
+                        {format(new Date(selectedCashRegister.openedAt), "EEEE dd 'de' MMMM", { locale: es })}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Hora Apertura</p>
+                      <p className="font-medium text-green-600">
+                        🔓 {format(new Date(selectedCashRegister.openedAt), 'HH:mm', { locale: es })}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Hora Cierre</p>
+                      <p className="font-medium text-red-600">
+                        {selectedCashRegister.closedAt 
+                          ? `🔒 ${format(new Date(selectedCashRegister.closedAt), 'HH:mm', { locale: es })}` 
+                          : 'Aún abierta'}
                       </p>
                     </div>
                     <div>
@@ -1535,36 +1558,116 @@ const SalesHistoryPage = () => {
                   </div>
                 </div>
 
-                {/* Resumen financiero */}
+                {/* Ventas por método de pago */}
+                <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                  <h4 className="font-medium text-purple-900 mb-3 flex items-center gap-2">
+                    💰 Ventas por Método de Pago ({selectedCashRegister.salesCount || 0} ventas)
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {selectedCashRegister.salesByMethodDetail ? (
+                      <>
+                        <div className="bg-white p-3 rounded-lg border">
+                          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+                            💵 Efectivo
+                          </div>
+                          <p className="font-bold text-green-600">{formatCurrency(selectedCashRegister.salesByMethodDetail.efectivo?.total || 0)}</p>
+                          <p className="text-xs text-gray-400">{selectedCashRegister.salesByMethodDetail.efectivo?.count || 0} ventas</p>
+                        </div>
+                        <div className="bg-white p-3 rounded-lg border">
+                          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+                            🟣 Nequi
+                          </div>
+                          <p className="font-bold text-purple-600">{formatCurrency(selectedCashRegister.salesByMethodDetail.nequi?.total || 0)}</p>
+                          <p className="text-xs text-gray-400">{selectedCashRegister.salesByMethodDetail.nequi?.count || 0} ventas</p>
+                        </div>
+                        <div className="bg-white p-3 rounded-lg border">
+                          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+                            🟠 Daviplata
+                          </div>
+                          <p className="font-bold text-orange-600">{formatCurrency(selectedCashRegister.salesByMethodDetail.daviplata?.total || 0)}</p>
+                          <p className="text-xs text-gray-400">{selectedCashRegister.salesByMethodDetail.daviplata?.count || 0} ventas</p>
+                        </div>
+                        <div className="bg-white p-3 rounded-lg border">
+                          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+                            🔑 Llave Bancolombia
+                          </div>
+                          <p className="font-bold text-yellow-600">{formatCurrency(selectedCashRegister.salesByMethodDetail.llave_bancolombia?.total || 0)}</p>
+                          <p className="text-xs text-gray-400">{selectedCashRegister.salesByMethodDetail.llave_bancolombia?.count || 0} ventas</p>
+                        </div>
+                        <div className="bg-white p-3 rounded-lg border">
+                          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+                            💳 Tarjeta
+                          </div>
+                          <p className="font-bold text-blue-600">{formatCurrency(selectedCashRegister.salesByMethodDetail.tarjeta?.total || 0)}</p>
+                          <p className="text-xs text-gray-400">{selectedCashRegister.salesByMethodDetail.tarjeta?.count || 0} ventas</p>
+                        </div>
+                        <div className="bg-white p-3 rounded-lg border">
+                          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+                            🏦 Transferencia
+                          </div>
+                          <p className="font-bold text-cyan-600">{formatCurrency(selectedCashRegister.salesByMethodDetail.transferencia?.total || 0)}</p>
+                          <p className="text-xs text-gray-400">{selectedCashRegister.salesByMethodDetail.transferencia?.count || 0} ventas</p>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-gray-500 col-span-3 text-center py-4">No hay datos de ventas por método</p>
+                    )}
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-purple-200 flex justify-between">
+                    <span className="font-medium text-purple-800">Total Ventas:</span>
+                    <span className="font-bold text-purple-900">{formatCurrency(selectedCashRegister.totalSales || 0)}</span>
+                  </div>
+                </div>
+
+                {/* Resumen financiero de efectivo */}
                 <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-                  <h4 className="font-medium text-gray-900">Resumen Financiero</h4>
+                  <h4 className="font-medium text-gray-900">💵 Cuadre de Caja (Efectivo)</h4>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">Monto de apertura</span>
                       <span className="font-medium">{formatCurrency(selectedCashRegister.openingAmount)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Ventas del día ({selectedCashRegister.salesCount || 0} ventas)</span>
-                      <span className="font-medium text-green-600">+{formatCurrency(selectedCashRegister.totalSales || 0)}</span>
+                      <span className="text-gray-500">+ Ventas en efectivo</span>
+                      <span className="font-medium text-green-600">+{formatCurrency(selectedCashRegister.salesByMethodDetail?.efectivo?.total || 0)}</span>
                     </div>
+                    {selectedCashRegister.movements && selectedCashRegister.movements.length > 0 && (
+                      <>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-500">+ Ingresos extra</span>
+                          <span className="font-medium text-green-600">
+                            +{formatCurrency(selectedCashRegister.movements.filter(m => m.type === 'income' || m.type === 'entrada').reduce((sum, m) => sum + m.amount, 0))}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-500">- Egresos</span>
+                          <span className="font-medium text-red-600">
+                            -{formatCurrency(selectedCashRegister.movements.filter(m => m.type === 'expense' || m.type === 'salida').reduce((sum, m) => sum + m.amount, 0))}
+                          </span>
+                        </div>
+                      </>
+                    )}
                     <div className="flex justify-between text-sm border-t pt-2">
-                      <span className="text-gray-700 font-medium">Monto esperado</span>
-                      <span className="font-bold">{formatCurrency(selectedCashRegister.expectedAmount || 0)}</span>
+                      <span className="text-gray-700 font-medium">= Monto esperado en caja</span>
+                      <span className="font-bold">{formatCurrency(selectedCashRegister.expectedAmount || selectedCashRegister.expectedClosingAmount || 0)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Monto real de cierre</span>
+                      <span className="text-gray-500">Monto real contado</span>
                       <span className="font-medium">{formatCurrency(selectedCashRegister.actualClosingAmount || selectedCashRegister.closingAmount || 0)}</span>
                     </div>
-                    <div className="flex justify-between text-sm border-t pt-2">
-                      <span className="text-gray-700 font-medium">Diferencia</span>
-                      <span className={`font-bold ${
+                    <div className="flex justify-between text-sm border-t pt-2 bg-white -mx-4 px-4 py-2 rounded">
+                      <span className="text-gray-700 font-bold">Diferencia</span>
+                      <span className={`font-bold text-lg ${
                         (selectedCashRegister.difference || 0) === 0
                           ? 'text-green-600'
                           : (selectedCashRegister.difference || 0) > 0
                           ? 'text-blue-600'
                           : 'text-red-600'
                       }`}>
-                        {(selectedCashRegister.difference || 0) > 0 ? '+' : ''}{formatCurrency(selectedCashRegister.difference || 0)}
+                        {(selectedCashRegister.difference || 0) > 0 ? '+ ' : ''}{formatCurrency(selectedCashRegister.difference || 0)}
+                        {(selectedCashRegister.difference || 0) === 0 && ' ✓'}
+                        {(selectedCashRegister.difference || 0) > 0 && ' (Sobrante)'}
+                        {(selectedCashRegister.difference || 0) < 0 && ' (Faltante)'}
                       </span>
                     </div>
                   </div>
@@ -1573,18 +1676,18 @@ const SalesHistoryPage = () => {
                 {/* Movimientos */}
                 {selectedCashRegister.movements && selectedCashRegister.movements.length > 0 && (
                   <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Movimientos de Caja</h4>
+                    <h4 className="font-medium text-gray-900 mb-2">📋 Movimientos de Caja</h4>
                     <div className="border rounded-lg divide-y max-h-48 overflow-auto">
                       {selectedCashRegister.movements.map((mov, index) => (
                         <div key={index} className="p-3 flex justify-between items-center">
                           <div>
-                            <p className="font-medium text-sm">{mov.reason}</p>
+                            <p className="font-medium text-sm">{mov.reason || mov.description}</p>
                             <p className="text-xs text-gray-500">
                               {format(new Date(mov.createdAt), 'HH:mm', { locale: es })}
                             </p>
                           </div>
-                          <span className={`font-medium ${mov.type === 'entrada' ? 'text-green-600' : 'text-red-600'}`}>
-                            {mov.type === 'entrada' ? '+' : '-'}{formatCurrency(mov.amount)}
+                          <span className={`font-medium ${(mov.type === 'entrada' || mov.type === 'income') ? 'text-green-600' : 'text-red-600'}`}>
+                            {(mov.type === 'entrada' || mov.type === 'income') ? '+' : '-'}{formatCurrency(mov.amount)}
                           </span>
                         </div>
                       ))}
@@ -1595,7 +1698,7 @@ const SalesHistoryPage = () => {
                 {/* Notas */}
                 {selectedCashRegister.closingNotes && (
                   <div className="bg-yellow-50 p-3 rounded-lg">
-                    <p className="text-sm text-gray-600">📝 {selectedCashRegister.closingNotes}</p>
+                    <p className="text-sm text-gray-600">📝 <strong>Notas de cierre:</strong> {selectedCashRegister.closingNotes}</p>
                   </div>
                 )}
               </div>
