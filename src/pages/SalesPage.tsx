@@ -161,6 +161,7 @@ const SalesPage = () => {
   // Estados para cancelar venta
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [cancellationReason, setCancellationReason] = useState('');
+  const [cancelConfirmText, setCancelConfirmText] = useState('');
 
   // Estados del corte de caja
   const [cutModalOpen, setCutModalOpen] = useState(false);
@@ -773,6 +774,7 @@ const SalesPage = () => {
   const openCancelModal = (sale: Sale) => {
     setSelectedSaleId(sale._id);
     setCancellationReason('');
+    setCancelConfirmText('');
     setCancelModalOpen(true);
   };
 
@@ -2610,13 +2612,14 @@ const SalesPage = () => {
         </Modal.Footer>
       </Modal>
 
-      {/* Modal de Cancelar Venta */}
+      {/* Modal de Cancelar Venta - Con doble confirmación */}
       <Modal
         isOpen={cancelModalOpen}
         onClose={() => {
           setCancelModalOpen(false);
           setSelectedSaleId(null);
           setCancellationReason('');
+          setCancelConfirmText('');
         }}
         title="🚫 Cancelar Venta"
         size="md"
@@ -2635,10 +2638,25 @@ const SalesPage = () => {
             <textarea
               value={cancellationReason}
               onChange={(e) => setCancellationReason(e.target.value)}
-              rows={4}
+              rows={3}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
               placeholder="Describe la razón de la cancelación..."
               required
+            />
+          </div>
+
+          {/* Confirmación doble - escribir CANCELAR */}
+          <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-4">
+            <p className="text-sm text-yellow-800 mb-2">
+              <strong>Confirmación requerida:</strong> Para cancelar esta venta, escribe <code className="bg-yellow-200 px-2 py-0.5 rounded font-mono">CANCELAR</code> en el campo de abajo.
+            </p>
+            <input
+              type="text"
+              value={cancelConfirmText}
+              onChange={(e) => setCancelConfirmText(e.target.value.toUpperCase())}
+              className="w-full px-4 py-2 border border-yellow-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-center font-mono text-lg"
+              placeholder="Escribe CANCELAR"
+              autoComplete="off"
             />
           </div>
         </div>
@@ -2650,6 +2668,7 @@ const SalesPage = () => {
               setCancelModalOpen(false);
               setSelectedSaleId(null);
               setCancellationReason('');
+              setCancelConfirmText('');
             }}
           >
             Volver
@@ -2657,7 +2676,11 @@ const SalesPage = () => {
           <Button
             variant="danger"
             onClick={handleCancelSale}
-            disabled={cancelSaleMutation.isPending || !cancellationReason.trim()}
+            disabled={
+              cancelSaleMutation.isPending || 
+              !cancellationReason.trim() || 
+              cancelConfirmText !== 'CANCELAR'
+            }
           >
             {cancelSaleMutation.isPending ? 'Cancelando...' : 'Confirmar Cancelación'}
           </Button>
