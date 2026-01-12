@@ -425,7 +425,7 @@ const ProductFormPage = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -433,43 +433,43 @@ const ProductFormPage = () => {
       >
         <button
           onClick={() => navigate('/productos')}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-3 sm:mb-4 transition-colors text-sm sm:text-base"
         >
-          <ArrowLeft size={20} />
-          <span>Volver a productos</span>
+          <ArrowLeft size={18} />
+          <span>Volver</span>
         </button>
-        <h1 className="text-3xl font-bold text-gray-900">
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
           {isEditMode ? 'Editar Producto' : 'Nuevo Producto'}
         </h1>
-        <p className="text-gray-600 mt-1">
+        <p className="text-gray-600 text-sm sm:text-base">
           {isEditMode
-            ? 'Actualiza la información del producto'
-            : 'Completa el formulario para agregar un nuevo producto'}
+            ? 'Actualiza la información'
+            : 'Completa el formulario'}
         </p>
         
         {/* Tracking de Creación/Modificación */}
         {isEditMode && product && (
-          <div className="mt-4 bg-blue-50 border border-blue-200 p-3 rounded-lg">
-            <div className="flex flex-col gap-2 text-sm">
+          <div className="mt-3 sm:mt-4 bg-blue-50 border border-blue-200 p-2.5 sm:p-3 rounded-lg">
+            <div className="flex flex-col gap-1.5 sm:gap-2 text-xs sm:text-sm">
               {product.createdBy && (
-                <div className="flex items-center gap-2 text-gray-700">
-                  <span className="font-medium">👤 Creado por:</span>
+                <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-gray-700">
+                  <span className="font-medium">👤 Creado:</span>
                   <span>{typeof product.createdBy === 'string' ? product.createdBy : product.createdBy.name}</span>
-                  <span className="text-gray-500">•</span>
+                  <span className="text-gray-500 hidden sm:inline">•</span>
                   <span className="text-gray-600">
-                    {format(new Date(product.createdAt), "dd MMM yyyy 'a las' HH:mm", {
+                    {format(new Date(product.createdAt), "dd MMM yyyy", {
                       locale: es,
                     })}
                   </span>
                 </div>
               )}
               {product.updatedBy && product.updatedAt && (
-                <div className="flex items-center gap-2 text-gray-700">
-                  <span className="font-medium">✏️ Modificado por:</span>
+                <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-gray-700">
+                  <span className="font-medium">✏️ Modificado:</span>
                   <span>{typeof product.updatedBy === 'string' ? product.updatedBy : product.updatedBy.name}</span>
-                  <span className="text-gray-500">•</span>
+                  <span className="text-gray-500 hidden sm:inline">•</span>
                   <span className="text-gray-600">
-                    {format(new Date(product.updatedAt), "dd MMM yyyy 'a las' HH:mm", {
+                    {format(new Date(product.updatedAt), "dd MMM yyyy", {
                       locale: es,
                     })}
                   </span>
@@ -489,12 +489,12 @@ const ProductFormPage = () => {
         <form onSubmit={handleSubmit(onSubmit)}>
           <Card>
             <Card.Header>
-              <h3 className="text-lg font-semibold text-gray-900">Información del Producto</h3>
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">Información del Producto</h3>
             </Card.Header>
-            <Card.Body className="space-y-6">
+            <Card.Body className="space-y-4 sm:space-y-6">
               {/* Nombre */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                   Nombre del Producto *
                 </label>
                 <input

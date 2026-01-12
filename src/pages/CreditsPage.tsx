@@ -369,33 +369,35 @@ const CreditsPage = () => {
   const totalSelected = selectedProducts.reduce((sum, p) => sum + (p.quantity * p.unitPrice), 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Fiados y Apartados</h1>
-          <p className="text-gray-600">Gestiona créditos y productos apartados</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Fiados y Apartados</h1>
+          <p className="text-gray-600 text-sm sm:text-base">Gestiona créditos y apartados</p>
         </div>
         <Button
           onClick={() => setCreateModalOpen(true)}
           leftIcon={<Plus size={18} />}
+          className="text-sm sm:text-base"
         >
-          Nuevo Crédito
+          <span className="hidden sm:inline">Nuevo Crédito</span>
+          <span className="sm:hidden">Nuevo</span>
         </Button>
       </div>
 
       {/* Selector de tienda (admin) */}
       {isAdmin && stores && (
-        <Card className="p-4">
-          <div className="flex items-center gap-4">
-            <label className="font-medium text-gray-700">Tienda:</label>
+        <Card className="p-3 sm:p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+            <label className="font-medium text-gray-700 text-sm sm:text-base">Tienda:</label>
             <select
               value={selectedStore}
               onChange={(e) => {
                 setSelectedStore(e.target.value);
                 localStorage.setItem('lastUsedStore', e.target.value);
               }}
-              className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
+              className="px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-primary-500 w-full sm:w-auto"
             >
               <option value="">Todas las tiendas</option>
               {stores.map((store) => (
@@ -408,33 +410,33 @@ const CreditsPage = () => {
 
       {/* Resumen */}
       {summary && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-orange-200 rounded-full">
-                <CreditCard className="text-orange-700" size={24} />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+          <Card className="p-3 sm:p-4 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-2 sm:p-3 bg-orange-200 rounded-full flex-shrink-0">
+                <CreditCard className="text-orange-700" size={18} />
               </div>
-              <div>
-                <p className="text-sm text-orange-700 font-medium">Fiados Pendientes</p>
-                <p className="text-2xl font-bold text-orange-900">
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-orange-700 font-medium truncate">Fiados Pend.</p>
+                <p className="text-lg sm:text-xl lg:text-2xl font-bold text-orange-900">
                   ${summary.summary.fiados.pendingAmount.toLocaleString('es-CO')}
                 </p>
-                <p className="text-xs text-orange-600">{summary.summary.fiados.count} créditos</p>
+                <p className="text-[10px] sm:text-xs text-orange-600">{summary.summary.fiados.count} créditos</p>
               </div>
             </div>
           </Card>
 
-          <Card className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-purple-200 rounded-full">
-                <Package className="text-purple-700" size={24} />
+          <Card className="p-3 sm:p-4 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-2 sm:p-3 bg-purple-200 rounded-full flex-shrink-0">
+                <Package className="text-purple-700" size={18} />
               </div>
-              <div>
-                <p className="text-sm text-purple-700 font-medium">Apartados Pendientes</p>
-                <p className="text-2xl font-bold text-purple-900">
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-purple-700 font-medium truncate">Apartados Pend.</p>
+                <p className="text-lg sm:text-xl lg:text-2xl font-bold text-purple-900">
                   ${summary.summary.apartados.pendingAmount.toLocaleString('es-CO')}
                 </p>
-                <p className="text-xs text-purple-600">{summary.summary.apartados.count} apartados</p>
+                <p className="text-[10px] sm:text-xs text-purple-600">{summary.summary.apartados.count} apartados</p>
               </div>
             </div>
           </Card>
@@ -445,8 +447,8 @@ const CreditsPage = () => {
                 <DollarSign className="text-green-700" size={24} />
               </div>
               <div>
-                <p className="text-sm text-green-700 font-medium">Total por Cobrar</p>
-                <p className="text-2xl font-bold text-green-900">
+                <p className="text-xs sm:text-sm text-green-700 font-medium truncate">Por Cobrar</p>
+                <p className="text-lg sm:text-xl lg:text-2xl font-bold text-green-900">
                   ${(summary.summary.fiados.pendingAmount + summary.summary.apartados.pendingAmount).toLocaleString('es-CO')}
                 </p>
               </div>
@@ -454,15 +456,15 @@ const CreditsPage = () => {
           </Card>
 
           {summary.overdueCount > 0 && (
-            <Card className="p-4 bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-red-200 rounded-full">
-                  <AlertTriangle className="text-red-700" size={24} />
+            <Card className="p-3 sm:p-4 bg-gradient-to-br from-red-50 to-red-100 border-red-200">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-2 sm:p-3 bg-red-200 rounded-full flex-shrink-0">
+                  <AlertTriangle className="text-red-700" size={18} />
                 </div>
-                <div>
-                  <p className="text-sm text-red-700 font-medium">Vencidos</p>
-                  <p className="text-2xl font-bold text-red-900">{summary.overdueCount}</p>
-                  <p className="text-xs text-red-600">requieren atención</p>
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-red-700 font-medium truncate">Vencidos</p>
+                  <p className="text-lg sm:text-xl lg:text-2xl font-bold text-red-900">{summary.overdueCount}</p>
+                  <p className="text-[10px] sm:text-xs text-red-600">atención</p>
                 </div>
               </div>
             </Card>
@@ -471,10 +473,10 @@ const CreditsPage = () => {
       )}
 
       {/* Filtros */}
-      <Card className="p-4">
-        <div className="flex flex-col md:flex-row gap-4">
+      <Card className="p-3 sm:p-4">
+        <div className="flex flex-col gap-3 sm:gap-4">
           {/* Tabs */}
-          <div className="flex bg-gray-100 rounded-lg p-1">
+          <div className="flex bg-gray-100 rounded-lg p-1 overflow-x-auto">
             {[
               { key: 'todos', label: 'Todos' },
               { key: 'fiados', label: 'Fiados' },
@@ -483,10 +485,10 @@ const CreditsPage = () => {
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key as any)}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
                   activeTab === tab.key
                     ? 'bg-white text-primary-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
+                    : 'text-gray-600 hover:text-gray-900 active:bg-gray-200'
                 }`}
               >
                 {tab.label}
@@ -498,9 +500,9 @@ const CreditsPage = () => {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 border rounded-lg"
+            className="px-3 py-2 border rounded-lg text-sm w-full sm:w-auto"
           >
-            <option value="">Todos los estados</option>
+            <option value="">Todos estados</option>
             <option value="pending">Pendiente</option>
             <option value="partial">Pago parcial</option>
             <option value="completed">Pagado</option>

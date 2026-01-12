@@ -399,42 +399,43 @@ const StoresPage = () => {
     stores?.reduce((sum, store) => sum + (store.stats?.totalRevenue || 0), 0) || 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"
       >
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Gestión de Tiendas</h1>
-          <p className="text-gray-600 mt-1">
-            Administra todas las tiendas del sistema
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Tiendas</h1>
+          <p className="text-gray-600 text-sm sm:text-base">
+            Administra las tiendas
           </p>
         </div>
-        <Button onClick={openCreateModal} leftIcon={<Plus size={20} />}>
-          Nueva Tienda
+        <Button onClick={openCreateModal} leftIcon={<Plus size={18} />} className="text-sm sm:text-base">
+          <span className="hidden sm:inline">Nueva Tienda</span>
+          <span className="sm:hidden">Nueva</span>
         </Button>
       </motion.div>
 
       {/* Estadísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 lg:gap-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
           <Card>
-            <Card.Body>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Total Tiendas</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-1">
+            <Card.Body className="p-3 sm:p-4 lg:p-6">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-gray-600 truncate">Total</p>
+                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mt-0.5 sm:mt-1">
                     {totalStores}
                   </p>
                 </div>
-                <div className="p-3 bg-blue-100 rounded-lg">
-                  <Store size={24} className="text-blue-600" />
+                <div className="p-2 sm:p-3 bg-blue-100 rounded-lg flex-shrink-0">
+                  <Store size={20} className="text-blue-600" />
                 </div>
               </div>
             </Card.Body>
@@ -447,16 +448,16 @@ const StoresPage = () => {
           transition={{ delay: 0.2 }}
         >
           <Card>
-            <Card.Body>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Tiendas Activas</p>
-                  <p className="text-3xl font-bold text-green-600 mt-1">
+            <Card.Body className="p-3 sm:p-4 lg:p-6">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-gray-600 truncate">Activas</p>
+                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-600 mt-0.5 sm:mt-1">
                     {activeStores}
                   </p>
                 </div>
-                <div className="p-3 bg-green-100 rounded-lg">
-                  <CheckCircle size={24} className="text-green-600" />
+                <div className="p-2 sm:p-3 bg-green-100 rounded-lg flex-shrink-0">
+                  <CheckCircle size={20} className="text-green-600" />
                 </div>
               </div>
             </Card.Body>
@@ -469,16 +470,16 @@ const StoresPage = () => {
           transition={{ delay: 0.3 }}
         >
           <Card>
-            <Card.Body>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Tiendas Inactivas</p>
-                  <p className="text-3xl font-bold text-red-600 mt-1">
+            <Card.Body className="p-3 sm:p-4 lg:p-6">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-gray-600 truncate">Inactivas</p>
+                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-red-600 mt-0.5 sm:mt-1">
                     {inactiveStores}
                   </p>
                 </div>
-                <div className="p-3 bg-red-100 rounded-lg">
-                  <XCircle size={24} className="text-red-600" />
+                <div className="p-2 sm:p-3 bg-red-100 rounded-lg flex-shrink-0">
+                  <XCircle size={20} className="text-red-600" />
                 </div>
               </div>
             </Card.Body>
@@ -491,16 +492,16 @@ const StoresPage = () => {
           transition={{ delay: 0.4 }}
         >
           <Card>
-            <Card.Body>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Ingresos Totales</p>
-                  <p className="text-3xl font-bold text-emerald-600 mt-1">
+            <Card.Body className="p-3 sm:p-4 lg:p-6">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-gray-600 truncate">Ingresos</p>
+                  <p className="text-lg sm:text-xl lg:text-3xl font-bold text-emerald-600 mt-0.5 sm:mt-1">
                     ${totalRevenue.toLocaleString()}
                   </p>
                 </div>
-                <div className="p-3 bg-emerald-100 rounded-lg">
-                  <DollarSign size={24} className="text-emerald-600" />
+                <div className="p-2 sm:p-3 bg-emerald-100 rounded-lg flex-shrink-0">
+                  <DollarSign size={20} className="text-emerald-600" />
                 </div>
               </div>
             </Card.Body>
@@ -517,7 +518,7 @@ const StoresPage = () => {
         <Card>
           <Card.Body>
             <SearchBar
-              placeholder="Buscar por nombre, dirección o gerente..."
+              placeholder="Buscar tienda..."
               onSearch={setSearchQuery}
             />
           </Card.Body>

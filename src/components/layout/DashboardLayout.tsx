@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -60,8 +60,22 @@ interface DashboardLayoutProps {
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isLargeScreen, setIsLargeScreen] = useState(window.innerWidth >= 1024);
   const location = useLocation();
   const { user, logout } = useAuthStore();
+
+  // Detectar cambios de tamaño de pantalla
+  useEffect(() => {
+    const handleResize = () => {
+      setIsLargeScreen(window.innerWidth >= 1024);
+      // Cerrar menú móvil si cambia a pantalla grande
+      if (window.innerWidth >= 1024) {
+        setMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -255,19 +269,19 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
       {/* Main Content */}
       <div
-        className="transition-all duration-300 lg:ml-0"
+        className="transition-all duration-300"
         style={{
-          marginLeft: window.innerWidth >= 1024 ? (sidebarOpen ? '256px' : '80px') : '0',
+          marginLeft: isLargeScreen ? (sidebarOpen ? '256px' : '80px') : '0',
         }}
       >
         {/* Top Bar */}
-        <header className="h-16 bg-white border-b border-gray-200 px-4 lg:px-6 flex items-center justify-between sticky top-0 z-20">
+        <header className="h-14 sm:h-16 bg-white border-b border-gray-200 px-3 sm:px-4 lg:px-6 flex items-center justify-between sticky top-0 z-20">
           {/* Mobile Menu Button */}
           <button
             onClick={() => setMobileMenuOpen(true)}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors lg:hidden"
           >
-            <Menu size={24} />
+            <Menu size={22} />
           </button>
 
           {/* Breadcrumbs */}
@@ -293,15 +307,15 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           </div>
 
           {/* Right Section */}
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-600 hidden sm:block">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <span className="text-xs sm:text-sm text-gray-600 hidden sm:block truncate max-w-[150px] sm:max-w-none">
               {user?.store?.name || 'Todas las tiendas'}
             </span>
           </div>
         </header>
 
         {/* Page Content */}
-        <main className="p-4 lg:p-6">
+        <main className="p-3 sm:p-4 lg:p-6 pb-20 lg:pb-6">
           <motion.div
             key={location.pathname}
             initial={{ opacity: 0, y: 10 }}
@@ -311,6 +325,55 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             {children}
           </motion.div>
         </main>
+
+        {/* Bottom Navigation - Mobile Only */}
+        <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-30 lg:hidden safe-area-inset-bottom">
+          <div className="flex items-center justify-around h-16">
+            <Link
+              to="/dashboard"
+              className={`flex flex-col items-center justify-center flex-1 py-2 ${
+                isActive('/dashboard') ? 'text-primary-600' : 'text-gray-500'
+              }`}
+            >
+              <LayoutDashboard size={20} />
+              <span className="text-xs mt-1">Inicio</span>
+            </Link>
+            <Link
+              to="/caja"
+              className={`flex flex-col items-center justify-center flex-1 py-2 ${
+                isActive('/caja') ? 'text-primary-600' : 'text-gray-500'
+              }`}
+            >
+              <Banknote size={20} />
+              <span className="text-xs mt-1">Caja</span>
+            </Link>
+            <Link
+              to="/ventas"
+              className={`flex flex-col items-center justify-center flex-1 py-2 ${
+                isActive('/ventas') ? 'text-primary-600' : 'text-gray-500'
+              }`}
+            >
+              <ShoppingCart size={20} />
+              <span className="text-xs mt-1">Ventas</span>
+            </Link>
+            <Link
+              to="/productos"
+              className={`flex flex-col items-center justify-center flex-1 py-2 ${
+                isActive('/productos') ? 'text-primary-600' : 'text-gray-500'
+              }`}
+            >
+              <Package size={20} />
+              <span className="text-xs mt-1">Productos</span>
+            </Link>
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="flex flex-col items-center justify-center flex-1 py-2 text-gray-500"
+            >
+              <Menu size={20} />
+              <span className="text-xs mt-1">Más</span>
+            </button>
+          </div>
+        </nav>
       </div>
     </div>
   );

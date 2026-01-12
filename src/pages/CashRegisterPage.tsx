@@ -510,21 +510,21 @@ export default function CashRegisterPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b px-6 py-4">
+      <div className="bg-white border-b px-3 sm:px-6 py-3 sm:py-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="p-2 bg-primary-100 rounded-lg">
-              <Banknote className="h-6 w-6 text-primary-600" />
+          <div className="flex items-center gap-2 sm:gap-4">
+            <div className="p-1.5 sm:p-2 bg-primary-100 rounded-lg">
+              <Banknote className="h-5 w-5 sm:h-6 sm:w-6 text-primary-600" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Punto de Venta</h1>
-              <p className="text-sm text-gray-500">
+              <h1 className="text-base sm:text-xl font-bold text-gray-900">Punto de Venta</h1>
+              <p className="text-xs sm:text-sm text-gray-500 truncate max-w-[120px] sm:max-w-none">
                 {currentRegister?.store?.name || stores.find(s => s._id === selectedStoreId)?.name || 'Selecciona tienda'}
               </p>
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {isAdmin && (
               <select
                 value={selectedStoreId}
@@ -549,26 +549,26 @@ export default function CashRegisterPage() {
         </div>
       </div>
 
-      <div className="flex h-[calc(100vh-73px)]">
-        {/* Panel Izquierdo - Estado de Caja */}
-        <div className="w-80 bg-white border-r flex flex-col">
+      <div className="flex flex-col lg:flex-row h-[calc(100vh-65px)] sm:h-[calc(100vh-73px)]">
+        {/* Panel Izquierdo - Estado de Caja (Sidebar en desktop, colapsible en móvil) */}
+        <div className="lg:w-80 bg-white border-b lg:border-b-0 lg:border-r flex flex-col">
           {loadingCurrent ? (
-            <div className="flex-1 flex items-center justify-center">
+            <div className="flex-1 flex items-center justify-center py-8 lg:py-0">
               <div className="animate-spin h-8 w-8 border-2 border-primary-600 border-t-transparent rounded-full" />
             </div>
           ) : !currentRegister ? (
             // Caja cerrada - Botón para abrir
-            <div className="flex-1 flex flex-col items-center justify-center p-6">
-              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                <Lock className="h-10 w-10 text-gray-400" />
+            <div className="flex flex-col items-center justify-center p-4 sm:p-6">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-full flex items-center justify-center mb-3 sm:mb-4">
+                <Lock className="h-8 w-8 sm:h-10 sm:w-10 text-gray-400" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-700 mb-2">Caja Cerrada</h3>
-              <p className="text-sm text-gray-500 text-center mb-6">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-2">Caja Cerrada</h3>
+              <p className="text-xs sm:text-sm text-gray-500 text-center mb-4 sm:mb-6">
                 Abre la caja para comenzar a registrar ventas
               </p>
               <button 
                 onClick={() => setShowOpenModal(true)} 
-                className="w-full px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium flex items-center justify-center gap-2"
+                className="w-full px-4 py-2.5 sm:py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 text-sm sm:text-base"
               >
                 <Unlock className="h-4 w-4" />
                 Abrir Caja
@@ -683,19 +683,19 @@ export default function CashRegisterPage() {
         </div>
 
         {/* Panel Central - POS */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-h-0">
           {/* Barra de búsqueda */}
-          <div className="p-4 bg-white border-b">
+          <div className="p-2 sm:p-4 bg-white border-b">
             <div className="flex gap-2">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
                 <input
                   ref={searchInputRef}
                   type="text"
                   value={searchProduct}
                   onChange={(e) => setSearchProduct(e.target.value)}
-                  placeholder="Buscar producto por nombre o SKU..."
-                  className="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  placeholder="Buscar producto..."
+                  className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm sm:text-base"
                   disabled={!currentRegister || currentRegister.status !== 'open'}
                 />
                 
@@ -714,16 +714,16 @@ export default function CashRegisterPage() {
                           <div
                             key={product._id}
                             onClick={() => stock > 0 && addToCart(product)}
-                            className={`p-3 flex justify-between items-center border-b last:border-0 ${
-                              stock > 0 ? 'hover:bg-gray-50 cursor-pointer' : 'opacity-50 cursor-not-allowed'
+                            className={`p-2.5 sm:p-3 flex justify-between items-center border-b last:border-0 ${
+                              stock > 0 ? 'hover:bg-gray-50 cursor-pointer active:bg-gray-100' : 'opacity-50 cursor-not-allowed'
                             }`}
                           >
-                            <div>
-                              <p className="font-medium">{product.name}</p>
+                            <div className="min-w-0 flex-1">
+                              <p className="font-medium text-sm sm:text-base truncate">{product.name}</p>
                               <p className="text-xs text-gray-500">SKU: {product.sku}</p>
                             </div>
-                            <div className="text-right">
-                              <p className="font-bold">{formatCurrency(product.price)}</p>
+                            <div className="text-right ml-2">
+                              <p className="font-bold text-sm sm:text-base">{formatCurrency(product.price)}</p>
                               <p className={`text-xs ${stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
                                 Stock: {stock}
                               </p>
@@ -732,7 +732,7 @@ export default function CashRegisterPage() {
                         );
                       })
                     ) : (
-                      <div className="p-4 text-center text-gray-500">
+                      <div className="p-4 text-center text-gray-500 text-sm">
                         No se encontraron productos
                       </div>
                     )}
@@ -743,7 +743,7 @@ export default function CashRegisterPage() {
               <button
                 onClick={() => setShowScanner(true)}
                 disabled={!currentRegister || currentRegister.status !== 'open'}
-                className="px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg disabled:opacity-50"
+                className="px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-100 hover:bg-gray-200 rounded-lg disabled:opacity-50 active:bg-gray-300"
                 title="Escanear código"
               >
                 <Package className="h-5 w-5" />
@@ -752,7 +752,7 @@ export default function CashRegisterPage() {
           </div>
 
           {/* Carrito */}
-          <div className="flex-1 overflow-auto p-4">
+          <div className="flex-1 overflow-auto p-2 sm:p-4">
             {cart.length === 0 ? (
               <div className="h-full flex flex-col">
                 {/* Productos recientes */}
@@ -760,9 +760,9 @@ export default function CashRegisterPage() {
                   <div className="mb-4">
                     <div className="flex items-center gap-2 text-gray-500 mb-2">
                       <Clock className="h-4 w-4" />
-                      <span className="text-sm font-medium">Productos recientes</span>
+                      <span className="text-xs sm:text-sm font-medium">Productos recientes</span>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                       {recentProducts.map(product => {
                         const stock = getStock(product._id);
                         return (
@@ -770,14 +770,14 @@ export default function CashRegisterPage() {
                             key={product._id}
                             onClick={() => stock > 0 && addToCart(product)}
                             disabled={stock === 0}
-                            className={`p-3 rounded-lg border text-left transition-colors ${
+                            className={`p-2 sm:p-3 rounded-lg border text-left transition-colors ${
                               stock > 0 
-                                ? 'hover:bg-primary-50 hover:border-primary-300' 
+                                ? 'hover:bg-primary-50 hover:border-primary-300 active:bg-primary-100' 
                                 : 'opacity-50 cursor-not-allowed'
                             }`}
                           >
-                            <p className="font-medium text-sm truncate">{product.name}</p>
-                            <p className="text-primary-600 font-bold">{formatCurrency(product.price)}</p>
+                            <p className="font-medium text-xs sm:text-sm truncate">{product.name}</p>
+                            <p className="text-primary-600 font-bold text-sm sm:text-base">{formatCurrency(product.price)}</p>
                             <p className={`text-xs ${stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
                               Stock: {stock}
                             </p>
@@ -789,9 +789,9 @@ export default function CashRegisterPage() {
                 )}
                 
                 <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
-                  <ShoppingCart className="h-16 w-16 mb-4" />
-                  <p className="text-lg">Carrito vacío</p>
-                  <p className="text-sm">Busca productos para agregarlos</p>
+                  <ShoppingCart className="h-12 w-12 sm:h-16 sm:w-16 mb-3 sm:mb-4" />
+                  <p className="text-base sm:text-lg">Carrito vacío</p>
+                  <p className="text-xs sm:text-sm">Busca productos para agregarlos</p>
                 </div>
               </div>
             ) : (
@@ -801,36 +801,36 @@ export default function CashRegisterPage() {
                     key={item.product._id}
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-white rounded-lg border p-3 flex items-center gap-4"
+                    className="bg-white rounded-lg border p-2 sm:p-3 flex items-center gap-2 sm:gap-4"
                   >
-                    <div className="flex-1">
-                      <p className="font-medium">{item.product.name}</p>
-                      <p className="text-sm text-gray-500">{formatCurrency(item.unitPrice)} c/u</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm sm:text-base truncate">{item.product.name}</p>
+                      <p className="text-xs sm:text-sm text-gray-500">{formatCurrency(item.unitPrice)} c/u</p>
                     </div>
                     
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 sm:gap-2">
                       <button
                         onClick={() => updateQuantity(item.product._id, -1)}
-                        className="w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded"
+                        className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded"
                       >
-                        <Minus className="h-4 w-4" />
+                        <Minus className="h-3 w-3 sm:h-4 sm:w-4" />
                       </button>
-                      <span className="w-8 text-center font-medium">{item.quantity}</span>
+                      <span className="w-6 sm:w-8 text-center font-medium text-sm sm:text-base">{item.quantity}</span>
                       <button
                         onClick={() => updateQuantity(item.product._id, 1)}
-                        className="w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded"
+                        className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded"
                       >
-                        <Plus className="h-4 w-4" />
+                        <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
                       </button>
                     </div>
                     
-                    <div className="w-24 text-right">
-                      <p className="font-bold">{formatCurrency(item.subtotal)}</p>
+                    <div className="w-16 sm:w-24 text-right">
+                      <p className="font-bold text-sm sm:text-base">{formatCurrency(item.subtotal)}</p>
                     </div>
                     
                     <button
                       onClick={() => removeFromCart(item.product._id)}
-                      className="p-2 text-red-500 hover:bg-red-50 rounded"
+                      className="p-1.5 sm:p-2 text-red-500 hover:bg-red-50 active:bg-red-100 rounded"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -841,8 +841,8 @@ export default function CashRegisterPage() {
           </div>
 
           {/* Panel de pago */}
-          <div className={`border-t p-4 transition-colors duration-300 ${cart.length > 0 ? currentPaymentColor.bg : 'bg-white'}`}>
-            <div className="flex gap-4">
+          <div className={`border-t p-2 sm:p-4 transition-colors duration-300 ${cart.length > 0 ? currentPaymentColor.bg : 'bg-white'}`}>
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               {/* Método de pago y descuento */}
               <div className="flex-1 space-y-3">
                 {/* Descuento */}
@@ -855,14 +855,14 @@ export default function CashRegisterPage() {
                         type="number"
                         value={discount}
                         onChange={(e) => setDiscount(e.target.value)}
-                        placeholder={discountType === 'fixed' ? 'Descuento en pesos' : 'Descuento %'}
-                        className="w-full pl-9 pr-4 py-2 border rounded-lg text-sm bg-white/80"
+                        placeholder={discountType === 'fixed' ? 'Descuento $' : 'Descuento %'}
+                        className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm bg-white/80"
                       />
                     </div>
                     <div className="flex border rounded-lg overflow-hidden">
                       <button
                         onClick={() => setDiscountType('fixed')}
-                        className={`px-3 py-2 text-sm font-medium ${
+                        className={`px-2.5 sm:px-3 py-2 text-sm font-medium ${
                           discountType === 'fixed' ? 'bg-primary-600 text-white' : 'bg-gray-100 hover:bg-gray-200'
                         }`}
                       >
@@ -870,7 +870,7 @@ export default function CashRegisterPage() {
                       </button>
                       <button
                         onClick={() => setDiscountType('percentage')}
-                        className={`px-3 py-2 text-sm font-medium ${
+                        className={`px-2.5 sm:px-3 py-2 text-sm font-medium ${
                           discountType === 'percentage' ? 'bg-primary-600 text-white' : 'bg-gray-100 hover:bg-gray-200'
                         }`}
                       >
@@ -878,7 +878,7 @@ export default function CashRegisterPage() {
                       </button>
                     </div>
                     {discountAmount > 0 && (
-                      <span className="text-sm text-red-600 font-medium">
+                      <span className="text-xs sm:text-sm text-red-600 font-medium whitespace-nowrap">
                         -{formatCurrency(discountAmount)}
                       </span>
                     )}
@@ -886,8 +886,8 @@ export default function CashRegisterPage() {
                 )}
                 
                 <div>
-                  <p className="text-xs font-medium text-gray-500 mb-2">MÉTODO DE PAGO</p>
-                  <div className="grid grid-cols-3 gap-2">
+                  <p className="text-xs font-medium text-gray-500 mb-1.5 sm:mb-2">MÉTODO DE PAGO</p>
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 sm:gap-2">
                     {[
                       { value: 'efectivo', label: 'Efectivo', icon: Banknote },
                       { value: 'nequi', label: 'Nequi', icon: Wallet },
@@ -899,34 +899,34 @@ export default function CashRegisterPage() {
                       <button
                         key={value}
                         onClick={() => setPaymentMethod(value)}
-                        className={`flex flex-col items-center gap-1 p-2 rounded-lg border-2 transition-colors ${
+                        className={`flex flex-col items-center gap-0.5 sm:gap-1 p-1.5 sm:p-2 rounded-lg border-2 transition-colors ${
                           paymentMethod === value
                             ? 'border-primary-500 bg-primary-50 text-primary-700'
-                            : 'border-gray-200 hover:border-gray-300'
+                            : 'border-gray-200 hover:border-gray-300 active:bg-gray-100'
                         }`}
                       >
-                        <Icon className="h-5 w-5" />
-                        <span className="text-xs font-medium">{label}</span>
+                        <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
+                        <span className="text-[10px] sm:text-xs font-medium">{label}</span>
                       </button>
                     ))}
                   </div>
                 </div>
                 
                 {paymentMethod === 'efectivo' && cart.length > 0 && (
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3">
                     <div className="flex-1">
                       <input
                         type="number"
                         value={amountReceived}
                         onChange={(e) => setAmountReceived(e.target.value)}
                         placeholder="Monto recibido"
-                        className="w-full px-3 py-2 border rounded-lg"
+                        className="w-full px-3 py-2 border rounded-lg text-sm"
                       />
                     </div>
                     {change > 0 && (
-                      <div className="text-right bg-green-50 px-3 py-2 rounded-lg">
-                        <p className="text-xs text-green-600">Cambio:</p>
-                        <p className="font-bold text-green-700 text-lg">{formatCurrency(change)}</p>
+                      <div className="text-right bg-green-50 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg">
+                        <p className="text-[10px] sm:text-xs text-green-600">Cambio:</p>
+                        <p className="font-bold text-green-700 text-sm sm:text-lg">{formatCurrency(change)}</p>
                       </div>
                     )}
                   </div>
@@ -934,35 +934,35 @@ export default function CashRegisterPage() {
               </div>
 
               {/* Total y botón */}
-              <div className="w-64 flex flex-col justify-between">
-                <div>
+              <div className="w-full sm:w-56 lg:w-64 flex flex-row sm:flex-col justify-between items-center sm:items-stretch gap-3">
+                <div className="text-center sm:text-left">
                   {discountAmount > 0 && (
-                    <div className="flex justify-between text-sm text-gray-500 mb-1">
+                    <div className="hidden sm:flex justify-between text-sm text-gray-500 mb-1">
                       <span>Subtotal:</span>
                       <span>{formatCurrency(cartSubtotal)}</span>
                     </div>
                   )}
                   {discountAmount > 0 && (
-                    <div className="flex justify-between text-sm text-red-600 mb-1">
+                    <div className="hidden sm:flex justify-between text-sm text-red-600 mb-1">
                       <span>Descuento:</span>
                       <span>-{formatCurrency(discountAmount)}</span>
                     </div>
                   )}
-                  <p className="text-xs font-medium text-gray-500">TOTAL A PAGAR</p>
-                  <p className="text-4xl font-bold text-gray-900">{formatCurrency(cartTotal)}</p>
-                  <p className="text-sm text-gray-500">{cart.length} producto(s)</p>
+                  <p className="text-[10px] sm:text-xs font-medium text-gray-500">TOTAL</p>
+                  <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">{formatCurrency(cartTotal)}</p>
+                  <p className="text-xs sm:text-sm text-gray-500">{cart.length} producto(s)</p>
                 </div>
                 
                 <button
                   onClick={handleSale}
                   disabled={cart.length === 0 || saleMutation.isPending || !currentRegister}
-                  className="w-full py-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white rounded-xl font-bold text-lg flex items-center justify-center gap-2"
+                  className="flex-1 sm:flex-none w-auto sm:w-full py-3 sm:py-4 px-4 sm:px-0 bg-green-600 hover:bg-green-700 active:bg-green-800 disabled:bg-gray-300 text-white rounded-xl font-bold text-base sm:text-lg flex items-center justify-center gap-2"
                 >
                   {saleMutation.isPending ? (
                     <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
                   ) : (
                     <>
-                      <Receipt className="h-6 w-6" />
+                      <Receipt className="h-5 w-5 sm:h-6 sm:w-6" />
                       Cobrar
                     </>
                   )}

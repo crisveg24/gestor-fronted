@@ -71,12 +71,12 @@ export default function PurchaseOrdersPage() {
   if (loading) return <Loading />;
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900">Órdenes de Compra</h1>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Órdenes de Compra</h1>
         {user?.role === 'admin' && (
-          <Button onClick={() => navigate('/ordenes-compra/nueva')}>
-            + Nueva Orden
+          <Button onClick={() => navigate('/ordenes-compra/nueva')} className="text-sm sm:text-base">
+            + <span className="hidden sm:inline">Nueva Orden</span><span className="sm:hidden">Nueva</span>
           </Button>
         )}
       </div>

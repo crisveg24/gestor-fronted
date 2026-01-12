@@ -365,37 +365,38 @@ export default function ReturnsPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Devoluciones y Cambios</h1>
-          <p className="text-gray-600 mt-1">
-            Gestión de devoluciones, cambios y reembolsos
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Devoluciones</h1>
+          <p className="text-gray-600 text-sm sm:text-base">
+            Gestión de devoluciones y cambios
           </p>
         </div>
         
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:bg-blue-800 transition-colors text-sm sm:text-base"
         >
-          <RotateCcw className="h-5 w-5" />
-          Nueva Devolución
+          <RotateCcw className="h-4 w-4 sm:h-5 sm:w-5" />
+          <span className="hidden sm:inline">Nueva Devolución</span>
+          <span className="sm:hidden">Nueva</span>
         </button>
       </div>
 
       {/* Resumen */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-yellow-50 border border-yellow-200 rounded-xl p-4"
+          className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 sm:p-4"
         >
-          <div className="flex items-center gap-3">
-            <Clock className="h-8 w-8 text-yellow-600" />
-            <div>
-              <p className="text-2xl font-bold text-yellow-700">{getStatusCount('pending')}</p>
-              <p className="text-sm text-yellow-600">Pendientes</p>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Clock className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-600 flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="text-xl sm:text-2xl font-bold text-yellow-700">{getStatusCount('pending')}</p>
+              <p className="text-xs sm:text-sm text-yellow-600 truncate">Pendientes</p>
             </div>
           </div>
         </motion.div>
@@ -404,13 +405,13 @@ export default function ReturnsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-blue-50 border border-blue-200 rounded-xl p-4"
+          className="bg-blue-50 border border-blue-200 rounded-xl p-3 sm:p-4"
         >
-          <div className="flex items-center gap-3">
-            <CheckCircle className="h-8 w-8 text-blue-600" />
-            <div>
-              <p className="text-2xl font-bold text-blue-700">{getStatusCount('approved')}</p>
-              <p className="text-sm text-blue-600">Aprobadas</p>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <CheckCircle className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="text-xl sm:text-2xl font-bold text-blue-700">{getStatusCount('approved')}</p>
+              <p className="text-xs sm:text-sm text-blue-600 truncate">Aprobadas</p>
             </div>
           </div>
         </motion.div>
@@ -419,13 +420,13 @@ export default function ReturnsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-green-50 border border-green-200 rounded-xl p-4"
+          className="bg-green-50 border border-green-200 rounded-xl p-3 sm:p-4"
         >
-          <div className="flex items-center gap-3">
-            <CheckCircle className="h-8 w-8 text-green-600" />
-            <div>
-              <p className="text-2xl font-bold text-green-700">{getStatusCount('completed')}</p>
-              <p className="text-sm text-green-600">Completadas</p>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <CheckCircle className="h-6 w-6 sm:h-8 sm:w-8 text-green-600 flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="text-xl sm:text-2xl font-bold text-green-700">{getStatusCount('completed')}</p>
+              <p className="text-xs sm:text-sm text-green-600 truncate">Completadas</p>
             </div>
           </div>
         </motion.div>

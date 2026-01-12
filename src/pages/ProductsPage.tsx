@@ -361,24 +361,26 @@ const ProductsPage = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"
       >
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Productos</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Productos</h1>
+          <p className="text-gray-600 text-sm sm:text-base">
             {data?.total || 0} productos en total
           </p>
         </div>
         <Button
           onClick={() => navigate('/productos/nuevo')}
-          leftIcon={<Plus size={20} />}
+          leftIcon={<Plus size={18} />}
+          className="text-sm sm:text-base"
         >
-          Nuevo Producto
+          <span className="hidden sm:inline">Nuevo Producto</span>
+          <span className="sm:hidden">Nuevo</span>
         </Button>
       </motion.div>
 
@@ -390,57 +392,57 @@ const ProductsPage = () => {
       >
         <Card>
           <Card.Body>
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1">
+            <div className="flex flex-col gap-3 sm:gap-4">
+              <div className="w-full">
                 <SearchBar
-                  placeholder="Buscar por nombre, SKU o código de barras..."
+                  placeholder="Buscar producto..."
                   onSearch={handleSearch}
                   defaultValue={searchQuery}
                 />
               </div>
-              {/* ✅ Filtro de categoría - dinámico */}
-              <select
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                value={categoryFilter}
-                onChange={(e) => {
-                  setCategoryFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-              >
-                <option value="">Todas las categorías</option>
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-              {/* ✅ Filtro de estado */}
-              <select
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value as 'all' | 'active' | 'inactive');
-                  setCurrentPage(1);
-                }}
-              >
-                <option value="all">Todos los estados</option>
-                <option value="active">✅ Activos</option>
-                <option value="inactive">❌ Inactivos</option>
-              </select>
-              <div className="flex gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+                {/* ✅ Filtro de categoría - dinámico */}
                 <select
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  value={categoryFilter}
+                  onChange={(e) => {
+                    setCategoryFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <option value="">Todas categorías</option>
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+                {/* ✅ Filtro de estado */}
+                <select
+                  className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  value={statusFilter}
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value as 'all' | 'active' | 'inactive');
+                    setCurrentPage(1);
+                  }}
+                >
+                  <option value="all">Todos estados</option>
+                  <option value="active">✅ Activos</option>
+                  <option value="inactive">❌ Inactivos</option>
+                </select>
+                <select
+                  className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                   value={sortKey}
                   onChange={(e) => handleSort(e.target.value, sortDirection)}
                 >
-                  <option value="name">Ordenar por Nombre</option>
-                  <option value="price">Ordenar por Precio</option>
-                  <option value="sku">Ordenar por SKU</option>
-                  <option value="createdAt">Ordenar por Fecha</option>
+                  <option value="name">Por Nombre</option>
+                  <option value="price">Por Precio</option>
+                  <option value="sku">Por SKU</option>
+                  <option value="createdAt">Por Fecha</option>
                 </select>
                 <button
                   onClick={() => handleSort(sortKey, sortDirection === 'asc' ? 'desc' : 'asc')}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 active:bg-gray-100 transition-colors flex items-center justify-center"
                 >
-                  {sortDirection === 'asc' ? '↑' : '↓'}
+                  {sortDirection === 'asc' ? '↑ Asc' : '↓ Desc'}
                 </button>
               </div>
             </div>

@@ -464,34 +464,36 @@ const ReportsPage = () => {
     loadingPaymentMethodData;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"
       >
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Reportes y Análisis</h1>
-          <p className="text-gray-600 mt-1">
-            Análisis detallado del rendimiento de ventas
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Reportes</h1>
+          <p className="text-gray-600 text-sm sm:text-base">
+            Análisis de ventas
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2 sm:gap-3">
           <Button
             variant="outline"
             onClick={exportToExcel}
-            leftIcon={<FileText size={20} />}
+            leftIcon={<FileText size={18} />}
             disabled={isLoading}
+            className="text-sm px-2 sm:px-4"
           >
-            Exportar Excel
+            <span className="hidden sm:inline">Exportar</span> Excel
           </Button>
           <Button
             onClick={exportToPDF}
-            leftIcon={<Download size={20} />}
+            leftIcon={<Download size={18} />}
             disabled={isLoading}
+            className="text-sm px-2 sm:px-4"
           >
-            Exportar PDF
+            <span className="hidden sm:inline">Exportar</span> PDF
           </Button>
         </div>
       </motion.div>
@@ -505,18 +507,19 @@ const ReportsPage = () => {
         <Card>
           <Card.Header>
             <div className="flex items-center gap-2">
-              <Filter size={20} className="text-gray-600" />
-              <h3 className="text-lg font-semibold text-gray-900">Filtros</h3>
+              <Filter size={18} className="text-gray-600" />
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">Filtros</h3>
             </div>
           </Card.Header>
-          <Card.Body>
-            <div className="space-y-4">
+          <Card.Body className="space-y-3 sm:space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {/* Presets de fechas */}
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex gap-1.5 sm:gap-2 flex-wrap">
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => setDatePreset('today')}
+                  className="text-xs sm:text-sm px-2 sm:px-3"
                 >
                   Hoy
                 </Button>
@@ -524,8 +527,9 @@ const ReportsPage = () => {
                   size="sm"
                   variant="outline"
                   onClick={() => setDatePreset('week')}
+                  className="text-xs sm:text-sm px-2 sm:px-3"
                 >
-                  Última Semana
+                  <span className="hidden sm:inline">Última </span>Semana
                 </Button>
                 <Button
                   size="sm"
@@ -653,23 +657,23 @@ const ReportsPage = () => {
       </motion.div>
 
       {/* Estadísticas Generales */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 lg:gap-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
           <Card>
-            <Card.Body>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Total Ventas</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-1">
+            <Card.Body className="p-3 sm:p-4 lg:p-6">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-gray-600 truncate">Total Ventas</p>
+                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mt-0.5 sm:mt-1">
                     {stats?.totalSales || 0}
                   </p>
                 </div>
-                <div className="p-3 bg-blue-100 rounded-lg">
-                  <TrendingUp size={24} className="text-blue-600" />
+                <div className="p-2 sm:p-3 bg-blue-100 rounded-lg flex-shrink-0">
+                  <TrendingUp size={20} className="text-blue-600" />
                 </div>
               </div>
             </Card.Body>
@@ -682,16 +686,16 @@ const ReportsPage = () => {
           transition={{ delay: 0.3 }}
         >
           <Card>
-            <Card.Body>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Ingresos Totales</p>
-                  <p className="text-3xl font-bold text-emerald-600 mt-1">
+            <Card.Body className="p-3 sm:p-4 lg:p-6">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-gray-600 truncate">Ingresos</p>
+                  <p className="text-lg sm:text-xl lg:text-3xl font-bold text-emerald-600 mt-0.5 sm:mt-1">
                     ${(stats?.totalRevenue || 0).toLocaleString()}
                   </p>
                 </div>
-                <div className="p-3 bg-emerald-100 rounded-lg">
-                  <DollarSign size={24} className="text-emerald-600" />
+                <div className="p-2 sm:p-3 bg-emerald-100 rounded-lg flex-shrink-0">
+                  <DollarSign size={20} className="text-emerald-600" />
                 </div>
               </div>
             </Card.Body>
@@ -704,16 +708,16 @@ const ReportsPage = () => {
           transition={{ delay: 0.4 }}
         >
           <Card>
-            <Card.Body>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Productos Vendidos</p>
-                  <p className="text-3xl font-bold text-purple-600 mt-1">
+            <Card.Body className="p-3 sm:p-4 lg:p-6">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-gray-600 truncate">Productos</p>
+                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-purple-600 mt-0.5 sm:mt-1">
                     {stats?.totalProducts || 0}
                   </p>
                 </div>
-                <div className="p-3 bg-purple-100 rounded-lg">
-                  <Package size={24} className="text-purple-600" />
+                <div className="p-2 sm:p-3 bg-purple-100 rounded-lg flex-shrink-0">
+                  <Package size={20} className="text-purple-600" />
                 </div>
               </div>
             </Card.Body>

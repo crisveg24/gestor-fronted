@@ -351,29 +351,31 @@ const TransfersPage = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4"
       >
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <ArrowLeftRight className="text-primary-600" />
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 flex items-center gap-2 sm:gap-3">
+            <ArrowLeftRight className="text-primary-600" size={22} />
             Transferencias
           </h1>
-          <p className="text-gray-600 mt-1">Mover productos entre tiendas</p>
+          <p className="text-gray-600 text-sm sm:text-base">Mover productos entre tiendas</p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {isAdmin && (
             <Button
               variant="primary"
               onClick={() => setShowCreateModal(true)}
+              className="text-sm sm:text-base"
             >
               <Plus size={18} />
-              Nueva Transferencia
+              <span className="hidden sm:inline">Nueva Transferencia</span>
+              <span className="sm:hidden">Nueva</span>
             </Button>
           )}
         </div>
@@ -381,33 +383,33 @@ const TransfersPage = () => {
 
       {/* Summary Cards */}
       {summary && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
           <Card>
-            <Card.Body className="text-center">
-              <Clock className="mx-auto text-yellow-500 mb-2" size={24} />
-              <p className="text-2xl font-bold text-yellow-600">{summary.pending}</p>
-              <p className="text-sm text-gray-500">Pendientes</p>
+            <Card.Body className="text-center p-3 sm:p-4">
+              <Clock className="mx-auto text-yellow-500 mb-1 sm:mb-2" size={20} />
+              <p className="text-xl sm:text-2xl font-bold text-yellow-600">{summary.pending}</p>
+              <p className="text-xs sm:text-sm text-gray-500">Pendientes</p>
             </Card.Body>
           </Card>
           <Card>
-            <Card.Body className="text-center">
-              <Truck className="mx-auto text-blue-500 mb-2" size={24} />
-              <p className="text-2xl font-bold text-blue-600">{summary.inTransit}</p>
-              <p className="text-sm text-gray-500">En Tránsito</p>
+            <Card.Body className="text-center p-3 sm:p-4">
+              <Truck className="mx-auto text-blue-500 mb-1 sm:mb-2" size={20} />
+              <p className="text-xl sm:text-2xl font-bold text-blue-600">{summary.inTransit}</p>
+              <p className="text-xs sm:text-sm text-gray-500">En Tránsito</p>
             </Card.Body>
           </Card>
           <Card>
-            <Card.Body className="text-center">
-              <Check className="mx-auto text-green-500 mb-2" size={24} />
-              <p className="text-2xl font-bold text-green-600">{summary.received}</p>
-              <p className="text-sm text-gray-500">Recibidas</p>
+            <Card.Body className="text-center p-3 sm:p-4">
+              <Check className="mx-auto text-green-500 mb-1 sm:mb-2" size={20} />
+              <p className="text-xl sm:text-2xl font-bold text-green-600">{summary.received}</p>
+              <p className="text-xs sm:text-sm text-gray-500">Recibidas</p>
             </Card.Body>
           </Card>
           <Card>
-            <Card.Body className="text-center">
-              <Package className="mx-auto text-gray-500 mb-2" size={24} />
-              <p className="text-2xl font-bold text-gray-600">{summary.total}</p>
-              <p className="text-sm text-gray-500">Total</p>
+            <Card.Body className="text-center p-3 sm:p-4">
+              <Package className="mx-auto text-gray-500 mb-1 sm:mb-2" size={20} />
+              <p className="text-xl sm:text-2xl font-bold text-gray-600">{summary.total}</p>
+              <p className="text-xs sm:text-sm text-gray-500">Total</p>
             </Card.Body>
           </Card>
         </div>
@@ -416,7 +418,7 @@ const TransfersPage = () => {
       {/* Filters */}
       <Card>
         <Card.Body>
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col gap-3 sm:gap-4">
             <div className="flex-1 relative">
               <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input

@@ -1092,45 +1092,58 @@ const SalesPage = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"
       >
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Registro de Ventas</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Registro de Ventas</h1>
+          <p className="text-gray-600 text-sm sm:text-base">
             {showHistory ? 'Historial de ventas' : 'Crear nueva venta'}
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2 sm:gap-3">
           <Button
             onClick={() => {
               setCutModalOpen(true);
               refetchDailyCut();
             }}
             variant="outline"
-            leftIcon={<DollarSign size={20} />}
+            leftIcon={<DollarSign size={18} />}
+            className="text-sm sm:text-base px-2 sm:px-4"
           >
-            Corte de Caja
+            <span className="hidden sm:inline">Corte de Caja</span>
+            <span className="sm:hidden">Corte</span>
           </Button>
           <Button
             onClick={() => setShowHistory(!showHistory)}
             variant={showHistory ? 'primary' : 'outline'}
-            leftIcon={showHistory ? <ShoppingCart size={20} /> : <Receipt size={20} />}
+            leftIcon={showHistory ? <ShoppingCart size={18} /> : <Receipt size={18} />}
+            className="text-sm sm:text-base px-2 sm:px-4"
           >
-            {showHistory ? 'Nueva Venta' : 'Ver Historial'}
+            {showHistory ? (
+              <>
+                <span className="hidden sm:inline">Nueva Venta</span>
+                <span className="sm:hidden">Nueva</span>
+              </>
+            ) : (
+              <>
+                <span className="hidden sm:inline">Ver Historial</span>
+                <span className="sm:hidden">Historial</span>
+              </>
+            )}
           </Button>
         </div>
       </motion.div>
 
       {!showHistory ? (
         /* Formulario de Nueva Venta */
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Panel Izquierdo - Búsqueda y Selección */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             {/* Búsqueda de Productos */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -1139,22 +1152,22 @@ const SalesPage = () => {
             >
               <Card>
                 <Card.Header>
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                     Buscar Productos
                   </h3>
                 </Card.Header>
-                <Card.Body className="space-y-4">
+                <Card.Body className="space-y-3 sm:space-y-4">
                   <div className="relative">
                     <input
                       type="text"
                       value={searchProduct}
                       onChange={(e) => setSearchProduct(e.target.value)}
-                      placeholder="Buscar por nombre, SKU o categoría..."
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      placeholder="Buscar producto..."
+                      className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm sm:text-base"
                     />
                     <Search
                       className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                      size={20}
+                      size={18}
                     />
                   </div>
 
@@ -1162,29 +1175,29 @@ const SalesPage = () => {
                   <Button
                     variant="outline"
                     onClick={() => setScannerOpen(true)}
-                    className="w-full flex items-center justify-center gap-2"
+                    className="w-full flex items-center justify-center gap-2 text-sm sm:text-base py-2 sm:py-2.5"
                   >
-                    📷 Escanear Código de Barras / QR
+                    📷 <span className="hidden sm:inline">Escanear Código de Barras / QR</span><span className="sm:hidden">Escanear</span>
                   </Button>
 
                   {/* ✅ PRODUCTOS RECIENTES */}
                   {!searchProduct && recentProducts.length > 0 && (
-                    <div className="mt-4">
-                      <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                    <div className="mt-3 sm:mt-4">
+                      <h4 className="text-xs sm:text-sm font-semibold text-gray-700 mb-2">
                         🕒 Productos Recientes
                       </h4>
-                      <div className="space-y-2 max-h-60 overflow-y-auto">
+                      <div className="space-y-2 max-h-48 sm:max-h-60 overflow-y-auto">
                         {recentProducts.map((product) => (
                           <button
                             key={product._id}
                             onClick={() => {
                               setSelectedProduct(product);
                             }}
-                            className="w-full text-left p-2 border border-gray-200 rounded-lg hover:bg-primary-50 hover:border-primary-300 transition-colors"
+                            className="w-full text-left p-2 border border-gray-200 rounded-lg hover:bg-primary-50 hover:border-primary-300 active:bg-primary-100 transition-colors"
                           >
                             <div className="flex items-center justify-between">
-                              <div className="flex-1">
-                                <p className="font-medium text-gray-900 text-sm">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-gray-900 text-xs sm:text-sm truncate">
                                   {product.name}
                                 </p>
                                 <p className="text-xs text-gray-500">

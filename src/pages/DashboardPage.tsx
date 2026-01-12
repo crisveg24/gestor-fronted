@@ -422,7 +422,7 @@ const DashboardPage = () => {
       </motion.div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
         {statCards.map((stat, index) => (
           <motion.div
             key={stat.title}
@@ -431,38 +431,38 @@ const DashboardPage = () => {
             transition={{ delay: index * 0.1, duration: 0.3 }}
           >
             <Card hover>
-              <Card.Body>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600 font-medium">{stat.title}</p>
-                    <p className="text-2xl font-bold text-gray-900 mt-1">
+              <Card.Body className="p-3 sm:p-4 lg:p-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs sm:text-sm text-gray-600 font-medium truncate">{stat.title}</p>
+                    <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 mt-1">
                       {stat.prefix}
                       {stat.value.toLocaleString()}
                       {stat.suffix}
                     </p>
                     {stat.growth !== 0 && (
-                      <div className="flex items-center gap-1 mt-2">
+                      <div className="flex items-center gap-1 mt-1 sm:mt-2">
                         {stat.growth > 0 ? (
                           <>
-                            <ArrowUpRight size={16} className="text-green-500" />
-                            <span className="text-sm text-green-600 font-medium">
+                            <ArrowUpRight size={14} className="text-green-500" />
+                            <span className="text-xs sm:text-sm text-green-600 font-medium">
                               +{stat.growth}%
                             </span>
                           </>
                         ) : (
                           <>
-                            <ArrowDownRight size={16} className="text-red-500" />
-                            <span className="text-sm text-red-600 font-medium">
+                            <ArrowDownRight size={14} className="text-red-500" />
+                            <span className="text-xs sm:text-sm text-red-600 font-medium">
                               {stat.growth}%
                             </span>
                           </>
                         )}
-                        <span className="text-sm text-gray-500">vs mes anterior</span>
+                        <span className="text-xs text-gray-500 hidden sm:inline">vs mes anterior</span>
                       </div>
                     )}
                   </div>
-                  <div className={`${stat.color} p-3 rounded-lg`}>
-                    <stat.icon className="text-white" size={24} />
+                  <div className={`${stat.color} p-2 sm:p-3 rounded-lg shrink-0`}>
+                    <stat.icon className="text-white" size={20} />
                   </div>
                 </div>
               </Card.Body>
@@ -472,7 +472,7 @@ const DashboardPage = () => {
       </div>
 
       {/* Charts Row 1 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
         {/* Sales Trend Chart */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
@@ -481,32 +481,34 @@ const DashboardPage = () => {
         >
           <Card>
             <Card.Header>
-              <h3 className="text-lg font-semibold text-gray-900">Tendencia de Ventas</h3>
-              <p className="text-sm text-gray-500">Últimos 7 días</p>
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">Tendencia de Ventas</h3>
+              <p className="text-xs sm:text-sm text-gray-500">Últimos 7 días</p>
             </Card.Header>
-            <Card.Body>
+            <Card.Body className="p-2 sm:p-4 lg:p-6">
               {salesLoading ? (
-                <div className="h-64 flex items-center justify-center">
+                <div className="h-48 sm:h-64 flex items-center justify-center">
                   <Loading size="md" />
                 </div>
               ) : (
-                <ResponsiveContainer width="100%" height={300}>
+                <ResponsiveContainer width="100%" height={window.innerWidth < 640 ? 200 : 300}>
                   <LineChart data={salesData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis
                       dataKey="date"
                       tickFormatter={(value) => format(new Date(value), 'dd MMM', { locale: es })}
                       stroke="#6b7280"
+                      tick={{ fontSize: window.innerWidth < 640 ? 10 : 12 }}
                     />
-                    <YAxis stroke="#6b7280" />
+                    <YAxis stroke="#6b7280" tick={{ fontSize: window.innerWidth < 640 ? 10 : 12 }} />
                     <Tooltip
                       contentStyle={{
                         backgroundColor: '#fff',
                         border: '1px solid #e5e7eb',
                         borderRadius: '8px',
+                        fontSize: '12px',
                       }}
                     />
-                    <Legend />
+                    <Legend wrapperStyle={{ fontSize: '12px' }} />
                     <Line
                       type="monotone"
                       dataKey="ventas"

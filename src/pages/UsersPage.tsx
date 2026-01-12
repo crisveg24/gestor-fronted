@@ -498,38 +498,39 @@ const UsersPage = () => {
   const regularUsers = users?.filter((u) => u.role === 'user').length || 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"
       >
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Gestión de Usuarios</h1>
-          <p className="text-gray-600 mt-1">Administra usuarios y permisos del sistema</p>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Usuarios</h1>
+          <p className="text-gray-600 text-sm sm:text-base">Administra usuarios y permisos</p>
         </div>
-        <Button onClick={openCreateModal} leftIcon={<Plus size={20} />}>
-          Nuevo Usuario
+        <Button onClick={openCreateModal} leftIcon={<Plus size={18} />} className="text-sm sm:text-base">
+          <span className="hidden sm:inline">Nuevo Usuario</span>
+          <span className="sm:hidden">Nuevo</span>
         </Button>
       </motion.div>
 
       {/* Estadísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 lg:gap-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
           <Card>
-            <Card.Body>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Total Usuarios</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-1">{totalUsers}</p>
+            <Card.Body className="p-3 sm:p-4 lg:p-6">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-gray-600 truncate">Total</p>
+                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mt-0.5 sm:mt-1">{totalUsers}</p>
                 </div>
-                <div className="p-3 bg-blue-100 rounded-lg">
-                  <Users size={24} className="text-blue-600" />
+                <div className="p-2 sm:p-3 bg-blue-100 rounded-lg flex-shrink-0">
+                  <Users size={20} className="text-blue-600" />
                 </div>
               </div>
             </Card.Body>
@@ -542,14 +543,14 @@ const UsersPage = () => {
           transition={{ delay: 0.2 }}
         >
           <Card>
-            <Card.Body>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Usuarios Activos</p>
-                  <p className="text-3xl font-bold text-green-600 mt-1">{activeUsers}</p>
+            <Card.Body className="p-3 sm:p-4 lg:p-6">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-gray-600 truncate">Activos</p>
+                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-600 mt-0.5 sm:mt-1">{activeUsers}</p>
                 </div>
-                <div className="p-3 bg-green-100 rounded-lg">
-                  <UserCheck size={24} className="text-green-600" />
+                <div className="p-2 sm:p-3 bg-green-100 rounded-lg flex-shrink-0">
+                  <UserCheck size={20} className="text-green-600" />
                 </div>
               </div>
             </Card.Body>
@@ -562,14 +563,14 @@ const UsersPage = () => {
           transition={{ delay: 0.3 }}
         >
           <Card>
-            <Card.Body>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Administradores</p>
-                  <p className="text-3xl font-bold text-purple-600 mt-1">{adminCount}</p>
+            <Card.Body className="p-3 sm:p-4 lg:p-6">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-gray-600 truncate">Admins</p>
+                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-purple-600 mt-0.5 sm:mt-1">{adminCount}</p>
                 </div>
-                <div className="p-3 bg-purple-100 rounded-lg">
-                  <Shield size={24} className="text-purple-600" />
+                <div className="p-2 sm:p-3 bg-purple-100 rounded-lg flex-shrink-0">
+                  <Shield size={20} className="text-purple-600" />
                 </div>
               </div>
             </Card.Body>
@@ -582,14 +583,14 @@ const UsersPage = () => {
           transition={{ delay: 0.4 }}
         >
           <Card>
-            <Card.Body>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Usuarios Regulares</p>
-                  <p className="text-3xl font-bold text-blue-600 mt-1">{regularUsers}</p>
+            <Card.Body className="p-3 sm:p-4 lg:p-6">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-gray-600 truncate">Regulares</p>
+                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-blue-600 mt-0.5 sm:mt-1">{regularUsers}</p>
                 </div>
-                <div className="p-3 bg-blue-100 rounded-lg">
-                  <Users size={24} className="text-blue-600" />
+                <div className="p-2 sm:p-3 bg-blue-100 rounded-lg flex-shrink-0">
+                  <Users size={20} className="text-blue-600" />
                 </div>
               </div>
             </Card.Body>

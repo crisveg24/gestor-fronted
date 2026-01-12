@@ -469,36 +469,36 @@ const InventoryPage = () => {
   ).length || 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <h1 className="text-3xl font-bold text-gray-900">Gestión de Inventario</h1>
-        <p className="text-gray-600 mt-1">
-          Control de stock por tienda y movimientos de inventario
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Gestión de Inventario</h1>
+        <p className="text-gray-600 text-sm sm:text-base">
+          Control de stock por tienda
         </p>
       </motion.div>
 
       {/* Estadísticas rápidas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
           <Card hover>
-            <Card.Body>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 font-medium">Total Items</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">
+            <Card.Body className="p-3 sm:p-4 lg:p-6">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-gray-600 font-medium truncate">Total Items</p>
+                  <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 mt-0.5 sm:mt-1">
                     {inventory?.length || 0}
                   </p>
                 </div>
-                <div className="bg-blue-500 p-3 rounded-lg">
-                  <Package className="text-white" size={24} />
+                <div className="bg-blue-500 p-2 sm:p-3 rounded-lg flex-shrink-0">
+                  <Package className="text-white" size={20} />
                 </div>
               </div>
             </Card.Body>
@@ -511,16 +511,16 @@ const InventoryPage = () => {
           transition={{ delay: 0.2 }}
         >
           <Card hover>
-            <Card.Body>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 font-medium">Stock Normal</p>
-                  <p className="text-2xl font-bold text-green-600 mt-1">
+            <Card.Body className="p-3 sm:p-4 lg:p-6">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-gray-600 font-medium truncate">Stock Normal</p>
+                  <p className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600 mt-0.5 sm:mt-1">
                     {normalStockCount}
                   </p>
                 </div>
-                <div className="bg-green-500 p-3 rounded-lg">
-                  <TrendingUp className="text-white" size={24} />
+                <div className="bg-green-500 p-2 sm:p-3 rounded-lg flex-shrink-0">
+                  <TrendingUp className="text-white" size={20} />
                 </div>
               </div>
             </Card.Body>
@@ -533,16 +533,16 @@ const InventoryPage = () => {
           transition={{ delay: 0.3 }}
         >
           <Card hover>
-            <Card.Body>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 font-medium">Stock Bajo</p>
-                  <p className="text-2xl font-bold text-red-600 mt-1">
+            <Card.Body className="p-3 sm:p-4 lg:p-6">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-gray-600 font-medium truncate">Stock Bajo</p>
+                  <p className="text-lg sm:text-xl lg:text-2xl font-bold text-red-600 mt-0.5 sm:mt-1">
                     {lowStockCount}
                   </p>
                 </div>
-                <div className="bg-red-500 p-3 rounded-lg">
-                  <AlertTriangle className="text-white" size={24} />
+                <div className="bg-red-500 p-2 sm:p-3 rounded-lg flex-shrink-0">
+                  <AlertTriangle className="text-white" size={20} />
                 </div>
               </div>
             </Card.Body>
@@ -555,16 +555,16 @@ const InventoryPage = () => {
           transition={{ delay: 0.4 }}
         >
           <Card hover>
-            <Card.Body>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 font-medium">Sobre Stock</p>
-                  <p className="text-2xl font-bold text-orange-600 mt-1">
+            <Card.Body className="p-3 sm:p-4 lg:p-6">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-gray-600 font-medium truncate">Sobre Stock</p>
+                  <p className="text-lg sm:text-xl lg:text-2xl font-bold text-orange-600 mt-0.5 sm:mt-1">
                     {overStockCount}
                   </p>
                 </div>
-                <div className="bg-orange-500 p-3 rounded-lg">
-                  <TrendingDown className="text-white" size={24} />
+                <div className="bg-orange-500 p-2 sm:p-3 rounded-lg flex-shrink-0">
+                  <TrendingDown className="text-white" size={20} />
                 </div>
               </div>
             </Card.Body>
@@ -580,10 +580,10 @@ const InventoryPage = () => {
       >
         <Card>
           <Card.Body>
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1">
+            <div className="flex flex-col gap-3 sm:gap-4">
+              <div className="w-full">
                 <SearchBar
-                  placeholder="Buscar por producto, SKU o categoría..."
+                  placeholder="Buscar producto..."
                   onSearch={setSearchQuery}
                 />
               </div>
@@ -599,7 +599,7 @@ const InventoryPage = () => {
                       logger.log('[INVENTORY] Tienda seleccionada:', e.target.value);
                       setSelectedStore(e.target.value);
                     }}
-                    className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 min-w-[200px]"
+                    className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 w-full sm:w-auto sm:min-w-[180px]"
                   >
                     <option value="all">📋 Todas las tiendas</option>
                     {stores.map((store) => (
@@ -612,23 +612,24 @@ const InventoryPage = () => {
               )}
               
               {!isAdmin && user?.store && (
-                <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg">
-                  <span className="text-sm font-medium text-blue-700">
-                    🏪 Tu tienda: {user.store.name}
+                <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
+                  <span className="text-xs sm:text-sm font-medium text-blue-700 truncate">
+                    🏪 {user.store.name}
                   </span>
                 </div>
               )}
 
               <button
                 onClick={() => setFilterLowStock(!filterLowStock)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors text-sm ${
                   filterLowStock
                     ? 'bg-red-50 border-red-500 text-red-700'
-                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-50 active:bg-gray-100'
                 }`}
               >
-                <Filter size={18} />
-                <span>Solo Stock Bajo</span>
+                <Filter size={16} />
+                <span className="hidden sm:inline">Solo Stock Bajo</span>
+                <span className="sm:hidden">Bajo</span>
               </button>
             </div>
           </Card.Body>

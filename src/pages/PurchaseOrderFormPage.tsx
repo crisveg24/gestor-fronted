@@ -187,37 +187,37 @@ export default function PurchaseOrderFormPage() {
   if (loadingSuppliers) return <Loading />;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Nueva Orden de Compra</h1>
-          <p className="text-gray-600 mt-1">Crea una orden de compra para tu tienda</p>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Nueva Orden de Compra</h1>
+          <p className="text-gray-600 text-sm sm:text-base">Crea una orden de compra</p>
         </div>
-        <Button variant="outline" onClick={() => navigate('/ordenes-compra')}>
+        <Button variant="outline" onClick={() => navigate('/ordenes-compra')} className="text-sm sm:text-base">
           Cancelar
         </Button>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
         {/* Información General */}
         <Card>
           <Card.Header>
-            <h2 className="text-xl font-semibold">Información General</h2>
+            <h2 className="text-lg sm:text-xl font-semibold">Información General</h2>
           </Card.Header>
           <Card.Body>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {/* Proveedor */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                   Proveedor *
                 </label>
                 <select
                   value={selectedSupplier}
                   onChange={(e) => setSelectedSupplier(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm sm:text-base"
                   required
                 >
-                  <option value="">Selecciona un proveedor</option>
+                  <option value="">Selecciona proveedor</option>
                   {suppliers?.map((supplier: Supplier) => (
                     <option key={supplier._id} value={supplier._id}>
                       {supplier.name}
