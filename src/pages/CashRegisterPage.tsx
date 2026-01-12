@@ -264,9 +264,12 @@ export default function CashRegisterPage() {
       queryClient.invalidateQueries({ queryKey: ['cashRegister'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-pos'] });
       
+      // La venta viene en response.data (success: true, data: sale)
+      const saleData = response.data;
+      
       // Guardar datos de la venta para el ticket
       setLastSale({
-        ...response.data,
+        ...saleData,
         items: cart,
         subtotal: cartSubtotal,
         discountAmount,
@@ -425,7 +428,7 @@ export default function CashRegisterPage() {
   const printTicket = () => {
     if (!lastSale) return;
     
-    const saleCode = lastSale._id?.slice(-8).toUpperCase() || lastSale.saleNumber || 'N/A';
+    const saleCode = lastSale.saleCode || lastSale._id?.slice(-8).toUpperCase() || 'N/A';
     const storeName = currentRegister?.store?.name || 'Tienda';
     
     const ticketContent = `
@@ -1340,7 +1343,7 @@ export default function CashRegisterPage() {
                 </div>
                 <h2 className="text-xl font-bold">¡Venta Exitosa!</h2>
                 <p className="text-green-100 text-sm mt-1">
-                  Código: <span className="font-mono font-bold">{lastSale._id?.slice(-8).toUpperCase() || 'N/A'}</span>
+                  Código: <span className="font-mono font-bold">{lastSale.saleCode || lastSale._id?.slice(-8).toUpperCase() || 'N/A'}</span>
                 </p>
               </div>
 
