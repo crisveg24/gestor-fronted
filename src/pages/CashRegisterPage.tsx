@@ -510,28 +510,28 @@ export default function CashRegisterPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b px-3 sm:px-6 py-3 sm:py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 sm:gap-4">
-            <div className="p-1.5 sm:p-2 bg-primary-100 rounded-lg">
+      <div className="bg-white border-b px-4 sm:px-6 py-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+            <div className="p-2 sm:p-2.5 bg-primary-100 rounded-xl flex-shrink-0">
               <Banknote className="h-5 w-5 sm:h-6 sm:w-6 text-primary-600" />
             </div>
-            <div>
-              <h1 className="text-base sm:text-xl font-bold text-gray-900">Punto de Venta</h1>
-              <p className="text-xs sm:text-sm text-gray-500 truncate max-w-[120px] sm:max-w-none">
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-xl font-bold text-gray-900">Punto de Venta</h1>
+              <p className="text-sm text-gray-500 truncate">
                 {currentRegister?.store?.name || stores.find(s => s._id === selectedStoreId)?.name || 'Selecciona tienda'}
               </p>
             </div>
           </div>
           
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             {isAdmin && (
               <select
                 value={selectedStoreId}
                 onChange={(e) => setSelectedStoreId(e.target.value)}
-                className="px-3 py-2 border rounded-lg text-sm"
+                className="px-3 py-2.5 border rounded-xl text-sm bg-gray-50 max-w-[140px] sm:max-w-none"
               >
-                <option value="">Seleccionar tienda</option>
+                <option value="">Tienda</option>
                 {stores.map(store => (
                   <option key={store._id} value={store._id}>{store.name}</option>
                 ))}
@@ -540,7 +540,7 @@ export default function CashRegisterPage() {
             
             <button
               onClick={() => setShowHistoryModal(true)}
-              className="p-2 hover:bg-gray-100 rounded-lg"
+              className="p-2.5 hover:bg-gray-100 active:bg-gray-200 rounded-xl transition-colors"
               title="Historial"
             >
               <History className="h-5 w-5 text-gray-600" />
@@ -549,45 +549,45 @@ export default function CashRegisterPage() {
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row h-[calc(100vh-65px)] sm:h-[calc(100vh-73px)]">
+      <div className="flex flex-col lg:flex-row h-[calc(100vh-73px)]">
         {/* Panel Izquierdo - Estado de Caja (Sidebar en desktop, colapsible en móvil) */}
         <div className="lg:w-80 bg-white border-b lg:border-b-0 lg:border-r flex flex-col">
           {loadingCurrent ? (
-            <div className="flex-1 flex items-center justify-center py-8 lg:py-0">
+            <div className="flex-1 flex items-center justify-center py-10 lg:py-0">
               <div className="animate-spin h-8 w-8 border-2 border-primary-600 border-t-transparent rounded-full" />
             </div>
           ) : !currentRegister ? (
             // Caja cerrada - Botón para abrir
-            <div className="flex flex-col items-center justify-center p-4 sm:p-6">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-full flex items-center justify-center mb-3 sm:mb-4">
-                <Lock className="h-8 w-8 sm:h-10 sm:w-10 text-gray-400" />
+            <div className="flex flex-col items-center justify-center p-6 py-8">
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <Lock className="h-10 w-10 text-gray-400" />
               </div>
-              <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-2">Caja Cerrada</h3>
-              <p className="text-xs sm:text-sm text-gray-500 text-center mb-4 sm:mb-6">
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">Caja Cerrada</h3>
+              <p className="text-sm text-gray-500 text-center mb-6 max-w-xs">
                 Abre la caja para comenzar a registrar ventas
               </p>
               <button 
                 onClick={() => setShowOpenModal(true)} 
-                className="w-full px-4 py-2.5 sm:py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 text-sm sm:text-base"
+                className="w-full max-w-xs px-6 py-3.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white rounded-xl font-medium flex items-center justify-center gap-2 text-base shadow-sm transition-colors"
               >
-                <Unlock className="h-4 w-4" />
+                <Unlock className="h-5 w-5" />
                 Abrir Caja
               </button>
             </div>
           ) : (
             // Caja abierta - Mostrar estado
             <>
-              <div className="p-4 border-b bg-green-50">
-                <div className="flex items-center gap-2 text-green-700">
-                  <CheckCircle className="h-5 w-5" />
-                  <span className="font-medium">Caja Abierta</span>
+              <div className="px-4 py-3 border-b bg-green-50">
+                <div className="flex items-center gap-2.5 text-green-700">
+                  <CheckCircle className="h-5 w-5 flex-shrink-0" />
+                  <span className="font-semibold">Caja Abierta</span>
                 </div>
-                <p className="text-xs text-green-600 mt-1">
-                  Desde {formatTime(currentRegister.openedAt)} por {currentRegister.openedBy?.name}
+                <p className="text-sm text-green-600 mt-1 ml-7">
+                  Desde {formatTime(currentRegister.openedAt)} • {currentRegister.openedBy?.name}
                 </p>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              <div className="flex-1 overflow-y-auto p-4 space-y-5">
                 {/* Resumen */}
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm">
@@ -662,19 +662,19 @@ export default function CashRegisterPage() {
               </div>
 
               {/* Acciones de caja */}
-              <div className="p-4 border-t space-y-2">
+              <div className="p-4 border-t space-y-3">
                 <button
                   onClick={() => setShowMovementModal(true)}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium"
+                  className="w-full flex items-center justify-center gap-2.5 px-4 py-3 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-xl text-sm font-medium transition-colors"
                 >
-                  <ArrowUpDown className="h-4 w-4" />
+                  <ArrowUpDown className="h-5 w-5" />
                   Registrar Movimiento
                 </button>
                 <button
                   onClick={() => setShowCloseModal(true)}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-sm font-medium"
+                  className="w-full flex items-center justify-center gap-2.5 px-4 py-3 bg-red-50 hover:bg-red-100 active:bg-red-200 text-red-700 rounded-xl text-sm font-medium transition-colors"
                 >
-                  <Lock className="h-4 w-4" />
+                  <Lock className="h-5 w-5" />
                   Cerrar Caja
                 </button>
               </div>
@@ -685,26 +685,26 @@ export default function CashRegisterPage() {
         {/* Panel Central - POS */}
         <div className="flex-1 flex flex-col min-h-0">
           {/* Barra de búsqueda */}
-          <div className="p-2 sm:p-4 bg-white border-b">
-            <div className="flex gap-2">
+          <div className="p-3 sm:p-4 bg-white border-b">
+            <div className="flex gap-3">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
                   ref={searchInputRef}
                   type="text"
                   value={searchProduct}
                   onChange={(e) => setSearchProduct(e.target.value)}
                   placeholder="Buscar producto..."
-                  className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm sm:text-base"
+                  className="w-full pl-11 pr-4 py-3.5 border rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base bg-gray-50 focus:bg-white transition-colors"
                   disabled={!currentRegister || currentRegister.status !== 'open'}
                 />
                 
                 {/* Dropdown de resultados */}
                 {searchProduct.length >= 2 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg z-10 max-h-64 overflow-auto">
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white border rounded-xl shadow-xl z-10 max-h-72 overflow-auto">
                     {loadingSearch ? (
-                      <div className="p-4 text-center text-gray-500">
-                        <div className="animate-spin h-5 w-5 border-2 border-primary-600 border-t-transparent rounded-full mx-auto mb-2" />
+                      <div className="p-6 text-center text-gray-500">
+                        <div className="animate-spin h-6 w-6 border-2 border-primary-600 border-t-transparent rounded-full mx-auto mb-2" />
                         Buscando...
                       </div>
                     ) : searchResults.length > 0 ? (
@@ -714,17 +714,17 @@ export default function CashRegisterPage() {
                           <div
                             key={product._id}
                             onClick={() => stock > 0 && addToCart(product)}
-                            className={`p-2.5 sm:p-3 flex justify-between items-center border-b last:border-0 ${
-                              stock > 0 ? 'hover:bg-gray-50 cursor-pointer active:bg-gray-100' : 'opacity-50 cursor-not-allowed'
+                            className={`p-4 flex justify-between items-center border-b last:border-0 ${
+                              stock > 0 ? 'hover:bg-gray-50 cursor-pointer active:bg-primary-50' : 'opacity-50 cursor-not-allowed'
                             }`}
                           >
                             <div className="min-w-0 flex-1">
-                              <p className="font-medium text-sm sm:text-base truncate">{product.name}</p>
-                              <p className="text-xs text-gray-500">SKU: {product.sku}</p>
+                              <p className="font-medium text-base truncate">{product.name}</p>
+                              <p className="text-sm text-gray-500">SKU: {product.sku}</p>
                             </div>
-                            <div className="text-right ml-2">
-                              <p className="font-bold text-sm sm:text-base">{formatCurrency(product.price)}</p>
-                              <p className={`text-xs ${stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            <div className="text-right ml-3">
+                              <p className="font-bold text-base">{formatCurrency(product.price)}</p>
+                              <p className={`text-sm ${stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
                                 Stock: {stock}
                               </p>
                             </div>
@@ -732,7 +732,7 @@ export default function CashRegisterPage() {
                         );
                       })
                     ) : (
-                      <div className="p-4 text-center text-gray-500 text-sm">
+                      <div className="p-6 text-center text-gray-500">
                         No se encontraron productos
                       </div>
                     )}
@@ -743,7 +743,7 @@ export default function CashRegisterPage() {
               <button
                 onClick={() => setShowScanner(true)}
                 disabled={!currentRegister || currentRegister.status !== 'open'}
-                className="px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-100 hover:bg-gray-200 rounded-lg disabled:opacity-50 active:bg-gray-300"
+                className="px-4 py-3.5 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-xl disabled:opacity-50 transition-colors"
                 title="Escanear código"
               >
                 <Package className="h-5 w-5" />
@@ -752,17 +752,17 @@ export default function CashRegisterPage() {
           </div>
 
           {/* Carrito */}
-          <div className="flex-1 overflow-auto p-2 sm:p-4">
+          <div className="flex-1 overflow-auto p-4">
             {cart.length === 0 ? (
               <div className="h-full flex flex-col">
                 {/* Productos recientes */}
                 {recentProducts.length > 0 && currentRegister?.status === 'open' && (
-                  <div className="mb-4">
-                    <div className="flex items-center gap-2 text-gray-500 mb-2">
-                      <Clock className="h-4 w-4" />
-                      <span className="text-xs sm:text-sm font-medium">Productos recientes</span>
+                  <div className="mb-5">
+                    <div className="flex items-center gap-2.5 text-gray-500 mb-3">
+                      <Clock className="h-5 w-5" />
+                      <span className="text-sm font-medium">Productos recientes</span>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                       {recentProducts.map(product => {
                         const stock = getStock(product._id);
                         return (
@@ -770,15 +770,15 @@ export default function CashRegisterPage() {
                             key={product._id}
                             onClick={() => stock > 0 && addToCart(product)}
                             disabled={stock === 0}
-                            className={`p-2 sm:p-3 rounded-lg border text-left transition-colors ${
+                            className={`p-4 rounded-xl border-2 text-left transition-all ${
                               stock > 0 
-                                ? 'hover:bg-primary-50 hover:border-primary-300 active:bg-primary-100' 
+                                ? 'hover:bg-primary-50 hover:border-primary-300 active:bg-primary-100 active:scale-[0.98]' 
                                 : 'opacity-50 cursor-not-allowed'
                             }`}
                           >
-                            <p className="font-medium text-xs sm:text-sm truncate">{product.name}</p>
-                            <p className="text-primary-600 font-bold text-sm sm:text-base">{formatCurrency(product.price)}</p>
-                            <p className={`text-xs ${stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            <p className="font-medium text-sm truncate mb-1">{product.name}</p>
+                            <p className="text-primary-600 font-bold text-lg">{formatCurrency(product.price)}</p>
+                            <p className={`text-sm mt-1 ${stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
                               Stock: {stock}
                             </p>
                           </button>
@@ -789,50 +789,50 @@ export default function CashRegisterPage() {
                 )}
                 
                 <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
-                  <ShoppingCart className="h-12 w-12 sm:h-16 sm:w-16 mb-3 sm:mb-4" />
-                  <p className="text-base sm:text-lg">Carrito vacío</p>
-                  <p className="text-xs sm:text-sm">Busca productos para agregarlos</p>
+                  <ShoppingCart className="h-16 w-16 mb-4" />
+                  <p className="text-lg">Carrito vacío</p>
+                  <p className="text-sm">Busca productos para agregarlos</p>
                 </div>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {cart.map(item => (
                   <motion.div
                     key={item.product._id}
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-white rounded-lg border p-2 sm:p-3 flex items-center gap-2 sm:gap-4"
+                    className="bg-white rounded-xl border-2 p-4 flex items-center gap-4"
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm sm:text-base truncate">{item.product.name}</p>
-                      <p className="text-xs sm:text-sm text-gray-500">{formatCurrency(item.unitPrice)} c/u</p>
+                      <p className="font-medium text-base truncate">{item.product.name}</p>
+                      <p className="text-sm text-gray-500">{formatCurrency(item.unitPrice)} c/u</p>
                     </div>
                     
-                    <div className="flex items-center gap-1 sm:gap-2">
+                    <div className="flex items-center gap-2">
                       <button
                         onClick={() => updateQuantity(item.product._id, -1)}
-                        className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded"
+                        className="w-10 h-10 flex items-center justify-center bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-xl transition-colors"
                       >
-                        <Minus className="h-3 w-3 sm:h-4 sm:w-4" />
+                        <Minus className="h-5 w-5" />
                       </button>
-                      <span className="w-6 sm:w-8 text-center font-medium text-sm sm:text-base">{item.quantity}</span>
+                      <span className="w-10 text-center font-bold text-lg">{item.quantity}</span>
                       <button
                         onClick={() => updateQuantity(item.product._id, 1)}
-                        className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded"
+                        className="w-10 h-10 flex items-center justify-center bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-xl transition-colors"
                       >
-                        <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                        <Plus className="h-5 w-5" />
                       </button>
                     </div>
                     
-                    <div className="w-16 sm:w-24 text-right">
-                      <p className="font-bold text-sm sm:text-base">{formatCurrency(item.subtotal)}</p>
+                    <div className="w-24 text-right">
+                      <p className="font-bold text-lg">{formatCurrency(item.subtotal)}</p>
                     </div>
                     
                     <button
                       onClick={() => removeFromCart(item.product._id)}
-                      className="p-1.5 sm:p-2 text-red-500 hover:bg-red-50 active:bg-red-100 rounded"
+                      className="p-2.5 text-red-500 hover:bg-red-50 active:bg-red-100 rounded-xl transition-colors"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-5 w-5" />
                     </button>
                   </motion.div>
                 ))}
@@ -841,44 +841,44 @@ export default function CashRegisterPage() {
           </div>
 
           {/* Panel de pago */}
-          <div className={`border-t p-2 sm:p-4 transition-colors duration-300 ${cart.length > 0 ? currentPaymentColor.bg : 'bg-white'}`}>
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+          <div className={`border-t p-4 sm:p-5 transition-colors duration-300 ${cart.length > 0 ? currentPaymentColor.bg : 'bg-white'}`}>
+            <div className="flex flex-col sm:flex-row gap-4 sm:gap-5">
               {/* Método de pago y descuento */}
-              <div className="flex-1 space-y-3">
+              <div className="flex-1 space-y-4">
                 {/* Descuento */}
                 {cart.length > 0 && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <div className="flex-1 relative">
-                      <DollarSign className={`absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 ${discountType === 'percentage' ? 'hidden' : ''}`} />
-                      <Percent className={`absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 ${discountType === 'fixed' ? 'hidden' : ''}`} />
+                      <DollarSign className={`absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 ${discountType === 'percentage' ? 'hidden' : ''}`} />
+                      <Percent className={`absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 ${discountType === 'fixed' ? 'hidden' : ''}`} />
                       <input
                         type="number"
                         value={discount}
                         onChange={(e) => setDiscount(e.target.value)}
                         placeholder={discountType === 'fixed' ? 'Descuento $' : 'Descuento %'}
-                        className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm bg-white/80"
+                        className="w-full pl-11 pr-4 py-3 border rounded-xl text-base bg-white/90"
                       />
                     </div>
-                    <div className="flex border rounded-lg overflow-hidden">
+                    <div className="flex border-2 rounded-xl overflow-hidden">
                       <button
                         onClick={() => setDiscountType('fixed')}
-                        className={`px-2.5 sm:px-3 py-2 text-sm font-medium ${
-                          discountType === 'fixed' ? 'bg-primary-600 text-white' : 'bg-gray-100 hover:bg-gray-200'
+                        className={`px-4 py-3 font-medium transition-colors ${
+                          discountType === 'fixed' ? 'bg-primary-600 text-white' : 'bg-gray-100 hover:bg-gray-200 active:bg-gray-300'
                         }`}
                       >
-                        <DollarSign className="h-4 w-4" />
+                        <DollarSign className="h-5 w-5" />
                       </button>
                       <button
                         onClick={() => setDiscountType('percentage')}
-                        className={`px-2.5 sm:px-3 py-2 text-sm font-medium ${
-                          discountType === 'percentage' ? 'bg-primary-600 text-white' : 'bg-gray-100 hover:bg-gray-200'
+                        className={`px-4 py-3 font-medium transition-colors ${
+                          discountType === 'percentage' ? 'bg-primary-600 text-white' : 'bg-gray-100 hover:bg-gray-200 active:bg-gray-300'
                         }`}
                       >
-                        <Percent className="h-4 w-4" />
+                        <Percent className="h-5 w-5" />
                       </button>
                     </div>
                     {discountAmount > 0 && (
-                      <span className="text-xs sm:text-sm text-red-600 font-medium whitespace-nowrap">
+                      <span className="text-sm text-red-600 font-semibold whitespace-nowrap bg-red-50 px-3 py-2 rounded-lg">
                         -{formatCurrency(discountAmount)}
                       </span>
                     )}
@@ -886,8 +886,8 @@ export default function CashRegisterPage() {
                 )}
                 
                 <div>
-                  <p className="text-xs font-medium text-gray-500 mb-1.5 sm:mb-2">MÉTODO DE PAGO</p>
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 sm:gap-2">
+                  <p className="text-xs font-semibold text-gray-500 mb-2.5 uppercase tracking-wide">Método de pago</p>
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-2.5">
                     {[
                       { value: 'efectivo', label: 'Efectivo', icon: Banknote },
                       { value: 'nequi', label: 'Nequi', icon: Wallet },
@@ -899,34 +899,35 @@ export default function CashRegisterPage() {
                       <button
                         key={value}
                         onClick={() => setPaymentMethod(value)}
-                        className={`flex flex-col items-center gap-0.5 sm:gap-1 p-1.5 sm:p-2 rounded-lg border-2 transition-colors ${
+                        className={`flex flex-col items-center gap-1.5 p-3 sm:p-2.5 rounded-xl border-2 transition-all active:scale-[0.97] ${
                           paymentMethod === value
-                            ? 'border-primary-500 bg-primary-50 text-primary-700'
+                            ? 'border-primary-500 bg-primary-50 text-primary-700 shadow-sm'
                             : 'border-gray-200 hover:border-gray-300 active:bg-gray-100'
                         }`}
                       >
-                        <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
-                        <span className="text-[10px] sm:text-xs font-medium">{label}</span>
+                        <Icon className="h-6 w-6 sm:h-5 sm:w-5" />
+                        <span className="text-xs font-medium">{label}</span>
                       </button>
                     ))}
                   </div>
                 </div>
                 
                 {paymentMethod === 'efectivo' && cart.length > 0 && (
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 relative">
+                      <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                       <input
                         type="number"
                         value={amountReceived}
                         onChange={(e) => setAmountReceived(e.target.value)}
                         placeholder="Monto recibido"
-                        className="w-full px-3 py-2 border rounded-lg text-sm"
+                        className="w-full pl-11 pr-4 py-3 border rounded-xl text-base"
                       />
                     </div>
                     {change > 0 && (
-                      <div className="text-right bg-green-50 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg">
-                        <p className="text-[10px] sm:text-xs text-green-600">Cambio:</p>
-                        <p className="font-bold text-green-700 text-sm sm:text-lg">{formatCurrency(change)}</p>
+                      <div className="text-right bg-green-100 px-4 py-2.5 rounded-xl border border-green-200">
+                        <p className="text-xs text-green-600 font-medium">Cambio:</p>
+                        <p className="font-bold text-green-700 text-xl">{formatCurrency(change)}</p>
                       </div>
                     )}
                   </div>
@@ -934,7 +935,7 @@ export default function CashRegisterPage() {
               </div>
 
               {/* Total y botón */}
-              <div className="w-full sm:w-56 lg:w-64 flex flex-row sm:flex-col justify-between items-center sm:items-stretch gap-3">
+              <div className="w-full sm:w-60 lg:w-72 flex flex-row sm:flex-col justify-between items-center sm:items-stretch gap-4">
                 <div className="text-center sm:text-left">
                   {discountAmount > 0 && (
                     <div className="hidden sm:flex justify-between text-sm text-gray-500 mb-1">
@@ -948,21 +949,21 @@ export default function CashRegisterPage() {
                       <span>-{formatCurrency(discountAmount)}</span>
                     </div>
                   )}
-                  <p className="text-[10px] sm:text-xs font-medium text-gray-500">TOTAL</p>
-                  <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">{formatCurrency(cartTotal)}</p>
-                  <p className="text-xs sm:text-sm text-gray-500">{cart.length} producto(s)</p>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total</p>
+                  <p className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900">{formatCurrency(cartTotal)}</p>
+                  <p className="text-sm text-gray-500 mt-1">{cart.length} producto(s)</p>
                 </div>
                 
                 <button
                   onClick={handleSale}
                   disabled={cart.length === 0 || saleMutation.isPending || !currentRegister}
-                  className="flex-1 sm:flex-none w-auto sm:w-full py-3 sm:py-4 px-4 sm:px-0 bg-green-600 hover:bg-green-700 active:bg-green-800 disabled:bg-gray-300 text-white rounded-xl font-bold text-base sm:text-lg flex items-center justify-center gap-2"
+                  className="flex-1 sm:flex-none w-auto sm:w-full py-4 sm:py-5 px-6 sm:px-0 bg-green-600 hover:bg-green-700 active:bg-green-800 disabled:bg-gray-300 text-white rounded-2xl font-bold text-lg sm:text-xl flex items-center justify-center gap-3 shadow-lg shadow-green-600/20 transition-all active:scale-[0.98]"
                 >
                   {saleMutation.isPending ? (
-                    <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
+                    <div className="animate-spin h-6 w-6 border-3 border-white border-t-transparent rounded-full" />
                   ) : (
                     <>
-                      <Receipt className="h-5 w-5 sm:h-6 sm:w-6" />
+                      <Receipt className="h-6 w-6 sm:h-7 sm:w-7" />
                       Cobrar
                     </>
                   )}
