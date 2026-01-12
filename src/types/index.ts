@@ -25,13 +25,12 @@ export interface LoginCredentials {
   password: string;
 }
 
+// Respuesta real del backend: { success, token, refreshToken, user }
 export interface LoginResponse {
   success: boolean;
-  data: {
-    user: User;
-    accessToken: string;
-    refreshToken: string;
-  };
+  token: string;
+  refreshToken: string;
+  user: User;
 }
 
 export interface AuthState {

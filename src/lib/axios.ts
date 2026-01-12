@@ -172,15 +172,36 @@ api.interceptors.response.use(
     }
 
     // ==================== MANEJO DE OTROS ERRORES ====================
+    
+    // Error de red (sin respuesta del servidor)
+    if (!error.response) {
+      // Puede ser: sin conexión, timeout, DNS error, CORS, servidor caído
+      const networkError = {
+        message: error.code === 'ECONNABORTED' 
+          ? 'La solicitud tardó demasiado. Verifica tu conexión e inténtalo de nuevo.'
+          : 'Error de conexión. Verifica tu conexión a internet.',
+        isNetworkError: true,
+        originalError: error.message,
+      };
+      return Promise.reject(networkError);
+    }
+    
     if (error.response?.status === 403) {
       // Forbidden - Sin permisos
       window.location.href = '/unauthorized';
     }
 
-    // Los errores 404 y 500+ se manejan silenciosamente
-    // El componente que hizo la llamada debe manejar el error apropiadamente
+    // Normalizar el error para que siempre tenga una estructura consistente
+    const normalizedError = {
+      message: (error.response?.data as { error?: string; message?: string })?.error 
+        || (error.response?.data as { error?: string; message?: string })?.message 
+        || error.message 
+        || 'Error desconocido',
+      status: error.response?.status,
+      isNetworkError: false,
+    };
 
-    return Promise.reject(error);
+    return Promise.reject(normalizedError);
   }
 );
 

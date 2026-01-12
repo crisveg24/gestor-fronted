@@ -16,7 +16,7 @@ export default defineConfig({
           'vendor-dates': ['date-fns'],
           'vendor-forms': ['react-hook-form', '@hookform/resolvers', 'zod'],
           // Librerías de exportación - cargadas bajo demanda
-          'export-pdf': ['jspdf', 'jspdf-autotable', 'html2canvas'],
+          'export-pdf': ['jspdf', 'jspdf-autotable'],
           'export-excel': ['xlsx'],
         },
       },

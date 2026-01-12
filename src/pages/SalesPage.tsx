@@ -23,6 +23,7 @@ import { es } from 'date-fns/locale';
 // XLSX, jsPDF y autoTable se importan dinámicamente para reducir bundle inicial
 import { printTicket } from '../utils/printTicket';
 import type { AxiosApiError, Store as StoreType, Inventory as InventoryType, DailyCutPaymentMethod } from '../types';
+import logger from '../utils/logger';
 
 // Función helper para formatear métodos de pago
 const formatPaymentMethod = (method: string): string => {
@@ -183,9 +184,9 @@ const SalesPage = () => {
   const { data: stores, isLoading: loadingStores, error: storesError } = useQuery({
     queryKey: ['stores'],
     queryFn: async () => {
-      console.log('🏪 [STORES] Obteniendo tiendas...');
+      logger.log('[STORES] Obteniendo tiendas...');
       const response = await api.get('/stores');
-      console.log('✅ [STORES] Respuesta completa:', response.data);
+      logger.log('[STORES] Respuesta completa:', response.data);
       return response.data.data; // data es el array directo
     },
     enabled: isAdmin,
@@ -193,7 +194,7 @@ const SalesPage = () => {
   });
 
   // Log de debug
-  console.log('👤 [SALES] Estado actual:', {
+  logger.log('[SALES] Estado actual:', {
     isAdmin,
     hasStores: !!stores,
     storesCount: stores?.length,
@@ -209,7 +210,7 @@ const SalesPage = () => {
     queryFn: async () => {
       if (searchProduct.length < 2) return [];
       
-      console.log('🔍 [SALES] Buscando productos:', searchProduct);
+      logger.log('[SALES] Buscando productos:', searchProduct);
       
       const response = await api.get('/products', {
         params: {
@@ -219,8 +220,8 @@ const SalesPage = () => {
         },
       });
       
-      console.log('✅ [SALES] Productos encontrados:', response.data);
-      console.log('📦 [SALES] Cantidad:', response.data.data?.products?.length || 0);
+      logger.log('[SALES] Productos encontrados:', response.data);
+      logger.log('[SALES] Cantidad:', response.data.data?.products?.length || 0);
       
       return response.data.data.products || [];
     },
@@ -235,7 +236,7 @@ const SalesPage = () => {
     queryFn: async () => {
       if (freebieSearch.length < 2) return [];
       
-      console.log('🎁 [FREEBIES] Buscando productos:', freebieSearch);
+      logger.log('[FREEBIES] Buscando productos:', freebieSearch);
       
       const response = await api.get('/products', {
         params: {
@@ -245,7 +246,7 @@ const SalesPage = () => {
         },
       });
       
-      console.log('✅ [FREEBIES] Productos encontrados:', response.data.data?.products?.length || 0);
+      logger.log('[FREEBIES] Productos encontrados:', response.data.data?.products?.length || 0);
       
       return response.data.data.products || [];
     },
@@ -259,10 +260,10 @@ const SalesPage = () => {
       const storeId = isAdmin ? selectedStore : user?.store?._id;
       if (!storeId) return [];
       
-      console.log('📦 [INVENTORY] Cargando inventario para tienda:', storeId);
+      logger.log('[INVENTORY] Cargando inventario para tienda:', storeId);
       const response = await api.get(`/inventory/${storeId}`);
-      console.log('📦 [INVENTORY] Respuesta completa:', response.data);
-      console.log('📦 [INVENTORY] Items:', response.data.data?.length || 0);
+      logger.log('[INVENTORY] Respuesta completa:', response.data);
+      logger.log('[INVENTORY] Items:', response.data.data?.length || 0);
       
       // La respuesta es data directamente, no data.inventory
       return response.data.data || [];
@@ -318,7 +319,7 @@ const SalesPage = () => {
       paymentMethod: string;
       notes?: string;
     }) => {
-      console.log('💰 [SALES] Enviando venta:', data);
+      logger.log('[SALES] Enviando venta:', data);
       await api.post('/sales', data);
     },
     retry: 2, // ✅ Reintentar hasta 2 veces si falla
@@ -384,7 +385,7 @@ const SalesPage = () => {
   // Mutation para editar venta
   const editSaleMutation = useMutation({
     mutationFn: async (data: { id: string; notes?: string; paymentMethod?: string; discount?: number }) => {
-      console.log('✏️ [SALES] Editando venta:', data);
+      logger.log('[SALES] Editando venta:', data);
       await api.put(`/sales/${data.id}`, {
         notes: data.notes,
         paymentMethod: data.paymentMethod,
@@ -406,7 +407,7 @@ const SalesPage = () => {
   // Mutation para cancelar venta
   const cancelSaleMutation = useMutation({
     mutationFn: async (data: { id: string; reason: string }) => {
-      console.log('🚫 [SALES] Cancelando venta:', data);
+      logger.log('[SALES] Cancelando venta:', data);
       await api.put(`/sales/${data.id}/cancel`, { reason: data.reason });
     },
     onSuccess: () => {
@@ -435,7 +436,7 @@ const SalesPage = () => {
   // Función para buscar producto por código de barras
   const handleBarcodeScanned = async (barcode: string) => {
     try {
-      console.log('📷 [SCANNER] Código escaneado:', barcode);
+      logger.log('[SCANNER] Código escaneado:', barcode);
       toast.loading('Buscando producto...', { id: 'barcode-search' });
 
       // Determinar la tienda actual ANTES de la petición
@@ -452,7 +453,7 @@ const SalesPage = () => {
       });
       const product = response.data.data;
 
-      console.log('✅ [SCANNER] Producto encontrado:', product);
+      logger.log('[SCANNER] Producto encontrado:', product);
 
       if (!product) {
         toast.error('Producto no encontrado', { id: 'barcode-search' });
@@ -522,13 +523,13 @@ const SalesPage = () => {
     }
 
     // ✅ VALIDACIÓN EN TIEMPO REAL: Verificar stock disponible
-    console.log('🔍 [VALIDATION] Inventario completo:', inventory);
-    console.log('🔍 [VALIDATION] Producto seleccionado:', selectedProduct);
-    console.log('🔍 [VALIDATION] Tienda actual:', isAdmin ? selectedStore : user?.store?._id);
+    logger.log('[VALIDATION] Inventario completo:', inventory);
+    logger.log('[VALIDATION] Producto seleccionado:', selectedProduct);
+    logger.log('[VALIDATION] Tienda actual:', isAdmin ? selectedStore : user?.store?._id);
     
     // Si no hay inventario cargado, permitir agregar (fallback)
     if (!inventory || inventory.length === 0) {
-      console.warn('⚠️ [VALIDATION] Inventario no cargado, permitiendo agregar sin validación');
+      logger.warn('[VALIDATION] Inventario no cargado, permitiendo agregar sin validación');
     } else {
       const inventoryItem = inventory?.find((inv: InventoryType) => {
         // El inventario tiene: { product: { _id, name, ... }, quantity, store }
@@ -536,7 +537,7 @@ const SalesPage = () => {
         const invProductId = typeof inv.product === 'string' ? inv.product : inv.product?._id;
         const selectedProductId = selectedProduct._id;
         
-        console.log('🔍 Comparando IDs:', {
+        logger.log('[VALIDATION] Comparando IDs:', {
           inventoryProductId: invProductId,
           selectedProductId: selectedProductId,
           match: invProductId === selectedProductId
@@ -545,14 +546,14 @@ const SalesPage = () => {
         return invProductId === selectedProductId;
       });
 
-      console.log('🔍 [VALIDATION] Item encontrado en inventario:', inventoryItem);
+      logger.log('[VALIDATION] Item encontrado en inventario:', inventoryItem);
 
       const currentCartQty = cart.find(c => c.product._id === selectedProduct._id)?.quantity || 0;
       const totalRequested = currentCartQty + quantity;
 
       if (!inventoryItem) {
         toast.error(`Producto no encontrado en inventario de esta tienda`);
-        console.error('❌ [VALIDATION] Producto no en inventario:', selectedProduct);
+        logger.error('[VALIDATION] Producto no en inventario:', selectedProduct);
         return;
       }
 
@@ -716,10 +717,10 @@ const SalesPage = () => {
       return;
     }
 
-    console.log('💰 [SALES] Procesando venta...');
-    console.log('💰 [SALES] Tienda:', storeToUse);
-    console.log('💰 [SALES] Carrito:', cart.length, 'items');
-    console.log('💰 [SALES] Ñapas:', freebies.length, 'items');
+    logger.log('[SALES] Procesando venta...');
+    logger.log('[SALES] Tienda:', storeToUse);
+    logger.log('[SALES] Carrito:', cart.length, 'items');
+    logger.log('[SALES] Ñapas:', freebies.length, 'items');
 
     // Combinar productos del carrito y ñapas
     const allItems = [
@@ -744,7 +745,7 @@ const SalesPage = () => {
       notes: freebies.length > 0 ? `Incluye ${freebies.length} ñapa(s)` : undefined,
     };
 
-    console.log('💰 [SALES] Datos de venta:', saleData);
+    logger.log('[SALES] Datos de venta:', saleData);
 
     createSaleMutation.mutate(saleData);
   };

@@ -19,6 +19,7 @@ import { useAuthStore } from '../store/authStore';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { AxiosApiError } from '../types';
+import logger from '../utils/logger';
 
 // Tipos
 interface InventoryItem {
@@ -82,8 +83,8 @@ const InventoryPage = () => {
   const [transferToStore, setTransferToStore] = useState('');
   const [transferQuantity, setTransferQuantity] = useState(0);
 
-  console.log('📦 [INVENTORY PAGE] Inicializando página');
-  console.log('📦 [INVENTORY PAGE] Usuario:', { 
+  logger.log('[INVENTORY PAGE] Inicializando página');
+  logger.log('[INVENTORY PAGE] Usuario:', { 
     role: user?.role, 
     hasStore: !!user?.store,
     storeId: user?.store?._id 
@@ -103,9 +104,9 @@ const InventoryPage = () => {
   const { data: inventory, isLoading } = useQuery<InventoryItem[]>({
     queryKey: ['inventory', selectedStore, searchQuery, filterLowStock],
     queryFn: async () => {
-      console.log('📦 [INVENTORY] Obteniendo inventario...');
-      console.log('📦 [INVENTORY] Tienda seleccionada:', selectedStore);
-      console.log('📦 [INVENTORY] Usuario:', { role: user?.role, store: user?.store?._id });
+      logger.log('[INVENTORY] Obteniendo inventario...');
+      logger.log('[INVENTORY] Tienda seleccionada:', selectedStore);
+      logger.log('[INVENTORY] Usuario:', { role: user?.role, store: user?.store?._id });
       
       const response = await api.get('/inventory', {
         params: {
@@ -115,7 +116,7 @@ const InventoryPage = () => {
         },
       });
       
-      console.log('✅ [INVENTORY] Inventario obtenido:', response.data.data?.length, 'items');
+      logger.log('[INVENTORY] Inventario obtenido:', response.data.data?.length, 'items');
       return response.data.data;
     },
   });
@@ -179,7 +180,7 @@ const InventoryPage = () => {
 
   // ✅ Verificar si el usuario tiene tienda asignada (DESPUÉS de todos los hooks)
   if (user && !isAdmin && !user.store) {
-    console.log('⚠️ [INVENTORY PAGE] Usuario sin tienda asignada, mostrando EmptyStateNoStore');
+    logger.log('[INVENTORY PAGE] Usuario sin tienda asignada, mostrando EmptyStateNoStore');
     return <EmptyStateNoStore />;
   }
 
@@ -595,7 +596,7 @@ const InventoryPage = () => {
                   <select
                     value={selectedStore}
                     onChange={(e) => {
-                      console.log('🏪 [INVENTORY] Tienda seleccionada:', e.target.value);
+                      logger.log('[INVENTORY] Tienda seleccionada:', e.target.value);
                       setSelectedStore(e.target.value);
                     }}
                     className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 min-w-[200px]"

@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { LogIn, Lock, Mail, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import logger from '../utils/logger';
 
 // ==================== VALIDACIÓN CON ZOD ====================
 const loginSchema = z.object({
@@ -16,7 +17,7 @@ const loginSchema = z.object({
   password: z
     .string()
     .min(1, 'La contraseña es requerida')
-    .min(6, 'La contraseña debe tener al menos 6 caracteres')
+    .min(8, 'La contraseña debe tener al menos 8 caracteres')
     .max(100, 'Contraseña demasiado larga'),
 });
 
@@ -43,19 +44,19 @@ export default function LoginPage() {
       setError('');
       setIsLoading(true);
 
-      console.log('🔑 [LOGIN] Intentando login con:', data.email);
+      logger.log('[LOGIN] Intentando login con:', data.email);
       
       await login(data);
 
-      console.log('✅ [LOGIN] Login exitoso, redirigiendo al dashboard...');
+      logger.log('[LOGIN] Login exitoso, redirigiendo al dashboard...');
       
       // Redirigir al dashboard después del login exitoso
       navigate('/dashboard');
     } catch (err) {
       const error = err as Error;
-      console.error('❌ [LOGIN] Error capturado:', err);
+      logger.error('[LOGIN] Error capturado:', err);
       const errorMessage = error.message || 'Error al iniciar sesión. Intenta nuevamente.';
-      console.error('❌ [LOGIN] Mensaje de error:', errorMessage);
+      logger.error('[LOGIN] Mensaje de error:', errorMessage);
       setError(errorMessage);
     } finally {
       setIsLoading(false);

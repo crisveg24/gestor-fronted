@@ -14,6 +14,7 @@ import api from '../lib/axios';
 import { useAuthStore } from '../store/authStore';
 import { SIZE_TYPES, SIZE_PRESETS, type SizeType } from '../constants/sizePresets';
 import type { AxiosApiError } from '../types';
+import logger from '../utils/logger';
 
 // Esquema de validación
 const productSchema = z.object({
@@ -177,25 +178,25 @@ const ProductFormPage = () => {
   // Mutation para crear/actualizar
   const mutation = useMutation({
     mutationFn: async (data: ProductFormData) => {
-      console.log('📡 [PRODUCT] Enviando petición al backend...');
-      console.log('📡 [PRODUCT] URL:', isEditMode ? `/products/${id}` : '/products/with-inventory');
-      console.log('📡 [PRODUCT] Método:', isEditMode ? 'PUT' : 'POST');
-      console.log('📡 [PRODUCT] Payload:', JSON.stringify(data, null, 2));
+      logger.log('[PRODUCT] Enviando petición al backend...');
+      logger.log('[PRODUCT] URL:', isEditMode ? `/products/${id}` : '/products/with-inventory');
+      logger.log('[PRODUCT] Método:', isEditMode ? 'PUT' : 'POST');
+      logger.log('[PRODUCT] Payload:', JSON.stringify(data, null, 2));
 
       try {
         if (isEditMode) {
           const response = await api.put(`/products/${id}`, data);
-          console.log('✅ [PRODUCT] Respuesta exitosa (edición):', response.data);
+          logger.log('[PRODUCT] Respuesta exitosa (edición):', response.data);
           return response.data;
         } else {
           // Usar el nuevo endpoint para crear producto con inventario
           const response = await api.post('/products/with-inventory', data);
-          console.log('✅ [PRODUCT] Respuesta exitosa (creación):', response.data);
+          logger.log('[PRODUCT] Respuesta exitosa (creación):', response.data);
           return response.data;
         }
       } catch (error) {
         const axiosError = error as AxiosApiError;
-        console.error('❌ [PRODUCT] Error en la petición:', {
+        logger.error('[PRODUCT] Error en la petición:', {
           status: axiosError.response?.status,
           statusText: axiosError.response?.statusText,
           data: axiosError.response?.data,
@@ -205,7 +206,7 @@ const ProductFormPage = () => {
       }
     },
     onSuccess: () => {
-      console.log('✅ [PRODUCT] Operación exitosa, invalidando queries...');
+      logger.log('[PRODUCT] Operación exitosa, invalidando queries...');
       queryClient.invalidateQueries({ queryKey: ['products'] });
       toast.success(
         isEditMode ? 'Producto actualizado exitosamente' : 'Producto creado exitosamente'
@@ -214,7 +215,7 @@ const ProductFormPage = () => {
     },
     onError: (error: unknown) => {
       const axiosError = error as AxiosApiError;
-      console.error('❌ [PRODUCT] Error en onError:', error);
+      logger.error('[PRODUCT] Error en onError:', error);
       toast.error(axiosError.response?.data?.message || 'Error al guardar el producto');
     },
   });
@@ -238,9 +239,9 @@ const ProductFormPage = () => {
   // Mutation para crear productos con curva de tallas
   const sizeCurveMutation = useMutation({
     mutationFn: async (data: SizeCurveData) => {
-      console.log('👟 [SIZE-CURVE] Creando productos con tallas:', data);
+      logger.log('[SIZE-CURVE] Creando productos con tallas:', data);
       const response = await api.post('/products/size-curve', data);
-      console.log('✅ [SIZE-CURVE] Respuesta:', response.data);
+      logger.log('[SIZE-CURVE] Respuesta:', response.data);
       return response.data;
     },
     onSuccess: (data) => {
@@ -250,20 +251,20 @@ const ProductFormPage = () => {
     },
     onError: (error: unknown) => {
       const axiosError = error as AxiosApiError;
-      console.error('❌ [SIZE-CURVE] Error:', error);
+      logger.error('[SIZE-CURVE] Error:', error);
       toast.error(axiosError.response?.data?.message || 'Error al crear productos con tallas');
     },
   });
 
   const onSubmit = (data: ProductFormData) => {
-    console.log('🛍️ [PRODUCT] ========== INICIO ENVÍO FORMULARIO ==========');
-    console.log('🛍️ [PRODUCT] Datos del formulario (raw):', data);
-    console.log('🛍️ [PRODUCT] Modo tallas:', useSizes);
-    console.log('🛍️ [PRODUCT] Tallas seleccionadas:', sizes);
+    logger.log('[PRODUCT] ========== INICIO ENVÍO FORMULARIO ==========');
+    logger.log('[PRODUCT] Datos del formulario (raw):', data);
+    logger.log('[PRODUCT] Modo tallas:', useSizes);
+    logger.log('[PRODUCT] Tallas seleccionadas:', sizes);
 
     // MODO CURVA DE TALLAS
     if (useSizes && !isEditMode && sizes.length > 0) {
-      console.log('👟 [PRODUCT] Usando generador de curva de tallas');
+      logger.log('[PRODUCT] Usando generador de curva de tallas');
 
       // Determinar tienda
       let storeId: string | undefined;
@@ -293,13 +294,13 @@ const ProductFormPage = () => {
         maxStock: Number(data.maxStock || 50),
       };
 
-      console.log('👟 [PRODUCT] Payload para curva:', sizeCurveData);
+      logger.log('[PRODUCT] Payload para curva:', sizeCurveData);
       sizeCurveMutation.mutate(sizeCurveData);
       return;
     }
 
     // MODO NORMAL (producto único)
-    console.log('🛍️ [PRODUCT] Usuario actual:', { 
+    logger.log('[PRODUCT] Usuario actual:', { 
       role: user?.role, 
       storeId: user?.store?._id,
       storeName: user?.store?.name,
@@ -308,7 +309,7 @@ const ProductFormPage = () => {
 
     // NO usar modo edición para crear productos
     if (isEditMode) {
-      console.log('🛍️ [PRODUCT] Modo edición - enviando sin inventario');
+      logger.log('[PRODUCT] Modo edición - enviando sin inventario');
       mutation.mutate(data);
       return;
     }
@@ -344,7 +345,7 @@ const ProductFormPage = () => {
       productData.barcode = String(data.barcode).trim();
     }
 
-    console.log('🛍️ [PRODUCT] Datos del producto procesados:', productData);
+    logger.log('[PRODUCT] Datos del producto procesados:', productData);
 
     // DETERMINAR TIENDA (CRÍTICO)
     let storeId: string | undefined;
@@ -352,25 +353,25 @@ const ProductFormPage = () => {
     // Caso 1: Store viene del formulario (admin lo seleccionó)
     if (data.store && data.store.trim() !== '') {
       storeId = String(data.store).trim();
-      console.log('✅ [PRODUCT] Tienda del formulario:', storeId);
+      logger.log('[PRODUCT] Tienda del formulario:', storeId);
     }
     // Caso 2: Usuario tiene tienda asignada (no es admin)
     else if (user && user.store && user.store._id) {
       storeId = String(user.store._id).trim();
-      console.log('✅ [PRODUCT] Tienda del usuario:', storeId);
+      logger.log('[PRODUCT] Tienda del usuario:', storeId);
     }
     // Caso 3: No hay tienda - ERROR
     else {
-      console.error('❌ [PRODUCT] No se pudo determinar la tienda');
-      console.error('❌ [PRODUCT] data.store:', data.store);
-      console.error('❌ [PRODUCT] user.store:', user?.store);
+      logger.error('[PRODUCT] No se pudo determinar la tienda');
+      logger.error('[PRODUCT] data.store:', data.store);
+      logger.error('[PRODUCT] user.store:', user?.store);
       toast.error('Debes seleccionar una tienda para el producto');
       return;
     }
 
     // Validar que storeId no sea undefined
     if (!storeId || storeId === '') {
-      console.error('❌ [PRODUCT] storeId está vacío después de validaciones');
+      logger.error('[PRODUCT] storeId está vacío después de validaciones');
       toast.error('Error: ID de tienda inválido');
       return;
     }
@@ -382,9 +383,9 @@ const ProductFormPage = () => {
     productData.minStock = Number(data.minStock !== undefined ? data.minStock : 10);
     productData.maxStock = Number(data.maxStock !== undefined ? data.maxStock : 1000);
 
-    console.log('🛍️ [PRODUCT] ========== DATOS FINALES ==========');
-    console.log('🛍️ [PRODUCT] Payload completo:', productData);
-    console.log('🛍️ [PRODUCT] Tipos de datos:', {
+    logger.log('[PRODUCT] ========== DATOS FINALES ==========');
+    logger.log('[PRODUCT] Payload completo:', productData);
+    logger.log('[PRODUCT] Tipos de datos:', {
       name: typeof productData.name,
       description: typeof productData.description,
       sku: typeof productData.sku,
@@ -397,12 +398,12 @@ const ProductFormPage = () => {
       maxStock: typeof productData.maxStock,
       isActive: typeof productData.isActive,
     });
-    console.log('🛍️ [PRODUCT] Valores:', {
+    logger.log('[PRODUCT] Valores:', {
       store: productData.store,
       storeLength: productData.store?.length,
       quantity: productData.quantity,
     });
-    console.log('🛍️ [PRODUCT] ========== ENVIANDO A MUTACIÓN ==========');
+    logger.log('[PRODUCT] ========== ENVIANDO A MUTACIÓN ==========');
 
     mutation.mutate(productData);
   };
