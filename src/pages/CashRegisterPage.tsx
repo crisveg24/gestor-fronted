@@ -1050,7 +1050,7 @@ export default function CashRegisterPage() {
               onClick={(e) => e.stopPropagation()}
             >
               <h2 className="text-xl font-bold mb-4">Cerrar Caja</h2>
-              <form onSubmit={(e) => { e.preventDefault(); closeMutation.mutate({ actualClosingAmount: parseFloat(closingAmount) || 0, closingNotes: closingNotes, storeId: selectedStore || undefined }); }}>
+              <form onSubmit={(e) => { e.preventDefault(); closeMutation.mutate({ actualClosingAmount: parseFloat(closingAmount) || 0, closingNotes: closingNotes, storeId: selectedStoreId || undefined }); }}>
                 <div className="space-y-4">
                   {currentRegister && (
                     <div className="bg-gray-50 rounded-lg p-4 space-y-2">
