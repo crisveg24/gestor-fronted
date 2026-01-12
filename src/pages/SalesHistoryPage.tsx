@@ -21,6 +21,9 @@ import {
   TrendingUp,
   TrendingDown,
   Clock,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 import { Card, Button, Modal, toast, SearchBar, EmptyStateNoStore } from '../components/ui';
 import api from '../lib/axios';
@@ -179,6 +182,10 @@ const SalesHistoryPage = () => {
   const [cashRegisterStore, setCashRegisterStore] = useState('');
   const [selectedCashRegister, setSelectedCashRegister] = useState<CashRegister | null>(null);
   const [cashRegisterDetailOpen, setCashRegisterDetailOpen] = useState(false);
+  
+  // Estados de ordenamiento para historial de cajas
+  const [cashSortField, setCashSortField] = useState<'date' | 'store' | 'sales' | 'difference' | 'opening'>('date');
+  const [cashSortOrder, setCashSortOrder] = useState<'asc' | 'desc'>('desc');
 
   // Estados de modales
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
@@ -245,6 +252,43 @@ const SalesHistoryPage = () => {
 
   const cashRegisters = cashRegisterData?.registers || [];
   const cashStats = cashRegisterData?.stats;
+
+  // Ordenar historial de cajas
+  const sortedCashRegisters = [...cashRegisters].sort((a, b) => {
+    let comparison = 0;
+    
+    switch (cashSortField) {
+      case 'date':
+        comparison = new Date(a.openedAt).getTime() - new Date(b.openedAt).getTime();
+        break;
+      case 'store':
+        comparison = (a.store?.name || '').localeCompare(b.store?.name || '');
+        break;
+      case 'sales':
+        comparison = (a.totalSales || 0) - (b.totalSales || 0);
+        break;
+      case 'difference':
+        comparison = (a.difference || 0) - (b.difference || 0);
+        break;
+      case 'opening':
+        comparison = (a.openingAmount || 0) - (b.openingAmount || 0);
+        break;
+      default:
+        comparison = 0;
+    }
+    
+    return cashSortOrder === 'asc' ? comparison : -comparison;
+  });
+
+  // Función para cambiar ordenamiento
+  const handleCashSort = (field: 'date' | 'store' | 'sales' | 'difference' | 'opening') => {
+    if (cashSortField === field) {
+      setCashSortOrder(cashSortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setCashSortField(field);
+      setCashSortOrder('desc');
+    }
+  };
 
   const sales: Sale[] = salesData?.sales || [];
 
@@ -1309,17 +1353,57 @@ const SalesHistoryPage = () => {
                       <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                           <tr>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Fecha
+                            <th 
+                              className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                              onClick={() => handleCashSort('date')}
+                            >
+                              <div className="flex items-center gap-1">
+                                Fecha
+                                {cashSortField === 'date' ? (
+                                  cashSortOrder === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+                                ) : (
+                                  <ArrowUpDown size={14} className="text-gray-300" />
+                                )}
+                              </div>
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Tienda
+                            <th 
+                              className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                              onClick={() => handleCashSort('store')}
+                            >
+                              <div className="flex items-center gap-1">
+                                Tienda
+                                {cashSortField === 'store' ? (
+                                  cashSortOrder === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+                                ) : (
+                                  <ArrowUpDown size={14} className="text-gray-300" />
+                                )}
+                              </div>
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Apertura
+                            <th 
+                              className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                              onClick={() => handleCashSort('opening')}
+                            >
+                              <div className="flex items-center gap-1">
+                                Apertura
+                                {cashSortField === 'opening' ? (
+                                  cashSortOrder === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+                                ) : (
+                                  <ArrowUpDown size={14} className="text-gray-300" />
+                                )}
+                              </div>
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Ventas
+                            <th 
+                              className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                              onClick={() => handleCashSort('sales')}
+                            >
+                              <div className="flex items-center gap-1">
+                                Ventas
+                                {cashSortField === 'sales' ? (
+                                  cashSortOrder === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+                                ) : (
+                                  <ArrowUpDown size={14} className="text-gray-300" />
+                                )}
+                              </div>
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                               Esperado
@@ -1327,8 +1411,18 @@ const SalesHistoryPage = () => {
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                               Cierre Real
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Diferencia
+                            <th 
+                              className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                              onClick={() => handleCashSort('difference')}
+                            >
+                              <div className="flex items-center gap-1">
+                                Diferencia
+                                {cashSortField === 'difference' ? (
+                                  cashSortOrder === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+                                ) : (
+                                  <ArrowUpDown size={14} className="text-gray-300" />
+                                )}
+                              </div>
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                               Responsable
@@ -1339,7 +1433,7 @@ const SalesHistoryPage = () => {
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                          {cashRegisters.map((register) => (
+                          {sortedCashRegisters.map((register) => (
                             <tr
                               key={register._id}
                               className={`hover:bg-gray-50 transition-colors ${
@@ -1435,7 +1529,28 @@ const SalesHistoryPage = () => {
 
                     {/* Vista Móvil - Cards */}
                     <div className="lg:hidden divide-y divide-gray-200">
-                      {cashRegisters.map((register) => (
+                      {/* Selector de ordenamiento móvil */}
+                      <div className="p-3 bg-gray-50 flex items-center gap-2">
+                        <span className="text-xs text-gray-500">Ordenar por:</span>
+                        <select
+                          value={cashSortField}
+                          onChange={(e) => setCashSortField(e.target.value as typeof cashSortField)}
+                          className="text-xs border border-gray-300 rounded px-2 py-1 bg-white"
+                        >
+                          <option value="date">Fecha</option>
+                          <option value="store">Tienda</option>
+                          <option value="sales">Ventas</option>
+                          <option value="difference">Diferencia</option>
+                          <option value="opening">Apertura</option>
+                        </select>
+                        <button
+                          onClick={() => setCashSortOrder(cashSortOrder === 'asc' ? 'desc' : 'asc')}
+                          className="p-1 border border-gray-300 rounded bg-white"
+                        >
+                          {cashSortOrder === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
+                        </button>
+                      </div>
+                      {sortedCashRegisters.map((register) => (
                         <div
                           key={register._id}
                           className={`p-4 ${
