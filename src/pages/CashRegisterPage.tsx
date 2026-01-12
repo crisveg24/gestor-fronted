@@ -25,6 +25,8 @@ import {
   Percent,
   Clock,
   Printer,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react';
 import api from '../lib/axios';
 import { useAuthStore } from '../store/authStore';
@@ -138,6 +140,7 @@ export default function CashRegisterPage() {
   });
   const [showTicketModal, setShowTicketModal] = useState(false);
   const [lastSale, setLastSale] = useState<any>(null);
+  const [cashPanelExpanded, setCashPanelExpanded] = useState(false);
   // Guardar tienda seleccionada
   useEffect(() => {
     if (isAdmin && selectedStoreId) {
@@ -553,17 +556,17 @@ export default function CashRegisterPage() {
         {/* Panel Izquierdo - Estado de Caja (Sidebar en desktop, colapsible en móvil) */}
         <div className="lg:w-80 bg-white border-b lg:border-b-0 lg:border-r flex flex-col">
           {loadingCurrent ? (
-            <div className="flex-1 flex items-center justify-center py-10 lg:py-0">
+            <div className="flex items-center justify-center py-6 lg:py-10">
               <div className="animate-spin h-8 w-8 border-2 border-primary-600 border-t-transparent rounded-full" />
             </div>
           ) : !currentRegister ? (
-            // Caja cerrada - Botón para abrir
-            <div className="flex flex-col items-center justify-center p-6 py-8">
-              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+            // Caja cerrada - Botón para abrir (compacto en móvil)
+            <div className="flex flex-col items-center justify-center p-4 lg:p-6 lg:py-8">
+              <div className="hidden lg:flex w-20 h-20 bg-gray-100 rounded-full items-center justify-center mb-4">
                 <Lock className="h-10 w-10 text-gray-400" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-700 mb-2">Caja Cerrada</h3>
-              <p className="text-sm text-gray-500 text-center mb-6 max-w-xs">
+              <h3 className="hidden lg:block text-lg font-semibold text-gray-700 mb-2">Caja Cerrada</h3>
+              <p className="hidden lg:block text-sm text-gray-500 text-center mb-6 max-w-xs">
                 Abre la caja para comenzar a registrar ventas
               </p>
               <button 
@@ -571,23 +574,102 @@ export default function CashRegisterPage() {
                 className="w-full max-w-xs px-6 py-3.5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white rounded-xl font-medium flex items-center justify-center gap-2 text-base shadow-sm transition-colors"
               >
                 <Unlock className="h-5 w-5" />
-                Abrir Caja
+                <span className="lg:inline">Abrir Caja</span>
               </button>
             </div>
           ) : (
-            // Caja abierta - Mostrar estado
+            // Caja abierta - Versión colapsable en móvil
             <>
-              <div className="px-4 py-3 border-b bg-green-50">
-                <div className="flex items-center gap-2.5 text-green-700">
-                  <CheckCircle className="h-5 w-5 flex-shrink-0" />
-                  <span className="font-semibold">Caja Abierta</span>
+              {/* Header siempre visible - Clickeable en móvil para expandir */}
+              <button
+                onClick={() => setCashPanelExpanded(!cashPanelExpanded)}
+                className="lg:pointer-events-none w-full px-4 py-3 border-b bg-green-50 flex items-center justify-between active:bg-green-100 lg:active:bg-green-50 transition-colors"
+              >
+                <div className="flex items-center gap-2.5">
+                  <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                  <div className="text-left">
+                    <span className="font-semibold text-green-700 block">Caja Abierta</span>
+                    <span className="text-xs text-green-600 lg:hidden">
+                      Esperado: {formatCurrency(currentRegister.calculatedTotals?.expectedAmount || currentRegister.openingAmount + (currentRegister.salesByMethod?.efectivo || 0))}
+                    </span>
+                    <span className="text-sm text-green-600 hidden lg:block">
+                      Desde {formatTime(currentRegister.openedAt)} • {currentRegister.openedBy?.name}
+                    </span>
+                  </div>
                 </div>
-                <p className="text-sm text-green-600 mt-1 ml-7">
-                  Desde {formatTime(currentRegister.openedAt)} • {currentRegister.openedBy?.name}
-                </p>
+                <div className="flex items-center gap-2 lg:hidden">
+                  <span className="text-xs text-green-600 font-medium">
+                    {cashPanelExpanded ? 'Ocultar' : 'Ver más'}
+                  </span>
+                  {cashPanelExpanded ? (
+                    <ChevronUp className="h-5 w-5 text-green-600" />
+                  ) : (
+                    <ChevronDown className="h-5 w-5 text-green-600" />
+                  )}
+                </div>
+              </button>
+
+              {/* Contenido - En móvil colapsable, en desktop siempre visible */}
+              {/* Versión móvil con animación */}
+              <div className="lg:hidden">
+                <AnimatePresence initial={false}>
+                  {cashPanelExpanded && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2, ease: 'easeInOut' }}
+                      className="overflow-hidden"
+                    >
+                      <div className="p-4 space-y-4 max-h-[50vh] overflow-y-auto">
+                        {/* Resumen compacto para móvil */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="bg-gray-50 rounded-xl p-3">
+                            <p className="text-xs text-gray-500">Apertura</p>
+                            <p className="font-bold text-base">{formatCurrency(currentRegister.openingAmount)}</p>
+                          </div>
+                          <div className="bg-green-50 rounded-xl p-3">
+                            <p className="text-xs text-gray-500">Ventas efectivo</p>
+                            <p className="font-bold text-base text-green-600">+{formatCurrency(currentRegister.salesByMethod?.efectivo || 0)}</p>
+                          </div>
+                          <div className="bg-gray-50 rounded-xl p-3">
+                            <p className="text-xs text-gray-500">Total ventas</p>
+                            <p className="font-bold text-base">{formatCurrency(totalSales)}</p>
+                          </div>
+                          <div className="bg-primary-50 rounded-xl p-3">
+                            <p className="text-xs text-gray-500">Esperado</p>
+                            <p className="font-bold text-base text-primary-700">
+                              {formatCurrency(currentRegister.calculatedTotals?.expectedAmount || currentRegister.openingAmount + (currentRegister.salesByMethod?.efectivo || 0))}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Acciones rápidas móvil */}
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => { setShowMovementModal(true); setCashPanelExpanded(false); }}
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-3 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-xl text-sm font-medium transition-colors"
+                          >
+                            <ArrowUpDown className="h-4 w-4" />
+                            Movimiento
+                          </button>
+                          <button
+                            onClick={() => { setShowCloseModal(true); setCashPanelExpanded(false); }}
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-3 bg-red-50 hover:bg-red-100 active:bg-red-200 text-red-700 rounded-xl text-sm font-medium transition-colors"
+                          >
+                            <Lock className="h-4 w-4" />
+                            Cerrar
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 space-y-5">
+              {/* Versión desktop - siempre visible */}
+              <div className="hidden lg:flex lg:flex-col lg:flex-1 overflow-hidden">
+                <div className="flex-1 overflow-y-auto p-4 space-y-5">
                 {/* Resumen */}
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm">
@@ -661,7 +743,7 @@ export default function CashRegisterPage() {
                 )}
               </div>
 
-              {/* Acciones de caja */}
+              {/* Acciones de caja - Desktop */}
               <div className="p-4 border-t space-y-3">
                 <button
                   onClick={() => setShowMovementModal(true)}
@@ -677,6 +759,7 @@ export default function CashRegisterPage() {
                   <Lock className="h-5 w-5" />
                   Cerrar Caja
                 </button>
+              </div>
               </div>
             </>
           )}
